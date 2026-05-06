@@ -5,16 +5,20 @@ import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useHydrated } from "@/hooks/useHydrated";
+import type { Product } from "@/types";
 
 /**
  * Called once per user session (tracked by syncedUserId ref).
- * Merges local wishlist into the server, then replaces the local store
- * with the merged result — so the user sees the same wishlist on every device.
+ * Merges local wishlist into the server, then merges the server result back
+ * into the local store — preserving any items added while the request was in-flight.
+ *
+ * Uses getState() instead of hook subscription to avoid:
+ *   1. Stale closure over `items` at effect-run time
+ *   2. Wiring the Navbar to re-render on every wishlist change
  */
 export function useWishlistSync() {
   const hydrated = useHydrated();
   const { user, token } = useAuthStore();
-  const { items, setItems } = useWishlistStore();
   const syncedUserId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -24,7 +28,8 @@ export function useWishlistSync() {
     }
     if (syncedUserId.current === user._id) return;
 
-    const localIds = items.map((i) => i._id);
+    // Read live state — not the stale closure value
+    const localIds = useWishlistStore.getState().items.map((i) => i._id);
 
     axios
       .put(
@@ -33,7 +38,14 @@ export function useWishlistSync() {
         { headers: { Authorization: `Bearer ${token}` } }
       )
       .then(({ data: json }) => {
-        if (json?.data) setItems(json.data);
+        if (json?.data) {
+          // Read live state again — user may have added items while request was in-flight
+          const currentItems = useWishlistStore.getState().items;
+          const serverIds    = new Set((json.data as Product[]).map((p) => p._id));
+          const localOnly    = currentItems.filter((p) => !serverIds.has(p._id));
+          // Merge: server items first (fresh data), then any locally added items
+          useWishlistStore.getState().setItems([...json.data, ...localOnly]);
+        }
         syncedUserId.current = user._id;
       })
       .catch(() => {
