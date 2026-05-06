@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -10,9 +10,13 @@ import {
   Menu,
   X,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
+import { useAuthStore } from "@/store/auth.store";
+import { useHydrated } from "@/hooks/useHydrated";
 
 const categories = [
   { label: "Fresh Food", href: "/categories/fresh-food" },
@@ -26,11 +30,33 @@ const categories = [
 ];
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const pathname = usePathname();
-  const router = useRouter();
+  const [mobileOpen, setMobileOpen]     = useState(false);
+  const [searchQuery, setSearchQuery]   = useState("");
+  const [accountOpen, setAccountOpen]   = useState(false);
+  const accountRef                       = useRef<HTMLDivElement>(null);
+  const pathname   = usePathname();
+  const router     = useRouter();
   const totalItems = useCartStore((s) => s.totalItems);
+  const { user, logout } = useAuthStore();
+  const hydrated   = useHydrated();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setAccountOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function handleLogout() {
+    logout();
+    setAccountOpen(false);
+    toast.success("You've been signed out.");
+    router.push("/");
+  }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -95,16 +121,50 @@ export default function Navbar() {
           {/* Right actions */}
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
             {/* Account */}
-            <Link
-              href="/login"
-              className={cn(
-                "flex flex-col items-center px-2 py-1 rounded text-white",
-                "hover:bg-[#003B7A] transition-colors text-xs"
-              )}
-            >
-              <User className="h-5 w-5 mb-0.5" />
-              <span className="hidden sm:inline">Account</span>
-            </Link>
+            {hydrated && user ? (
+              <div className="relative" ref={accountRef}>
+                <button
+                  onClick={() => setAccountOpen((o) => !o)}
+                  className={cn(
+                    "flex flex-col items-center px-2 py-1 rounded text-white",
+                    "hover:bg-[#003B7A] transition-colors text-xs"
+                  )}
+                  aria-label="Account menu"
+                  aria-expanded={accountOpen}
+                >
+                  <User className="h-5 w-5 mb-0.5" />
+                  <span className="hidden sm:inline max-w-[72px] truncate">
+                    {user.name.split(" ")[0]}
+                  </span>
+                </button>
+                {accountOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-xs font-bold text-gray-900 truncate">{user.name}</p>
+                      <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className={cn(
+                  "flex flex-col items-center px-2 py-1 rounded text-white",
+                  "hover:bg-[#003B7A] transition-colors text-xs"
+                )}
+              >
+                <User className="h-5 w-5 mb-0.5" />
+                <span className="hidden sm:inline">Sign in</span>
+              </Link>
+            )}
 
             {/* Cart */}
             <Link
