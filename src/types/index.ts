@@ -75,6 +75,38 @@ export interface AuthFormData {
   password: string;
 }
 
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+export interface OrderLineItem {
+  productId: string;
+  name:      string;
+  slug:      string;
+  price:     number;
+  quantity:  number;
+  image:     string;
+}
+
+export interface Order {
+  _id:         string;
+  orderNumber: string;
+  items:       OrderLineItem[];
+  delivery: {
+    fullName: string;
+    email:    string;
+    phone:    string;
+    address:  string;
+    city:     string;
+    postcode: string;
+  };
+  subtotal:    number;
+  deliveryFee: number;
+  discount:    number;
+  promoCode?:  string;
+  total:       number;
+  status:      "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  createdAt:   string;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T = unknown> {

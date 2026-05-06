@@ -143,6 +143,14 @@ export default function Navbar() {
                       <p className="text-xs font-bold text-gray-900 truncate">{user.name}</p>
                       <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
                     </div>
+                    <Link
+                      href="/account"
+                      onClick={() => setAccountOpen(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <User className="h-4 w-4" />
+                      My Account
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
