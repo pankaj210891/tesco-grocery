@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useWishlistStore } from "@/store/wishlist.store";
+import { useWishlistSync } from "@/hooks/useWishlistSync";
 import { useHydrated } from "@/hooks/useHydrated";
 
 const categories = [
@@ -40,6 +41,7 @@ export default function Navbar() {
   const router     = useRouter();
   const totalItems    = useCartStore((s) => s.totalItems);
   const wishlistCount = useWishlistStore((s) => s.items.length);
+  useWishlistSync();
   const { user, logout } = useAuthStore();
   const hydrated   = useHydrated();
 
