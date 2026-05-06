@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tesco Grocery — Online Supermarket Portal
 
-## Getting Started
+A production-quality, full-stack grocery e-commerce app built with Next.js 16, MongoDB, and Zustand.
 
-First, run the development server:
+## Tech Stack
+
+| Layer     | Technology                              |
+| --------- | --------------------------------------- |
+| Framework | Next.js 16.2 (App Router)               |
+| Database  | MongoDB Atlas + Mongoose 9              |
+| Auth      | JWT (jsonwebtoken) + bcryptjs           |
+| State     | Zustand 5 with localStorage persistence |
+| Forms     | React Hook Form + Zod v4                |
+| Styling   | Tailwind CSS 4                          |
+| HTTP      | Axios                                   |
+| UI        | Lucide React, react-hot-toast           |
+
+## Features
+
+- Product catalogue with search, category filters, sort, and pagination
+- Product detail pages with image gallery and related products
+- Shopping cart (persisted to localStorage)
+- Wishlist / Favourites (localStorage + MongoDB sync when logged in)
+- Register / Login with JWT authentication
+- Checkout with delivery form, mock payment, and promo codes
+- Order history and order detail pages (per-user, JWT-protected)
+- User account page
+
+## Local Setup
+
+### Prerequisites
+
+- Node.js 20+
+- MongoDB Atlas account (or local MongoDB)
+
+### Steps
 
 ```bash
+# 1. Clone
+git clone https://github.com/pankaj210891/tesco-grocery.git
+cd tesco-grocery
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
+cp .env.example .env.local
+# Fill in MONGODB_URI and JWT_SECRET in .env.local
+
+# 4. (Optional) Seed the database
+curl -X POST http://localhost:3000/api/seed
+
+# 5. Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable      | Description                                                       | Required |
+| ------------- | ----------------------------------------------------------------- | -------- |
+| `MONGODB_URI` | MongoDB Atlas connection string                                   | Yes      |
+| `JWT_SECRET`  | Random 64-byte secret for JWT signing (`openssl rand -base64 64`) | Yes      |
 
-## Learn More
+> **Never commit `.env.local`** — it is gitignored. Use `.env.example` as a template.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev         # Development server
+npm run build       # Production build
+npm run start       # Production server
+npm run lint        # ESLint
+npm run type-check  # TypeScript check (no emit)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── (auth)/         # Login, Register pages
+│   ├── (shop)/         # All shop pages (products, cart, checkout, account)
+│   └── api/            # Route handlers (REST API)
+├── components/         # Reusable UI components
+├── hooks/              # Custom React hooks
+├── lib/
+│   ├── db/             # Mongoose models & connection
+│   ├── data/           # Mock data & static content
+│   ├── utils/          # Shared utilities
+│   └── validations/    # Zod schemas
+├── services/           # Business logic layer (DB-agnostic interface)
+├── store/              # Zustand stores (cart, auth, wishlist)
+└── types/              # Shared TypeScript types
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [CONTRIBUTING](#) and our [PR template](.github/pull_request_template.md).
+
+Branch naming: `feat/`, `fix/`, `refactor/`, `chore/`, `docs/`  
+Commits: [Conventional Commits](https://www.conventionalcommits.org) enforced via commitlint.

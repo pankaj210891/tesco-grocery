@@ -4,7 +4,11 @@ import { connectDB } from "@/lib/db/mongoose";
 import UserModel from "@/lib/db/models/user.model";
 import type { User } from "@/types";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET environment variable is not set.");
+  return secret; // inferred as string, never undefined
+})();
 const JWT_EXPIRES_IN = "7d";
 
 export interface AuthPayload {

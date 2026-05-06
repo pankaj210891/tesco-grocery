@@ -1,0 +1,21 @@
+# CODEOWNERS — every PR must be approved by the matching owner(s).
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global fallback — all files not matched below
+*                                   @pankaj210891
+
+# ── Security-sensitive layers ─────────────────────────────────────────────────
+src/lib/db/                         @pankaj210891
+src/services/auth.service.ts        @pankaj210891
+src/app/api/auth/                   @pankaj210891
+src/lib/utils/apiAuth.ts            @pankaj210891
+
+# ── Business logic ────────────────────────────────────────────────────────────
+src/services/                       @pankaj210891
+src/app/api/                        @pankaj210891
+
+# ── CI / deployment config ────────────────────────────────────────────────────
+.github/                            @pankaj210891
+.husky/                             @pankaj210891
+next.config.ts                      @pankaj210891
+package.json                        @pankaj210891
