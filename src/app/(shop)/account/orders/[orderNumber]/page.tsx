@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Package, MapPin, CreditCard } from "lucide-react";
+import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { formatPrice } from "@/lib/utils/format";
@@ -48,15 +49,17 @@ export default function OrderDetailPage({
 
     async function fetchOrder() {
       try {
-        const res  = await fetch(`/api/account/orders/${orderNumber}`, {
+        const { data: json } = await axios.get(`/api/account/orders/${orderNumber}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const json = await res.json();
-        if (res.ok)            setOrder(json.data);
-        else if (res.status === 404) setError("Order not found.");
-        else                   setError(json.error ?? "Failed to load order.");
-      } catch {
-        setError("Something went wrong.");
+        setOrder(json.data);
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          setError("Order not found.");
+        } else {
+          const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+          setError(msg ?? "Failed to load order.");
+        }
       } finally {
         setLoading(false);
       }

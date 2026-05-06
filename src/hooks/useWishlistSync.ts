@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -25,16 +26,13 @@ export function useWishlistSync() {
 
     const localIds = items.map((i) => i._id);
 
-    fetch("/api/account/wishlist/sync", {
-      method:  "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization:  `Bearer ${token}`,
-      },
-      body: JSON.stringify({ productIds: localIds }),
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
+    axios
+      .put(
+        "/api/account/wishlist/sync",
+        { productIds: localIds },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(({ data: json }) => {
         if (json?.data) setItems(json.data);
         syncedUserId.current = user._id;
       })

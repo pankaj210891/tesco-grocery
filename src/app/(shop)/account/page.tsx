@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Package, ChevronRight, LogOut, ShoppingBag } from "lucide-react";
+import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { formatPrice } from "@/lib/utils/format";
@@ -43,14 +44,13 @@ export default function AccountPage() {
   const fetchOrders = useCallback(async () => {
     if (!token) return;
     try {
-      const res  = await fetch("/api/account/orders", {
+      const { data: json } = await axios.get("/api/account/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      if (res.ok) setOrders(json.data ?? []);
-      else setError(json.error ?? "Failed to load orders.");
-    } catch {
-      setError("Something went wrong.");
+      setOrders(json.data ?? []);
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+      setError(msg ?? "Failed to load orders.");
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import axios from "axios";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -28,18 +29,12 @@ export default function WishlistButton({ product, className }: Props) {
     if (!token) return; // not logged in — localStorage only
 
     // fire-and-forget server sync
+    const authHeader = { Authorization: `Bearer ${token}` };
     try {
       if (willBeSaved) {
-        await fetch("/api/account/wishlist", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body:    JSON.stringify({ productId: product._id }),
-        });
+        await axios.post("/api/account/wishlist", { productId: product._id }, { headers: authHeader });
       } else {
-        await fetch(`/api/account/wishlist/${product._id}`, {
-          method:  "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axios.delete(`/api/account/wishlist/${product._id}`, { headers: authHeader });
       }
     } catch {
       // silently ignore — local state is already correct

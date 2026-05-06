@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
 import { useAuthStore } from "@/store/auth.store";
@@ -25,23 +26,15 @@ export default function RegisterPage() {
 
   async function onSubmit(data: RegisterFormData) {
     try {
-      const res = await fetch("/api/auth/register", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(data),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        toast.error(json.error ?? "Registration failed.");
-        return;
-      }
-
+      const { data: json } = await axios.post("/api/auth/register", data);
       setAuth(json.data.user, json.data.token);
       toast.success("Account created! Welcome to Tesco.");
       router.push("/");
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.error ?? "Registration failed."
+        : "Something went wrong. Please try again.";
+      toast.error(msg);
     }
   }
 

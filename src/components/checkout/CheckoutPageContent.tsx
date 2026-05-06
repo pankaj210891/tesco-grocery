@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingCart, CreditCard, MapPin } from "lucide-react";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -95,22 +96,12 @@ export default function CheckoutPageContent() {
         image:     i.product.images[0] ?? "",
       }));
 
-      const res = await fetch("/api/orders", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          form:      data,
-          items:     orderItems,
-          userId:    user?._id,
-          promoCode,
-        }),
+      const { data: json } = await axios.post("/api/orders", {
+        form:      data,
+        items:     orderItems,
+        userId:    user?._id,
+        promoCode,
       });
-      const json = await res.json();
-
-      if (!res.ok) {
-        toast.error(json.error ?? "Failed to place order. Please try again.");
-        return;
-      }
 
       clearCart();
       const { orderNumber } = json.data;
@@ -120,8 +111,11 @@ export default function CheckoutPageContent() {
         total: String(totalPrice.toFixed(2)),
       });
       router.push(`/checkout/confirmation?${params.toString()}`);
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.error ?? "Failed to place order. Please try again."
+        : "Something went wrong. Please try again.";
+      toast.error(msg);
     }
   }
 

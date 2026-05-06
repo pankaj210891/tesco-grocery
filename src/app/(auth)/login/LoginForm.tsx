@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
 import { useAuthStore } from "@/store/auth.store";
@@ -27,23 +28,15 @@ export default function LoginForm() {
 
   async function onSubmit(data: LoginFormData) {
     try {
-      const res = await fetch("/api/auth/login", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(data),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        toast.error(json.error ?? "Login failed. Please check your credentials.");
-        return;
-      }
-
+      const { data: json } = await axios.post("/api/auth/login", data);
       setAuth(json.data.user, json.data.token);
       toast.success(`Welcome back, ${json.data.user.name.split(" ")[0]}!`);
       router.push(redirect);
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.error ?? "Login failed. Please check your credentials."
+        : "Something went wrong. Please try again.";
+      toast.error(msg);
     }
   }
 
