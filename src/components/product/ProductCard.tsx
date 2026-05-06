@@ -6,6 +6,7 @@ import { Star, Plus, Minus, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import Badge from "@/components/ui/Badge";
 import { useCartStore } from "@/store/cart.store";
+import WishlistButton from "./WishlistButton";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
@@ -40,6 +41,9 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         {discount && <Badge variant="sale" label={`${discount}% off`} />}
         {!product.inStock && <Badge variant="outOfStock" />}
       </div>
+
+      {/* Wishlist */}
+      <WishlistButton product={product} className="absolute top-2 right-2 z-10" />
 
       {/* Image */}
       <Link

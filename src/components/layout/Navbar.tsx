@@ -11,11 +11,13 @@ import {
   X,
   ChevronDown,
   LogOut,
+  Heart,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useWishlistStore } from "@/store/wishlist.store";
 import { useHydrated } from "@/hooks/useHydrated";
 
 const categories = [
@@ -36,7 +38,8 @@ export default function Navbar() {
   const accountRef                       = useRef<HTMLDivElement>(null);
   const pathname   = usePathname();
   const router     = useRouter();
-  const totalItems = useCartStore((s) => s.totalItems);
+  const totalItems    = useCartStore((s) => s.totalItems);
+  const wishlistCount = useWishlistStore((s) => s.items.length);
   const { user, logout } = useAuthStore();
   const hydrated   = useHydrated();
 
@@ -151,6 +154,14 @@ export default function Navbar() {
                       <User className="h-4 w-4" />
                       My Account
                     </Link>
+                    <Link
+                      href="/account/wishlist"
+                      onClick={() => setAccountOpen(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Heart className="h-4 w-4" />
+                      Wishlist
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -173,6 +184,31 @@ export default function Navbar() {
                 <span className="hidden sm:inline">Sign in</span>
               </Link>
             )}
+
+            {/* Wishlist */}
+            <Link
+              href="/account/wishlist"
+              aria-label={`Wishlist, ${hydrated ? wishlistCount : 0} items`}
+              className={cn(
+                "relative flex flex-col items-center px-2 py-1 rounded text-white",
+                "hover:bg-[#003B7A] transition-colors text-xs"
+              )}
+            >
+              <Heart className="h-5 w-5 mb-0.5" />
+              <span className="hidden sm:inline">Saved</span>
+              {hydrated && wishlistCount > 0 && (
+                <span
+                  className={cn(
+                    "absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1",
+                    "bg-red-500 text-white text-[10px] font-bold",
+                    "rounded-full flex items-center justify-center leading-none"
+                  )}
+                  aria-hidden
+                >
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
+            </Link>
 
             {/* Cart */}
             <Link
