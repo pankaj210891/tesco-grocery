@@ -23,6 +23,19 @@ export const SORT_OPTIONS = [
 
 export const PRODUCTS_PER_PAGE = 12;
 
+export const CATEGORY_NAME_MAP: Record<string, string> = {
+  "fresh-food":     "Fresh Food",
+  "bakery":         "Bakery",
+  "dairy-eggs":     "Dairy & Eggs",
+  "meat-fish":      "Meat & Fish",
+  "frozen-food":    "Frozen Food",
+  "drinks":         "Drinks",
+  "snacks":         "Snacks",
+  "household":      "Household",
+  "health-beauty":  "Health & Beauty",
+  "baby":           "Baby",
+};
+
 export const TESCO_COLORS = {
   blue: "#00539F",
   red: "#EE1C2E",

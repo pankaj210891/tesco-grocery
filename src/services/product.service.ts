@@ -1,0 +1,150 @@
+import mongoose from "mongoose";
+import { connectDB, isDBConfigured } from "@/lib/db/mongoose";
+import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
+import { mockAllProducts } from "@/lib/data/mock-products";
+import { slugify } from "@/lib/utils/format";
+import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
+import type { Product, ProductFilters, PaginatedProducts } from "@/types";
+
+// ── Serialiser ────────────────────────────────────────────────────────────────
+
+function toProduct(doc: ProductDoc): Product {
+  return {
+    _id:           doc._id.toString(),
+    name:          doc.name,
+    slug:          doc.slug,
+    description:   doc.description,
+    price:         doc.price,
+    originalPrice: doc.originalPrice ?? undefined,
+    images:        (doc.images ?? []) as string[],
+    category:      doc.category,
+    brand:         doc.brand,
+    unit:          doc.unit,
+    inStock:       doc.inStock ?? true,
+    rating:        doc.rating ?? 0,
+    reviewCount:   doc.reviewCount ?? 0,
+    tags:          (doc.tags ?? []) as string[],
+    createdAt:     doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
+    updatedAt:     doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
+  };
+}
+
+// ── Mock fallbacks (used when DB is not configured) ───────────────────────────
+
+function mockGetProducts(filters: ProductFilters): PaginatedProducts {
+  const {
+    category, minPrice, maxPrice, inStock,
+    sortBy, search, page = 1, limit = PRODUCTS_PER_PAGE,
+  } = filters;
+
+  let results = [...mockAllProducts];
+
+  if (search) {
+    const term = search.toLowerCase();
+    results = results.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        p.brand.toLowerCase().includes(term) ||
+        p.category.toLowerCase().includes(term)
+    );
+  }
+  if (category)               results = results.filter((p) => slugify(p.category) === category);
+  if (inStock)                results = results.filter((p) => p.inStock);
+  if (minPrice !== undefined) results = results.filter((p) => p.price >= minPrice);
+  if (maxPrice !== undefined) results = results.filter((p) => p.price <= maxPrice);
+
+  switch (sortBy) {
+    case "price-asc":  results.sort((a, b) => a.price - b.price); break;
+    case "price-desc": results.sort((a, b) => b.price - a.price); break;
+    case "rating":     results.sort((a, b) => b.rating - a.rating); break;
+    case "newest":     results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
+  }
+
+  const total = results.length;
+  const skip  = (page - 1) * limit;
+  return { products: results.slice(skip, skip + limit), total, page, totalPages: Math.ceil(total / limit) };
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export async function getProducts(filters: ProductFilters = {}): Promise<PaginatedProducts> {
+  if (!isDBConfigured()) return mockGetProducts(filters);
+
+  await connectDB();
+
+  const {
+    category, minPrice, maxPrice, inStock,
+    sortBy, search, page = 1, limit = PRODUCTS_PER_PAGE,
+  } = filters;
+
+  const query: mongoose.QueryFilter<ProductDoc> = {};
+
+  if (category) {
+    const name = CATEGORY_NAME_MAP[category] ?? category;
+    query.category = name;
+  }
+  if (inStock) query.inStock = true;
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    query.price = {} as { $gte?: number; $lte?: number };
+    if (minPrice !== undefined) (query.price as Record<string, number>).$gte = minPrice;
+    if (maxPrice !== undefined) (query.price as Record<string, number>).$lte = maxPrice;
+  }
+  if (search) query.$text = { $search: search };
+
+  type SortSpec = Record<string, mongoose.SortOrder>;
+  const sortMap: Record<string, SortSpec> = {
+    "price-asc":  { price:     1 as mongoose.SortOrder },
+    "price-desc": { price:    -1 as mongoose.SortOrder },
+    "rating":     { rating:   -1 as mongoose.SortOrder },
+    "newest":     { createdAt: -1 as mongoose.SortOrder },
+  };
+  const defaultSort: SortSpec = { createdAt: -1 as mongoose.SortOrder };
+  const sort = sortBy ? (sortMap[sortBy] ?? defaultSort) : defaultSort;
+
+  const skip = (page - 1) * limit;
+
+  const [docs, total] = await Promise.all([
+    ProductModel.find(query).sort(sort).skip(skip).limit(limit).lean<ProductDoc[]>(),
+    ProductModel.countDocuments(query),
+  ]);
+
+  return {
+    products:   docs.map(toProduct),
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  if (!isDBConfigured()) {
+    return mockAllProducts.find((p) => p.slug === slug) ?? null;
+  }
+  await connectDB();
+  const doc = await ProductModel.findOne({ slug }).lean<ProductDoc>();
+  return doc ? toProduct(doc) : null;
+}
+
+export async function getAllProductSlugs(): Promise<string[]> {
+  if (!isDBConfigured()) return mockAllProducts.map((p) => p.slug);
+  await connectDB();
+  const docs = await ProductModel.find({}, { slug: 1 }).lean<{ slug: string }[]>();
+  return docs.map((d) => d.slug);
+}
+
+export async function getCategories(): Promise<{ name: string; slug: string; count: number }[]> {
+  if (!isDBConfigured()) {
+    const map: Record<string, number> = {};
+    mockAllProducts.forEach((p) => { map[p.category] = (map[p.category] ?? 0) + 1; });
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, slug: slugify(name), count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  await connectDB();
+  const rows = await ProductModel.aggregate<{ _id: string; count: number }>([
+    { $group: { _id: "$category", count: { $sum: 1 } } },
+    { $sort: { _id: 1 } },
+  ]);
+  return rows.map((r) => ({ name: r._id, slug: slugify(r._id), count: r.count }));
+}
