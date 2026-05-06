@@ -1,0 +1,49 @@
+"use client";
+
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { SORT_OPTIONS } from "@/constants";
+
+export default function SortControl() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const current = searchParams.get("sortBy") ?? "";
+
+  function handleChange(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set("sortBy", value);
+    } else {
+      params.delete("sortBy");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <label
+        htmlFor="sort-select"
+        className="text-sm text-gray-600 whitespace-nowrap hidden sm:inline"
+      >
+        Sort by:
+      </label>
+      <select
+        id="sort-select"
+        value={current}
+        onChange={(e) => handleChange(e.target.value)}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] cursor-pointer"
+      >
+        {SORT_OPTIONS.map((opt) => (
+          <option
+            key={opt.value}
+            value={opt.value === "relevance" ? "" : opt.value}
+          >
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}

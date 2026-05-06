@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Tesco brand palette */
+  --color-tesco-blue: #00539F;
+  --color-tesco-blue-dark: #003B7A;
+  --color-tesco-blue-light: #007DC6;
+  --color-tesco-red: #EE1C2E;
+  --color-tesco-red-dark: #C01525;
+
+  /* Neutral scale */
+  --color-surface: #F5F5F5;
+  --color-border: #E5E7EB;
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background-color: var(--color-surface);
+    color: theme(colors.gray.900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-tesco-blue);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .text-tesco-blue {
+    color: var(--color-tesco-blue);
+  }
+  .bg-tesco-blue {
+    background-color: var(--color-tesco-blue);
+  }
+  .border-tesco-blue {
+    border-color: var(--color-tesco-blue);
+  }
+  .text-tesco-red {
+    color: var(--color-tesco-red);
+  }
+  .bg-tesco-red {
+    background-color: var(--color-tesco-red);
+  }
 }
