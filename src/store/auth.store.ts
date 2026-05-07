@@ -19,12 +19,10 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (user, token) => set({ user, token }),
       logout: () => {
         set({ user: null, token: null });
-        // Clear user-specific stores — import lazily to avoid circular module refs
+        // Wishlist is user-specific and DB-backed — clear it on sign-out.
+        // Cart is intentionally kept: device-local, not account-tied.
         import("@/store/wishlist.store").then(({ useWishlistStore }) =>
           useWishlistStore.getState().clearWishlist()
-        );
-        import("@/store/cart.store").then(({ useCartStore }) =>
-          useCartStore.getState().clearCart()
         );
       },
     }),
