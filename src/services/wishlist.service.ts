@@ -82,15 +82,15 @@ export async function syncWishlist(userId: string, localProductIds: string[]): P
 
   await connectDB();
 
-  const existing = await WishlistModel.findOne({ userId }).lean();
-  const serverIds  = ((existing?.productIds ?? []) as string[]);
-  const mergedIds  = Array.from(new Set([...serverIds, ...localProductIds]));
-
-  await WishlistModel.findOneAndUpdate(
+  // Single atomic operation: adds any local IDs not already on the server,
+  // then returns the full merged document. Avoids the read-then-upsert race
+  // condition (E11000) when two devices sync concurrently.
+  const doc = await WishlistModel.findOneAndUpdate(
     { userId },
-    { productIds: mergedIds },
-    { upsert: true }
+    { $addToSet: { productIds: { $each: localProductIds } } },
+    { upsert: true, new: true }
   );
 
+  const mergedIds = (doc?.productIds ?? localProductIds) as string[];
   return dbProductsByIds(mergedIds);
 }
