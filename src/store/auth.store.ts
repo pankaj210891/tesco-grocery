@@ -17,14 +17,11 @@ export const useAuthStore = create<AuthState>()(
       user:    null,
       token:   null,
       setAuth: (user, token) => set({ user, token }),
-      logout: () => {
-        set({ user: null, token: null });
-        // Wishlist is user-specific and DB-backed — clear it on sign-out.
-        // Cart is intentionally kept: device-local, not account-tied.
-        import("@/store/wishlist.store").then(({ useWishlistStore }) =>
-          useWishlistStore.getState().clearWishlist()
-        );
-      },
+      logout: () => set({ user: null, token: null }),
+      // Cart and wishlist are intentionally kept on logout:
+      // - Cart is device-local (guest should be able to check out after login).
+      // - Wishlist local state is overwritten by the server's copy on next login
+      //   via useWishlistSync, so no stale data leaks across users.
     }),
     { name: "tesco-auth" }
   )

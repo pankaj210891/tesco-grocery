@@ -38,13 +38,11 @@ export function useWishlistSync() {
         { headers: { Authorization: `Bearer ${token}` } }
       )
       .then(({ data: json }) => {
-        if (json?.data) {
-          // Read live state again — user may have added items while request was in-flight
-          const currentItems = useWishlistStore.getState().items;
-          const serverIds    = new Set((json.data as Product[]).map((p) => p._id));
-          const localOnly    = currentItems.filter((p) => !serverIds.has(p._id));
-          // Merge: server items first (fresh data), then any locally added items
-          useWishlistStore.getState().setItems([...json.data, ...localOnly]);
+        if (Array.isArray(json?.data)) {
+          // The server already merged local IDs into the user's account via $addToSet,
+          // so json.data is the authoritative list. Replace local state with it so
+          // a different user logging in on the same device sees only their own items.
+          useWishlistStore.getState().setItems(json.data as Product[]);
         }
         syncedUserId.current = user._id;
       })
