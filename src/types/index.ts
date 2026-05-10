@@ -141,6 +141,76 @@ export interface PaymentMethod {
   createdAt: string;
 }
 
+// ─── Store Locator ────────────────────────────────────────────────────────────
+
+export interface DayHours {
+  open:   string;
+  close:  string;
+  closed: boolean;
+}
+
+export interface Store {
+  _id:      string;
+  name:     string;
+  address:  string;
+  city:     string;
+  postcode: string;
+  phone:    string;
+  email?:   string;
+  openingHours: {
+    monday:    DayHours;
+    tuesday:   DayHours;
+    wednesday: DayHours;
+    thursday:  DayHours;
+    friday:    DayHours;
+    saturday:  DayHours;
+    sunday:    DayHours;
+  };
+  amenities: string[];
+  isActive:  boolean;
+  lat?:      number;
+  lng?:      number;
+  createdAt: string;
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+
+export type FaqCategory = "general" | "account" | "orders" | "delivery" | "payments" | "returns";
+
+export interface Faq {
+  _id:      string;
+  question: string;
+  answer:   string;
+  category: FaqCategory;
+  order:    number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// ─── Special Offers ───────────────────────────────────────────────────────────
+
+export type DiscountType = "percentage" | "fixed" | "freeDelivery";
+
+export interface Offer {
+  _id:           string;
+  title:         string;
+  subtitle?:     string;
+  description?:  string;
+  code?:         string;
+  discountType:  DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  expiresAt:     string;
+  isActive:      boolean;
+  badge?:        string;
+  color?:        string;
+  emoji?:        string;
+  category:      string;
+  href:          string;
+  order:         number;
+  createdAt:     string;
+}
+
 // ─── Homepage Sections ────────────────────────────────────────────────────────
 
 export type SectionType =

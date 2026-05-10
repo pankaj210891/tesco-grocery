@@ -315,10 +315,22 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
-            <li className="ml-auto shrink-0">
+            <li className="ml-auto shrink-0 flex items-center">
+              <Link
+                href="/offers"
+                className="flex items-center px-3 py-2.5 text-sm font-medium text-[#F57C00] hover:text-white transition-colors whitespace-nowrap"
+              >
+                Special Offers
+              </Link>
+              <Link
+                href="/store-locator"
+                className="flex items-center px-3 py-2.5 text-sm font-medium text-blue-200 hover:text-white transition-colors whitespace-nowrap"
+              >
+                Store Locator
+              </Link>
               <Link
                 href="/categories"
-                className="flex items-center gap-1 px-3 py-2.5 text-sm font-medium text-[#F57C00] hover:text-white transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 px-3 py-2.5 text-sm font-medium text-blue-200 hover:text-white transition-colors whitespace-nowrap"
               >
                 All Departments <ChevronDown className="h-3.5 w-3.5" />
               </Link>
@@ -385,6 +397,34 @@ export default function Navbar() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/offers"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-6 py-3 text-sm font-semibold hover:bg-orange-50 dark:hover:bg-orange-950"
+                  style={{ color: ACCENT }}
+                >
+                  🏷️ Special Offers
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/store-locator"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#0F4C75] dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  📍 Store Locator
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/help"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#0F4C75] dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  ❓ Help Centre
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/products"
