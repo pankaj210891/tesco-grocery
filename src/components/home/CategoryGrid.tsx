@@ -38,6 +38,9 @@ const categories: Category[] = [
   { label: "Inspiration",      href: "/categories/inspiration-events",   emoji: "✨", bg: "bg-yellow-100  dark:bg-yellow-900"  },
 ];
 
+const circleBtnBase =
+  "w-9 h-9 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md flex items-center justify-center transition-all duration-200";
+
 export default function CategoryGrid() {
   const trackRef  = useRef<HTMLDivElement>(null);
   const [canLeft,  setCanLeft]  = useState(false);
@@ -70,17 +73,10 @@ export default function CategoryGrid() {
     });
   }
 
-  const chevronCls = (visible: boolean) =>
-    cn(
-      "absolute top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full",
-      "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-      "shadow-md flex items-center justify-center transition-all duration-200",
-      visible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-    );
-
   return (
     <section aria-labelledby="dept-heading">
-      {/* Header */}
+
+      {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <h2
           id="dept-heading"
@@ -96,28 +92,46 @@ export default function CategoryGrid() {
         </Link>
       </div>
 
-      {/* Carousel */}
+      {/* ── Carousel ───────────────────────────────────────────── */}
       <div className="relative">
 
-        {/* ── Left edge fade ── */}
+        {/* Left fade — desktop only (left chevron handles this edge on mobile via bottom row) */}
         <div
           aria-hidden
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-14 bg-gradient-to-r from-white dark:from-[#0F172A] to-transparent pointer-events-none z-[5] transition-opacity duration-200",
+            "hidden sm:block absolute left-0 top-0 bottom-0 w-14 pointer-events-none z-[5]",
+            "bg-gradient-to-r from-white dark:from-[#0F172A] to-transparent",
+            "transition-opacity duration-200",
             canLeft ? "opacity-100" : "opacity-0"
           )}
         />
 
-        {/* ── Left chevron ── */}
+        {/* Right fade — always shown */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute right-0 top-0 bottom-0 w-14 pointer-events-none z-[5]",
+            "bg-gradient-to-l from-white dark:from-[#0F172A] to-transparent",
+            "transition-opacity duration-200",
+            canRight ? "opacity-100" : "opacity-0"
+          )}
+        />
+
+        {/* Left chevron — sm+ only, floats on the left side */}
         <button
           onClick={() => nudge("left")}
           aria-label="Scroll departments left"
-          className={cn(chevronCls(canLeft), "left-1")}
+          className={cn(
+            "hidden sm:flex",
+            "absolute left-1 top-1/2 -translate-y-1/2 z-10",
+            circleBtnBase,
+            canLeft ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
         >
           <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
         </button>
 
-        {/* ── Scroll track ── */}
+        {/* Scroll track */}
         <div
           ref={trackRef}
           className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-none py-1"
@@ -148,24 +162,47 @@ export default function CategoryGrid() {
           ))}
         </div>
 
-        {/* ── Right chevron ── */}
+        {/* Right chevron — sm+ only, floats on the right side */}
         <button
           onClick={() => nudge("right")}
           aria-label="Scroll departments right"
-          className={cn(chevronCls(canRight), "right-1")}
+          className={cn(
+            "hidden sm:flex",
+            "absolute right-1 top-1/2 -translate-y-1/2 z-10",
+            circleBtnBase,
+            canRight ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
         >
           <ChevronRight className="h-4 w-4 text-gray-700 dark:text-gray-300" />
         </button>
-
-        {/* ── Right edge fade ── */}
-        <div
-          aria-hidden
-          className={cn(
-            "absolute right-0 top-0 bottom-0 w-14 bg-gradient-to-l from-white dark:from-[#0F172A] to-transparent pointer-events-none z-[5] transition-opacity duration-200",
-            canRight ? "opacity-100" : "opacity-0"
-          )}
-        />
       </div>
+
+      {/* ── Mobile-only: bottom-right chevron row ──────────────── */}
+      <div className="flex sm:hidden justify-end gap-2 mt-3">
+        <button
+          onClick={() => nudge("left")}
+          disabled={!canLeft}
+          aria-label="Scroll departments left"
+          className={cn(
+            circleBtnBase,
+            canLeft ? "opacity-100" : "opacity-30 cursor-not-allowed"
+          )}
+        >
+          <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+        </button>
+        <button
+          onClick={() => nudge("right")}
+          disabled={!canRight}
+          aria-label="Scroll departments right"
+          className={cn(
+            circleBtnBase,
+            canRight ? "opacity-100" : "opacity-30 cursor-not-allowed"
+          )}
+        >
+          <ChevronRight className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+        </button>
+      </div>
+
     </section>
   );
 }
