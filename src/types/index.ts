@@ -141,6 +141,49 @@ export interface PaymentMethod {
   createdAt: string;
 }
 
+// ─── Homepage Sections ────────────────────────────────────────────────────────
+
+export type SectionType =
+  | "product-carousel"
+  | "offer-cards"
+  | "brand-inspiration"
+  | "info-cards"
+  | "category-tiles"
+  | "brand-grid"
+  | "explore-cards";
+
+export interface SectionItem {
+  _id:            string;
+  title:          string;
+  subtitle?:      string;
+  description?:   string;
+  emoji?:         string;
+  href:           string;
+  badge?:         string;
+  price?:         number;
+  originalPrice?: number;
+  discount?:      number;
+  brand?:         string;
+  color?:         string;
+  expiresAt?:     string;
+  order:          number;
+}
+
+export interface HomepageSection {
+  _id:       string;
+  key:       string;
+  title:     string;
+  subtitle?: string;
+  type:      SectionType;
+  isActive:  boolean;
+  order:     number;
+  items:     SectionItem[];
+  ctaLabel?: string;
+  ctaHref?:  string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T = unknown> {
