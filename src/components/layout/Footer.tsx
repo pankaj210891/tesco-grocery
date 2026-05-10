@@ -11,12 +11,12 @@ const footerLinks = {
     { label: "All Departments",      href: "/categories"                    },
   ],
   Help: [
-    { label: "FAQs",                 href: "/faq"              },
+    { label: "Help Centre",          href: "/help"             },
     { label: "Store Locator",        href: "/store-locator"    },
+    { label: "Special Offers",       href: "/offers"           },
     { label: "Track Your Order",     href: "/account/orders"   },
-    { label: "Delivery Information", href: "/faq#delivery"     },
-    { label: "Returns Policy",       href: "/faq#returns"      },
-    { label: "Contact Us",           href: "/faq#contact"      },
+    { label: "Delivery Information", href: "/help"             },
+    { label: "Returns Policy",       href: "/help"             },
   ],
   About: [
     { label: "About Prakash",          href: "#" },
