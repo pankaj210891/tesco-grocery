@@ -107,6 +107,40 @@ export interface Order {
   createdAt:   string;
 }
 
+// ─── Address ─────────────────────────────────────────────────────────────────
+
+export interface Address {
+  _id: string;
+  userId: string;
+  label: "Home" | "Office" | "Other";
+  customLabel?: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  postcode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+// ─── Payment Methods ──────────────────────────────────────────────────────────
+
+export type CardType = "visa" | "mastercard" | "amex" | "discover" | "other";
+
+export interface PaymentMethod {
+  _id: string;
+  userId: string;
+  cardType: CardType;
+  lastFour: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cardholderName: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T = unknown> {

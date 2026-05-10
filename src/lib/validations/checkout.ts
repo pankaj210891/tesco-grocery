@@ -20,7 +20,10 @@ export const checkoutSchema = z.object({
   // ── Payment (mock UI — no real processing) ───────────────────────────────
   cardNumber: z
     .string()
-    .regex(/^\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}$/, "Enter a valid 16-digit card number"),
+    .regex(
+      /^(\*{4} \*{4} \*{4} \d{4}|\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})$/,
+      "Enter a valid 16-digit card number"
+    ),
   cardName:   z.string().min(2, "Name on card is required"),
   expiry:     z
     .string()
