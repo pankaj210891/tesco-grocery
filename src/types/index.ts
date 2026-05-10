@@ -141,6 +141,28 @@ export interface PaymentMethod {
   createdAt: string;
 }
 
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export interface Review {
+  _id:          string;
+  productId:    string;
+  productSlug:  string;
+  userId:       string;
+  userName:     string;
+  rating:       number;
+  title:        string;
+  body:         string;
+  isApproved:   boolean;
+  helpfulCount: number;
+  createdAt:    string;
+}
+
+export interface RatingSummary {
+  average:      number;
+  total:        number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
 // ─── Store Locator ────────────────────────────────────────────────────────────
 
 export interface DayHours {

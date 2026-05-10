@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CheckCircle, Tag, Truck } from "lucide-react";
+import { CheckCircle, Truck } from "lucide-react";
 import { slugify, formatPrice } from "@/lib/utils/format";
 import { getProductBySlug, getAllProductSlugs } from "@/services/product.service";
 import Breadcrumb from "@/components/ui/Breadcrumb";
@@ -9,6 +9,7 @@ import RatingStars from "@/components/product/RatingStars";
 import ProductAddToCart from "@/components/product/ProductAddToCart";
 import RelatedProducts from "@/components/product/RelatedProducts";
 import Badge from "@/components/ui/Badge";
+import ProductTabs from "@/components/product/ProductTabs";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -74,21 +75,21 @@ export default async function ProductDetailPage({ params }: Props) {
             {!product.inStock && <Badge variant="outOfStock" />}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 leading-tight">
             {product.name}
           </h1>
 
           <p className="text-sm text-gray-500 -mt-2">
-            by <span className="font-semibold text-gray-700">{product.brand}</span>
+            by <span className="font-semibold text-gray-700 dark:text-gray-300">{product.brand}</span>
           </p>
 
           <RatingStars rating={product.rating} reviewCount={product.reviewCount} size="md" />
 
-          <hr className="border-gray-100" />
+          <hr className="border-gray-100 dark:border-gray-800" />
 
           <div>
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-black text-gray-900">
+              <span className="text-4xl font-black text-gray-900 dark:text-gray-100">
                 {formatPrice(product.price)}
               </span>
               {product.originalPrice && (
@@ -105,37 +106,14 @@ export default async function ProductDetailPage({ params }: Props) {
             <p className="text-sm text-gray-500 mt-1">{product.unit}</p>
           </div>
 
-          <hr className="border-gray-100" />
-
-          <div>
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
-              Description
-            </h2>
-            <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
-          </div>
-
-          {product.tags.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Tag className="h-3.5 w-3.5 text-gray-400" aria-hidden />
-              {product.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <hr className="border-gray-100" />
+          <hr className="border-gray-100 dark:border-gray-800" />
 
           <ul className="space-y-2">
-            <li className="flex items-center gap-2 text-sm text-gray-600">
+            <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
               {product.inStock ? "In stock — ready to dispatch" : "Currently out of stock"}
             </li>
-            <li className="flex items-center gap-2 text-sm text-gray-600">
+            <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <Truck className="h-4 w-4 text-[#00539F] shrink-0" />
               Free delivery on orders over £40
             </li>
@@ -143,6 +121,11 @@ export default async function ProductDetailPage({ params }: Props) {
 
           <ProductAddToCart product={product} />
         </div>
+      </div>
+
+      {/* ── Tabs: Product Details + Reviews ─────────────────────────────── */}
+      <div className="mt-12">
+        <ProductTabs product={product} />
       </div>
 
       <RelatedProducts currentProduct={product} />
