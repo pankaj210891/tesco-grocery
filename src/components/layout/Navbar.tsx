@@ -117,6 +117,16 @@ export default function Navbar() {
       <div style={{ backgroundColor: PRIMARY }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
 
+          {/* Hamburger — mobile only, LEFT of logo */}
+          <button
+            onClick={() => setMobileOpen((o) => !o)}
+            className="md:hidden flex items-center justify-center p-2 rounded text-white hover:bg-white/10 transition-colors"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+
           {/* Logo */}
           <Link
             href="/"
@@ -278,15 +288,6 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setMobileOpen((o) => !o)}
-              className="md:hidden flex items-center justify-center p-2 rounded text-white hover:bg-white/10 transition-colors"
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileOpen}
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
           </div>
         </div>
       </div>
