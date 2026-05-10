@@ -38,8 +38,9 @@ const categories: Category[] = [
   { label: "Inspiration",      href: "/categories/inspiration-events",   emoji: "✨", bg: "bg-yellow-100  dark:bg-yellow-900"  },
 ];
 
-const circleBtnBase =
-  "w-9 h-9 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md flex items-center justify-center transition-all duration-200";
+// Shared shape/colour — NO display class so responsive variants aren't overridden
+const btnShape =
+  "w-9 h-9 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md items-center justify-center transition-all duration-200";
 
 export default function CategoryGrid() {
   const trackRef  = useRef<HTMLDivElement>(null);
@@ -95,7 +96,7 @@ export default function CategoryGrid() {
       {/* ── Carousel ───────────────────────────────────────────── */}
       <div className="relative">
 
-        {/* Left fade — desktop only (left chevron handles this edge on mobile via bottom row) */}
+        {/* Left edge fade — sm+ only */}
         <div
           aria-hidden
           className={cn(
@@ -106,7 +107,7 @@ export default function CategoryGrid() {
           )}
         />
 
-        {/* Right fade — always shown */}
+        {/* Right edge fade — always */}
         <div
           aria-hidden
           className={cn(
@@ -117,14 +118,14 @@ export default function CategoryGrid() {
           )}
         />
 
-        {/* Left chevron — sm+ only, floats on the left side */}
+        {/* Left side chevron — sm+ only */}
         <button
           onClick={() => nudge("left")}
           aria-label="Scroll departments left"
           className={cn(
-            "hidden sm:flex",
+            "hidden sm:flex",                              // ← display controlled here only
             "absolute left-1 top-1/2 -translate-y-1/2 z-10",
-            circleBtnBase,
+            btnShape,
             canLeft ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
         >
@@ -142,7 +143,6 @@ export default function CategoryGrid() {
               href={cat.href}
               className="flex-shrink-0 flex flex-col items-center gap-2 w-[68px] sm:w-[76px] group"
             >
-              {/* Circle avatar */}
               <div
                 className={cn(
                   "w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center",
@@ -153,8 +153,6 @@ export default function CategoryGrid() {
               >
                 {cat.emoji}
               </div>
-
-              {/* Label */}
               <span className="text-[10px] sm:text-[11px] font-semibold text-center leading-tight text-gray-700 dark:text-gray-300 line-clamp-2 w-full">
                 {cat.label}
               </span>
@@ -162,14 +160,14 @@ export default function CategoryGrid() {
           ))}
         </div>
 
-        {/* Right chevron — sm+ only, floats on the right side */}
+        {/* Right side chevron — sm+ only */}
         <button
           onClick={() => nudge("right")}
           aria-label="Scroll departments right"
           className={cn(
-            "hidden sm:flex",
+            "hidden sm:flex",                              // ← display controlled here only
             "absolute right-1 top-1/2 -translate-y-1/2 z-10",
-            circleBtnBase,
+            btnShape,
             canRight ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
         >
@@ -184,7 +182,8 @@ export default function CategoryGrid() {
           disabled={!canLeft}
           aria-label="Scroll departments left"
           className={cn(
-            circleBtnBase,
+            "flex",                                        // ← always flex on mobile
+            btnShape,
             canLeft ? "opacity-100" : "opacity-30 cursor-not-allowed"
           )}
         >
@@ -195,7 +194,8 @@ export default function CategoryGrid() {
           disabled={!canRight}
           aria-label="Scroll departments right"
           className={cn(
-            circleBtnBase,
+            "flex",                                        // ← always flex on mobile
+            btnShape,
             canRight ? "opacity-100" : "opacity-30 cursor-not-allowed"
           )}
         >
