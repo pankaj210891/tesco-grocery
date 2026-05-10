@@ -28,7 +28,7 @@ export default function RegisterPage() {
     try {
       const { data: json } = await axios.post("/api/auth/register", data);
       setAuth(json.data.user, json.data.token);
-      toast.success("Account created! Welcome to Tesco.");
+      toast.success("Account created! Welcome to Prakash Supermarket.");
       router.push("/");
     } catch (err) {
       const msg = axios.isAxiosError(err)
@@ -44,12 +44,12 @@ export default function RegisterPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         {/* Heading */}
         <div className="mb-7 text-center">
-          <div className="w-12 h-12 bg-[#00539F] rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-black text-xl">T</span>
+          <div className="w-12 h-12 bg-[#0F4C75] rounded-xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-black text-xl">P</span>
           </div>
           <h1 className="text-2xl font-black text-gray-900">Create an account</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Join Tesco and start shopping online
+            Join Prakash Supermarket and start shopping online
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export default function RegisterPage() {
                   "placeholder:text-gray-400 text-gray-900 bg-white",
                   errors.password
                     ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-300 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
+                    : "border-gray-300 focus:border-[#0F4C75] focus:ring-2 focus:ring-blue-100",
                 ].join(" ")}
                 {...register("password")}
               />
@@ -124,7 +124,7 @@ export default function RegisterPage() {
                   "placeholder:text-gray-400 text-gray-900 bg-white",
                   errors.confirmPassword
                     ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-300 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
+                    : "border-gray-300 focus:border-[#0F4C75] focus:ring-2 focus:ring-blue-100",
                 ].join(" ")}
                 {...register("confirmPassword")}
               />
@@ -145,7 +145,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-[#00539F] hover:bg-[#003B7A] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-2"
+            className="w-full py-2.5 bg-[#0F4C75] hover:bg-[#0A3352] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-2"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Creating account…" : "Create account"}
@@ -154,7 +154,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
-          <Link href="/login" className="text-[#00539F] font-semibold hover:underline">
+          <Link href="/login" className="text-[#0F4C75] font-semibold hover:underline">
             Sign in
           </Link>
         </p>

@@ -64,7 +64,7 @@ export const useCartStore = create<CartState>()(
         set({ items: [], totalItems: 0, totalPrice: 0 }),
     }),
     {
-      name: "tesco-cart",
+      name: "prakash-cart",
       partialize: (state) => ({ items: state.items }),
       onRehydrateStorage: () => (state) => {
         if (state) {

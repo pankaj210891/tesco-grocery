@@ -23,6 +23,6 @@ export const useAuthStore = create<AuthState>()(
       // - Wishlist local state is overwritten by the server's copy on next login
       //   via useWishlistSync, so no stale data leaks across users.
     }),
-    { name: "tesco-auth" }
+    { name: "prakash-auth" }
   )
 );

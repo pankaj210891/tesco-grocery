@@ -47,7 +47,7 @@ const MOCK_ORDERS: Order[] = [
     _id:         "demo-order-1",
     orderNumber: "ORD-20260507-DEMO",
     items: [
-      { productId: "p1", name: "Tesco Whole Milk 2L",   slug: "tesco-whole-milk-2l",    price: 1.35, quantity: 2, image: "" },
+      { productId: "p1", name: "Prakash Whole Milk 2L", slug: "prakash-whole-milk-2l",  price: 1.35, quantity: 2, image: "" },
       { productId: "p2", name: "Warburtons Medium Sliced White Bread", slug: "warburtons-white-bread", price: 1.20, quantity: 1, image: "" },
     ],
     delivery:    { fullName: "Demo User", email: "demo@example.com", phone: "07700900000", address: "1 Demo Street", city: "London", postcode: "SW1A 1AA" },

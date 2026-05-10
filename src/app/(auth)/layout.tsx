@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { Store } from "lucide-react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,10 +8,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#00539F] rounded flex items-center justify-center">
-              <span className="text-white font-black text-sm">T</span>
+            <div className="bg-[#0F4C75] rounded-lg px-2 py-1 flex items-center gap-1.5">
+              <Store className="h-4 w-4 text-[#F57C00]" aria-hidden />
+              <span className="text-white font-black text-sm tracking-tight leading-none">
+                Prakash
+              </span>
             </div>
-            <span className="font-black text-gray-900 text-lg">Tesco</span>
+            <span className="font-semibold text-gray-600 text-sm hidden sm:inline">
+              Supermarket
+            </span>
           </Link>
         </div>
       </header>
@@ -23,7 +28,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Footer */}
       <footer className="text-center py-4 text-xs text-gray-400 border-t border-gray-100">
-        © {new Date().getFullYear()} Tesco Stores Ltd. All rights reserved.
+        © {new Date().getFullYear()} Prakash Supermarket Ltd. All rights reserved.
       </footer>
     </div>
   );
