@@ -5,7 +5,8 @@ import ProductModel from "@/lib/db/models/product.model";
 import { getAuthUser } from "@/lib/utils/apiAuth";
 import type { RatingSummary } from "@/types";
 
-type Params = { params: Promise<{ slug: string }> };
+// NOTE: param is named "id" to share the [id] folder, but the value is a slug string
+type Params = { params: Promise<{ id: string }> };
 
 async function recalcProduct(productSlug: string) {
   const stats = await Review.aggregate<{ avg: number; count: number }>([
@@ -23,7 +24,7 @@ async function recalcProduct(productSlug: string) {
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     await connectDB();
-    const { slug } = await params;
+    const { id: slug } = await params;
     const { searchParams } = new URL(req.url);
     const page  = Math.max(1, Number(searchParams.get("page")  ?? 1));
     const limit = Math.min(20, Number(searchParams.get("limit") ?? 10));
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   try {
     await connectDB();
-    const { slug } = await params;
+    const { id: slug } = await params;
     const body = await req.json() as { rating: number; title: string; body: string };
 
     if (!body.rating || body.rating < 1 || body.rating > 5)

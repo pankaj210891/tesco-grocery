@@ -13,8 +13,12 @@ export async function POST() {
 
     await ProductModel.deleteMany({});
 
-    // Strip string _id and dates — let Mongoose generate proper ObjectIds + timestamps
-    const docs = mockAllProducts.map(({ _id: _unused, createdAt: _c, updatedAt: _u, ...rest }) => rest);
+    // Pick only DB-relevant fields; zero out rating/reviewCount — the review system owns those
+    const docs = mockAllProducts.map(({ name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags }) => ({
+      name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags,
+      rating:      0,
+      reviewCount: 0,
+    }));
     const inserted = await ProductModel.insertMany(docs);
 
     return Response.json({
