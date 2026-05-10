@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!meta) return { title: "Category Not Found" };
 
   return {
-    title:       `${meta.name} — Tesco Grocery`,
+    title:       `${meta.name} — Prakash Supermarket`,
     description: meta.description,
   };
 }

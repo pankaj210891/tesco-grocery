@@ -77,7 +77,7 @@ export async function generateMetadata({
   return q
     ? {
         title: `"${q}" — Search Results`,
-        description: `Browse search results for "${q}" on Tesco Grocery.`,
+        description: `Browse search results for "${q}" on Prakash Supermarket.`,
       }
     : {
         title: "Search",
