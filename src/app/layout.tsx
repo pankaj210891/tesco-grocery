@@ -14,18 +14,18 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default:  siteConfig.name,
+    default: siteConfig.name,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
   openGraph: {
-    type:        "website",
-    locale:      "en_GB",
-    url:         siteConfig.url,
-    title:       siteConfig.name,
+    type: "website",
+    locale: "en_GB",
+    url: siteConfig.url,
+    title: siteConfig.name,
     description: siteConfig.description,
-    siteName:    siteConfig.name,
+    siteName: siteConfig.name,
   },
 };
 
@@ -47,13 +47,13 @@ export default function RootLayout({
           <Toaster
             position="top-right"
             toastOptions={{
-              duration: 4500,
+              duration: 2000,
               style: {
-                borderRadius:  "10px",
-                fontFamily:    "var(--font-sans)",
-                fontSize:      "14px",
-                cursor:        "pointer",
-                paddingRight:  "12px",
+                borderRadius: "10px",
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                cursor: "pointer",
+                paddingRight: "12px",
               },
               success: {
                 iconTheme: { primary: "#0F4C75", secondary: "#fff" },
