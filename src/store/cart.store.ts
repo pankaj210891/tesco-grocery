@@ -1,78 +1,96 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type { CartItem, Product } from "@/types";
 
 interface CartState {
-  items: CartItem[];
+  items:      CartItem[];
   totalItems: number;
   totalPrice: number;
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  loading:    boolean;
+  loaded:     boolean;
+
+  fetchCart:      (token: string) => Promise<void>;
+  addItem:        (product: Product, quantity: number, token: string) => Promise<void>;
+  removeItem:     (productId: string, token: string) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number, token: string) => Promise<void>;
+  clearCart:      (token: string) => Promise<void>;
+  reset:          () => void;
 }
 
 function computeTotals(items: CartItem[]) {
   return {
-    totalItems: items.reduce((sum, i) => sum + i.quantity, 0),
-    totalPrice: items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+    totalItems: items.reduce((s, i) => s + i.quantity, 0),
+    totalPrice: items.reduce((s, i) => s + i.product.price * i.quantity, 0),
   };
 }
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set) => ({
-      items: [],
-      totalItems: 0,
-      totalPrice: 0,
+const AUTH = (token: string) => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${token}`,
+});
 
-      addItem: (product, quantity = 1) =>
-        set((state) => {
-          const existing = state.items.find(
-            (i) => i.product._id === product._id
-          );
-          const items = existing
-            ? state.items.map((i) =>
-                i.product._id === product._id
-                  ? { ...i, quantity: i.quantity + quantity }
-                  : i
-              )
-            : [...state.items, { product, quantity }];
-          return { items, ...computeTotals(items) };
-        }),
+export const useCartStore = create<CartState>()((set, get) => ({
+  items:      [],
+  totalItems: 0,
+  totalPrice: 0,
+  loading:    false,
+  loaded:     false,
 
-      removeItem: (productId) =>
-        set((state) => {
-          const items = state.items.filter(
-            (i) => i.product._id !== productId
-          );
-          return { items, ...computeTotals(items) };
-        }),
-
-      updateQuantity: (productId, quantity) =>
-        set((state) => {
-          const items =
-            quantity <= 0
-              ? state.items.filter((i) => i.product._id !== productId)
-              : state.items.map((i) =>
-                  i.product._id === productId ? { ...i, quantity } : i
-                );
-          return { items, ...computeTotals(items) };
-        }),
-
-      clearCart: () =>
-        set({ items: [], totalItems: 0, totalPrice: 0 }),
-    }),
-    {
-      name: "prakash-cart",
-      partialize: (state) => ({ items: state.items }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          const totals = computeTotals(state.items);
-          state.totalItems = totals.totalItems;
-          state.totalPrice = totals.totalPrice;
-        }
-      },
+  fetchCart: async (token) => {
+    set({ loading: true });
+    try {
+      const res  = await fetch("/api/account/cart", { headers: AUTH(token) });
+      const json = await res.json() as { success: boolean; data: CartItem[] };
+      if (json.success) set({ items: json.data, ...computeTotals(json.data), loaded: true });
+    } finally {
+      set({ loading: false });
     }
-  )
-);
+  },
+
+  addItem: async (product, quantity, token) => {
+    const existing = get().items.find((i) => i.product._id === product._id);
+    const newQty   = (existing?.quantity ?? 0) + quantity;
+    // Optimistic
+    set((s) => {
+      const items = existing
+        ? s.items.map((i) => i.product._id === product._id ? { ...i, quantity: newQty } : i)
+        : [...s.items, { product, quantity: newQty }];
+      return { items, ...computeTotals(items) };
+    });
+    // Persist
+    await fetch("/api/account/cart", {
+      method: "POST",
+      headers: AUTH(token),
+      body: JSON.stringify({ productId: product._id, quantity: newQty }),
+    });
+  },
+
+  removeItem: async (productId, token) => {
+    // Optimistic
+    set((s) => {
+      const items = s.items.filter((i) => i.product._id !== productId);
+      return { items, ...computeTotals(items) };
+    });
+    await fetch(`/api/account/cart/${productId}`, { method: "DELETE", headers: AUTH(token) });
+  },
+
+  updateQuantity: async (productId, quantity, token) => {
+    if (quantity <= 0) { await get().removeItem(productId, token); return; }
+    // Optimistic
+    set((s) => {
+      const items = s.items.map((i) => i.product._id === productId ? { ...i, quantity } : i);
+      return { items, ...computeTotals(items) };
+    });
+    await fetch("/api/account/cart", {
+      method: "POST",
+      headers: AUTH(token),
+      body: JSON.stringify({ productId, quantity }),
+    });
+  },
+
+  clearCart: async (token) => {
+    set({ items: [], totalItems: 0, totalPrice: 0 });
+    await fetch("/api/account/cart", { method: "DELETE", headers: AUTH(token) });
+  },
+
+  reset: () => set({ items: [], totalItems: 0, totalPrice: 0, loading: false, loaded: false }),
+}));

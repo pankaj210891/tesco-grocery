@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cart.store";
+import { useAuthStore } from "@/store/auth.store";
 import { formatPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { CartItem as CartItemType } from "@/types";
@@ -15,18 +16,19 @@ interface CartItemProps {
 
 export default function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeItem } = useCartStore();
+  const token = useAuthStore((s) => s.token) ?? "";
   const { product, quantity } = item;
 
   function handleQtyChange(newQty: number) {
     if (newQty <= 0) {
       handleRemove();
     } else {
-      updateQuantity(product._id, newQty);
+      void updateQuantity(product._id, newQty, token);
     }
   }
 
   function handleRemove() {
-    removeItem(product._id);
+    void removeItem(product._id, token);
     toast.success(`${product.name} removed from cart`, {
       icon: "🗑️",
       duration: 2000,

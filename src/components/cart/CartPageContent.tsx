@@ -1,29 +1,61 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Trash2, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
-import { useHydrated } from "@/hooks/useHydrated";
 import { useCartStore } from "@/store/cart.store";
+import { useAuthStore } from "@/store/auth.store";
 import CartItem from "@/components/cart/CartItem";
 import OrderSummary from "@/components/cart/OrderSummary";
-import EmptyCart from "@/components/cart/EmptyCart";
 import CartSkeleton from "@/components/cart/CartSkeleton";
 
 export default function CartPageContent() {
-  const hydrated = useHydrated();
-  const { items, totalItems, totalPrice, clearCart } = useCartStore();
+  const { user, token, hasHydrated } = useAuthStore();
+  const { items, totalItems, totalPrice, clearCart, loading, loaded } = useCartStore();
 
-  if (!hydrated) return <CartSkeleton />;
-  if (items.length === 0) return <EmptyCart />;
+  if (!hasHydrated || (loading && !loaded)) return <CartSkeleton />;
+
+  if (!user || !token) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-28">
+        <div className="bg-blue-50 rounded-full p-6 mb-6">
+          <ShoppingCart className="h-12 w-12 text-blue-300" aria-hidden />
+        </div>
+        <h2 className="text-xl font-black text-gray-800 mb-2">Sign in to view your cart</h2>
+        <p className="text-gray-500 text-sm max-w-xs mb-8">
+          Your cart is saved to your account. Sign in to add items and checkout.
+        </p>
+        <Link href="/login" className="px-8 py-3 bg-[#00539F] text-white font-bold rounded-xl hover:bg-[#003B7A] transition-colors">
+          Sign in
+        </Link>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-28">
+        <div className="bg-gray-100 rounded-full p-6 mb-6">
+          <ShoppingCart className="h-12 w-12 text-gray-400" aria-hidden />
+        </div>
+        <h2 className="text-xl font-black text-gray-800 mb-2">Your cart is empty</h2>
+        <p className="text-gray-500 text-sm max-w-xs mb-8">
+          Looks like you haven&apos;t added anything yet. Start browsing and fill it up!
+        </p>
+        <Link href="/products" className="px-8 py-3 bg-[#00539F] text-white font-bold rounded-xl hover:bg-[#003B7A] transition-colors">
+          Browse Products
+        </Link>
+      </div>
+    );
+  }
 
   function handleClearCart() {
-    clearCart();
+    void clearCart(token!);
     toast.success("Cart cleared", { icon: "🗑️" });
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black text-gray-900">Your Cart</h1>
@@ -34,23 +66,18 @@ export default function CartPageContent() {
         <button
           onClick={handleClearCart}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors font-medium"
-          aria-label="Clear all items from cart"
         >
           <Trash2 className="h-4 w-4" />
           Clear cart
         </button>
       </div>
 
-      {/* Main grid: items (left, 2/3) + summary (right, 1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Cart items */}
         <div className="lg:col-span-2 space-y-3">
           {items.map((item) => (
             <CartItem key={item.product._id} item={item} />
           ))}
         </div>
-
-        {/* Order summary — stacks below items on mobile */}
         <div className="lg:col-span-1">
           <OrderSummary subtotal={totalPrice} />
         </div>

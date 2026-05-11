@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Star, Plus, Minus, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import Badge from "@/components/ui/Badge";
 import { useCartStore } from "@/store/cart.store";
+import { useAuthStore } from "@/store/auth.store";
 import WishlistButton from "./WishlistButton";
 import type { Product } from "@/types";
 
@@ -32,9 +34,16 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, className }: ProductCardProps) {
   const { items, addItem, updateQuantity } = useCartStore();
+  const { token } = useAuthStore();
+  const router = useRouter();
 
   const cartItem = items.find((i) => i.product._id === product._id);
   const qty = cartItem?.quantity ?? 0;
+
+  function requireAuth(action: () => void) {
+    if (!token) { router.push("/login"); return; }
+    action();
+  }
 
   const discount =
     product.originalPrice && product.originalPrice > product.price
@@ -128,7 +137,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         {product.inStock ? (
           qty === 0 ? (
             <button
-              onClick={() => addItem(product)}
+              onClick={() => requireAuth(() => void addItem(product, 1, token!))}
               className={cn(
                 "mt-2 w-full h-9 flex items-center justify-center gap-1.5",
                 "bg-[#00539F] text-white text-sm font-semibold rounded-lg",
@@ -142,7 +151,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           ) : (
             <div className="mt-2 flex items-center justify-between gap-2">
               <button
-                onClick={() => updateQuantity(product._id, qty - 1)}
+                onClick={() => requireAuth(() => void updateQuantity(product._id, qty - 1, token!))}
                 className={cn(
                   "h-9 w-9 flex items-center justify-center rounded-lg",
                   "bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
@@ -155,7 +164,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 {qty}
               </span>
               <button
-                onClick={() => updateQuantity(product._id, qty + 1)}
+                onClick={() => requireAuth(() => void updateQuantity(product._id, qty + 1, token!))}
                 className={cn(
                   "h-9 w-9 flex items-center justify-center rounded-lg",
                   "bg-[#00539F] text-white hover:bg-[#003B7A] active:scale-95 transition-all"
