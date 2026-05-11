@@ -73,8 +73,16 @@ export default function CheckoutPageContent() {
   } = useForm<CheckoutFormData>({
     resolver:      zodResolver(checkoutSchema),
     defaultValues: {
-      fullName: user?.name  ?? "",
-      email:    user?.email ?? "",
+      fullName:   user?.name  ?? "",
+      email:      user?.email ?? "",
+      phone:      "",
+      address:    "",
+      city:       "",
+      postcode:   "",
+      cardNumber: "",
+      cardName:   "",
+      expiry:     "",
+      cvv:        "",
     },
   });
 
@@ -148,6 +156,24 @@ export default function CheckoutPageContent() {
   }
 
   if (!hasHydrated || !cartLoaded || cartLoading) return <CheckoutLoading />;
+
+  if (!user || !token) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 text-center">
+        <div className="inline-flex bg-blue-50 rounded-full p-5 mb-5">
+          <ShoppingCart className="h-12 w-12 text-blue-300" aria-hidden />
+        </div>
+        <h1 className="text-xl font-black text-gray-900 dark:text-white mb-2">Sign in to checkout</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">You need to be signed in to place an order.</p>
+        <Link
+          href="/login"
+          className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors"
+        >
+          Sign in
+        </Link>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

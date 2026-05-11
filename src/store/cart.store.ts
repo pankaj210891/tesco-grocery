@@ -40,9 +40,9 @@ export const useCartStore = create<CartState>()((set, get) => ({
     try {
       const res  = await fetch("/api/account/cart", { headers: AUTH(token) });
       const json = await res.json() as { success: boolean; data: CartItem[] };
-      if (json.success) set({ items: json.data, ...computeTotals(json.data), loaded: true });
+      if (json.success) set({ items: json.data, ...computeTotals(json.data) });
     } finally {
-      set({ loading: false });
+      set({ loading: false, loaded: true });
     }
   },
 

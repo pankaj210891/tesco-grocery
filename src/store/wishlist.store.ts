@@ -24,9 +24,9 @@ export const useWishlistStore = create<WishlistState>()((set, get) => ({
     try {
       const res  = await fetch("/api/account/wishlist", { headers: AUTH(token) });
       const json = await res.json() as { data: Product[] };
-      if (Array.isArray(json.data)) set({ items: json.data, loaded: true });
+      if (Array.isArray(json.data)) set({ items: json.data });
     } finally {
-      set({ loading: false });
+      set({ loading: false, loaded: true });
     }
   },
 

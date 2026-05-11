@@ -62,7 +62,7 @@ export default function CardNumberInput({
   error,
   placeholder = "1234 5678 9012 3456",
 }: CardNumberInputProps) {
-  const isMasked = value.startsWith("*");
+  const isMasked = (value ?? "").startsWith("*");
   const cardType = isMasked ? "other" : detectCardType(value);
   const CardIcon = CARD_ICONS[cardType];
 
