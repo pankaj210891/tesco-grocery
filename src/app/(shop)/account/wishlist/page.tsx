@@ -63,7 +63,7 @@ export default function WishlistPage() {
   const { user, token, hasHydrated } = useAuthStore();
   const { items, loading, loaded } = useWishlistStore();
 
-  if (!hasHydrated || (loading && !loaded)) {
+  if (!hasHydrated || !loaded || loading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 animate-pulse space-y-4">
         <div className="h-8 bg-gray-200 rounded w-48" />

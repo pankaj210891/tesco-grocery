@@ -53,7 +53,7 @@ const inputCls = (hasError?: boolean) =>
 
 export default function CheckoutPageContent() {
   const router    = useRouter();
-  const { items, totalPrice, clearCart, loading: cartLoading } = useCartStore();
+  const { items, totalPrice, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
   const { user, token, hasHydrated }  = useAuthStore();
   const [promoCode, setPromoCode] = useState<string | undefined>();
 
@@ -147,7 +147,7 @@ export default function CheckoutPageContent() {
     }
   }
 
-  if (!hasHydrated || cartLoading) return <CheckoutLoading />;
+  if (!hasHydrated || !cartLoaded || cartLoading) return <CheckoutLoading />;
 
   if (items.length === 0) {
     return (
