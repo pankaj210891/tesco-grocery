@@ -45,11 +45,11 @@ export default function LoginForm() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         {/* Heading */}
         <div className="mb-7 text-center">
-          <div className="w-12 h-12 bg-[#00539F] rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-black text-xl">T</span>
+          <div className="w-12 h-12 bg-[#0F4C75] rounded-xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-black text-xl">P</span>
           </div>
           <h1 className="text-2xl font-black text-gray-900">Sign in</h1>
-          <p className="text-sm text-gray-500 mt-1">Welcome back to Tesco</p>
+          <p className="text-sm text-gray-500 mt-1">Welcome back to Prakash Supermarket</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
@@ -69,7 +69,7 @@ export default function LoginForm() {
               <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
                 Password
               </label>
-              <span className="text-xs text-[#00539F] hover:underline cursor-pointer">
+              <span className="text-xs text-[#0F4C75] hover:underline cursor-pointer">
                 Forgot password?
               </span>
             </div>
@@ -84,7 +84,7 @@ export default function LoginForm() {
                   "placeholder:text-gray-400 text-gray-900 bg-white",
                   errors.password
                     ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-300 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
+                    : "border-gray-300 focus:border-[#0F4C75] focus:ring-2 focus:ring-blue-100",
                 ].join(" ")}
                 {...register("password")}
               />
@@ -105,7 +105,7 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-[#00539F] hover:bg-[#003B7A] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-2"
+            className="w-full py-2.5 bg-[#0F4C75] hover:bg-[#0A3352] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-2"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Signing in…" : "Sign in"}
@@ -114,7 +114,7 @@ export default function LoginForm() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-[#00539F] font-semibold hover:underline">
+          <Link href="/register" className="text-[#0F4C75] font-semibold hover:underline">
             Create one
           </Link>
         </p>

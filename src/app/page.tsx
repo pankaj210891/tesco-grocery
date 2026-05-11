@@ -5,6 +5,7 @@ import HeroBanner from "@/components/home/HeroBanner";
 import PromoStrip from "@/components/home/PromoStrip";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
+import HomepageSections from "@/components/home/HomepageSections";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
           <CategoryGrid />
           <FeaturedProducts />
+          <HomepageSections />
         </div>
       </main>
 

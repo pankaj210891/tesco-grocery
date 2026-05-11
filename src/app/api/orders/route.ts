@@ -4,9 +4,9 @@ import { createOrder, type OrderItem } from "@/services/order.service";
 const FREE_DELIVERY_THRESHOLD = 40;
 const DELIVERY_COST           = 3.99;
 const VALID_PROMOS: Record<string, number> = {
-  TESCO10: 0.1,
-  FRESH5:  0.05,
-  SAVE15:  0.15,
+  PRAKASH10: 0.1,
+  FRESH5:    0.05,
+  SAVE15:    0.15,
 };
 
 export async function POST(req: Request) {

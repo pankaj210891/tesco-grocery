@@ -1,5 +1,7 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
+export type ProductBadge = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+
 export interface Product {
   _id: string;
   name: string;
@@ -15,6 +17,9 @@ export interface Product {
   rating: number;
   reviewCount: number;
   tags: string[];
+  badge?: ProductBadge | null;
+  vendorId?: string | null;
+  vendorName?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,10 +67,15 @@ export interface Cart {
 
 // ─── User / Auth ─────────────────────────────────────────────────────────────
 
+export type UserRole = "customer" | "vendor" | "admin";
+export type UserStatus = "active" | "suspended";
+
 export interface User {
   _id: string;
   name: string;
   email: string;
+  role: UserRole;
+  status: UserStatus;
   createdAt: string;
 }
 
@@ -73,6 +83,26 @@ export interface AuthFormData {
   name?: string;
   email: string;
   password: string;
+}
+
+// ─── Vendor ───────────────────────────────────────────────────────────────────
+
+export type VendorStatus = "pending" | "active" | "suspended";
+
+export interface Vendor {
+  _id:         string;
+  name:        string;
+  slug:        string;
+  description: string;
+  logo:        string;
+  email:       string;
+  phone:       string;
+  address:     string;
+  city:        string;
+  status:      VendorStatus;
+  ownerId:     string;
+  ownerName:   string;
+  createdAt:   string;
 }
 
 // ─── Orders ──────────────────────────────────────────────────────────────────
@@ -105,6 +135,175 @@ export interface Order {
   total:       number;
   status:      "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   createdAt:   string;
+}
+
+// ─── Address ─────────────────────────────────────────────────────────────────
+
+export interface Address {
+  _id: string;
+  userId: string;
+  label: "Home" | "Office" | "Other";
+  customLabel?: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  postcode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+// ─── Payment Methods ──────────────────────────────────────────────────────────
+
+export type CardType = "visa" | "mastercard" | "amex" | "discover" | "other";
+
+export interface PaymentMethod {
+  _id: string;
+  userId: string;
+  cardType: CardType;
+  lastFour: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cardholderName: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export interface Review {
+  _id:          string;
+  productId:    string;
+  productSlug:  string;
+  userId:       string;
+  userName:     string;
+  rating:       number;
+  title:        string;
+  body:         string;
+  isApproved:   boolean;
+  helpfulCount: number;
+  createdAt:    string;
+}
+
+export interface RatingSummary {
+  average:      number;
+  total:        number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+// ─── Store Locator ────────────────────────────────────────────────────────────
+
+export interface DayHours {
+  open:   string;
+  close:  string;
+  closed: boolean;
+}
+
+export interface Store {
+  _id:      string;
+  name:     string;
+  address:  string;
+  city:     string;
+  postcode: string;
+  phone:    string;
+  email?:   string;
+  openingHours: {
+    monday:    DayHours;
+    tuesday:   DayHours;
+    wednesday: DayHours;
+    thursday:  DayHours;
+    friday:    DayHours;
+    saturday:  DayHours;
+    sunday:    DayHours;
+  };
+  amenities: string[];
+  isActive:  boolean;
+  lat?:      number;
+  lng?:      number;
+  createdAt: string;
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+
+export type FaqCategory = "general" | "account" | "orders" | "delivery" | "payments" | "returns";
+
+export interface Faq {
+  _id:      string;
+  question: string;
+  answer:   string;
+  category: FaqCategory;
+  order:    number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// ─── Special Offers ───────────────────────────────────────────────────────────
+
+export type DiscountType = "percentage" | "fixed" | "freeDelivery";
+
+export interface Offer {
+  _id:           string;
+  title:         string;
+  subtitle?:     string;
+  description?:  string;
+  code?:         string;
+  discountType:  DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  expiresAt:     string;
+  isActive:      boolean;
+  badge?:        string;
+  color?:        string;
+  emoji?:        string;
+  category:      string;
+  href:          string;
+  order:         number;
+  createdAt:     string;
+}
+
+// ─── Homepage Sections ────────────────────────────────────────────────────────
+
+export type SectionType =
+  | "product-carousel"
+  | "offer-cards"
+  | "brand-inspiration"
+  | "info-cards"
+  | "category-tiles"
+  | "brand-grid"
+  | "explore-cards";
+
+export interface SectionItem {
+  _id:            string;
+  title:          string;
+  subtitle?:      string;
+  description?:   string;
+  emoji?:         string;
+  href:           string;
+  badge?:         string;
+  price?:         number;
+  originalPrice?: number;
+  discount?:      number;
+  brand?:         string;
+  color?:         string;
+  expiresAt?:     string;
+  order:          number;
+}
+
+export interface HomepageSection {
+  _id:       string;
+  key:       string;
+  title:     string;
+  subtitle?: string;
+  type:      SectionType;
+  isActive:  boolean;
+  order:     number;
+  items:     SectionItem[];
+  ctaLabel?: string;
+  ctaHref?:  string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

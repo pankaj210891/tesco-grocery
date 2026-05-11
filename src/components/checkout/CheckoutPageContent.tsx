@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingCart, CreditCard, MapPin } from "lucide-react";
 import axios from "axios";
@@ -13,6 +13,12 @@ import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
 import { cn } from "@/lib/utils/cn";
+import { detectCardType, formatExpiry } from "@/lib/utils/card";
+import { CARD_LABELS } from "@/lib/utils/card";
+import type { Address, PaymentMethod, CardType } from "@/types";
+import CardNumberInput from "@/components/ui/CardNumberInput";
+import AddressSelectModal from "./AddressSelectModal";
+import PaymentSelectModal from "./PaymentSelectModal";
 import OrderReview from "./OrderReview";
 import CheckoutPricingSummary from "./CheckoutPricingSummary";
 import CheckoutLoading from "@/app/(shop)/checkout/loading";
@@ -50,12 +56,21 @@ export default function CheckoutPageContent() {
   const router    = useRouter();
   const hydrated  = useHydrated();
   const { items, totalPrice, clearCart } = useCartStore();
-  const { user }  = useAuthStore();
+  const { user, token }  = useAuthStore();
   const [promoCode, setPromoCode] = useState<string | undefined>();
+
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [savedPayments, setSavedPayments] = useState<PaymentMethod[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormData>({
     resolver:      zodResolver(checkoutSchema),
@@ -64,6 +79,75 @@ export default function CheckoutPageContent() {
       email:    user?.email ?? "",
     },
   });
+
+  const expiryValue = useWatch({ control, name: "expiry" }) ?? "";
+
+  useEffect(() => {
+    if (!token || !user) return;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    Promise.all([
+      axios.get<{ data: Address[] }>("/api/account/addresses", { headers }),
+      axios.get<{ data: PaymentMethod[] }>("/api/account/payment-methods", { headers }),
+    ])
+      .then(([addrRes, pmRes]) => {
+        const addresses = addrRes.data.data ?? [];
+        const payments  = pmRes.data.data  ?? [];
+        setSavedAddresses(addresses);
+        setSavedPayments(payments);
+
+        const defaultAddr = addresses.find((a) => a.isDefault) ?? addresses[0] ?? null;
+        const defaultPm   = payments.find((p) => p.isDefault)  ?? payments[0]  ?? null;
+
+        if (defaultAddr) {
+          setSelectedAddress(defaultAddr);
+          setValue("fullName", defaultAddr.fullName);
+          setValue("phone",    defaultAddr.phone);
+          setValue("address",  defaultAddr.line1 + (defaultAddr.line2 ? `, ${defaultAddr.line2}` : ""));
+          setValue("city",     defaultAddr.city);
+          setValue("postcode", defaultAddr.postcode);
+        }
+
+        if (defaultPm) {
+          setSelectedPayment(defaultPm);
+          setValue("cardNumber", `**** **** **** ${defaultPm.lastFour}`);
+          setValue("cardName",   defaultPm.cardholderName);
+          setValue("expiry",     `${defaultPm.expiryMonth}/${defaultPm.expiryYear}`);
+          setValue("cvv",        "000");
+        }
+      })
+      .catch(() => {
+        // Non-fatal — user can still enter details manually
+      });
+  // setValue is stable; including it avoids lint warning without causing re-runs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, user]);
+
+  function applyAddress(addr: Address | null) {
+    setSelectedAddress(addr);
+    if (addr) {
+      setValue("fullName", addr.fullName);
+      setValue("phone",    addr.phone);
+      setValue("address",  addr.line1 + (addr.line2 ? `, ${addr.line2}` : ""));
+      setValue("city",     addr.city);
+      setValue("postcode", addr.postcode);
+    }
+  }
+
+  function applyPayment(pm: PaymentMethod | null) {
+    setSelectedPayment(pm);
+    if (pm) {
+      setValue("cardNumber", `**** **** **** ${pm.lastFour}`);
+      setValue("cardName",   pm.cardholderName);
+      setValue("expiry",     `${pm.expiryMonth}/${pm.expiryYear}`);
+      setValue("cvv",        "000");
+    } else {
+      setValue("cardNumber", "");
+      setValue("cardName",   "");
+      setValue("expiry",     "");
+      setValue("cvv",        "");
+    }
+  }
 
   if (!hydrated) return <CheckoutLoading />;
 
@@ -96,15 +180,54 @@ export default function CheckoutPageContent() {
         image:     i.product.images[0] ?? "",
       }));
 
+      const deliveryFields = selectedAddress
+        ? {
+            fullName: selectedAddress.fullName,
+            email:    data.email,
+            phone:    selectedAddress.phone,
+            address:  selectedAddress.line1 + (selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""),
+            city:     selectedAddress.city,
+            postcode: selectedAddress.postcode,
+          }
+        : {
+            fullName: data.fullName,
+            email:    data.email,
+            phone:    data.phone,
+            address:  data.address,
+            city:     data.city,
+            postcode: data.postcode,
+          };
+
+      let paymentFields: {
+        cardType: CardType;
+        lastFour: string;
+        cardName: string;
+      };
+
+      if (selectedPayment) {
+        paymentFields = {
+          cardType: selectedPayment.cardType,
+          lastFour: selectedPayment.lastFour,
+          cardName: selectedPayment.cardholderName,
+        };
+      } else {
+        const digits  = data.cardNumber.replace(/\D/g, "");
+        paymentFields = {
+          cardType: detectCardType(data.cardNumber),
+          lastFour: digits.slice(-4),
+          cardName: data.cardName,
+        };
+      }
+
       const { data: json } = await axios.post("/api/orders", {
-        form:      data,
+        form:      { ...deliveryFields, ...paymentFields, cardNumber: data.cardNumber, expiry: data.expiry, cvv: data.cvv },
         items:     orderItems,
         userId:    user?._id,
         promoCode,
       });
 
       clearCart();
-      const { orderNumber } = json.data;
+      const { orderNumber } = json.data as { orderNumber: string };
       const params = new URLSearchParams({
         order: orderNumber,
         email: data.email,
@@ -139,6 +262,30 @@ export default function CheckoutPageContent() {
                 <MapPin className="h-5 w-5 text-[#00539F]" aria-hidden />
                 Delivery details
               </h2>
+
+              {user && savedAddresses.length > 0 && (
+                <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between gap-3">
+                  <div className="text-sm text-gray-700 min-w-0">
+                    {selectedAddress ? (
+                      <>
+                        <p className="font-semibold truncate">{selectedAddress.fullName}</p>
+                        <p className="text-gray-500 truncate">
+                          {selectedAddress.line1}, {selectedAddress.city}, {selectedAddress.postcode}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-gray-400">No address selected</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressModal(true)}
+                    className="shrink-0 text-xs font-semibold text-[#00539F] hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Full name" error={errors.fullName}>
@@ -215,16 +362,45 @@ export default function CheckoutPageContent() {
                 Demo only — no real payment is processed.
               </p>
 
+              {user && savedPayments.length > 0 && (
+                <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between gap-3">
+                  <div className="text-sm text-gray-700 min-w-0">
+                    {selectedPayment ? (
+                      <>
+                        <p className="font-semibold">
+                          {CARD_LABELS[selectedPayment.cardType as CardType]} ending {selectedPayment.lastFour}
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          {selectedPayment.cardholderName} · {selectedPayment.expiryMonth}/{selectedPayment.expiryYear}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-gray-400">No card selected</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(true)}
+                    className="shrink-0 text-xs font-semibold text-[#00539F] hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <Field label="Card number" error={errors.cardNumber}>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                      className={inputCls(!!errors.cardNumber)}
-                      {...register("cardNumber")}
+                    <Controller
+                      name="cardNumber"
+                      control={control}
+                      render={({ field }) => (
+                        <CardNumberInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={!!errors.cardNumber}
+                        />
+                      )}
                     />
                   </Field>
                 </div>
@@ -247,8 +423,9 @@ export default function CheckoutPageContent() {
                     inputMode="numeric"
                     placeholder="12/26"
                     maxLength={5}
+                    value={expiryValue ?? ""}
+                    onChange={(e) => setValue("expiry", formatExpiry(e.target.value))}
                     className={inputCls(!!errors.expiry)}
-                    {...register("expiry")}
                   />
                 </Field>
 
@@ -282,6 +459,24 @@ export default function CheckoutPageContent() {
 
         </div>
       </form>
+
+      {showAddressModal && (
+        <AddressSelectModal
+          addresses={savedAddresses}
+          selected={selectedAddress}
+          onSelect={applyAddress}
+          onClose={() => setShowAddressModal(false)}
+        />
+      )}
+
+      {showPaymentModal && (
+        <PaymentSelectModal
+          payments={savedPayments}
+          selected={selectedPayment}
+          onSelect={applyPayment}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      )}
     </div>
   );
 }

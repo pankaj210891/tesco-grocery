@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import ConfirmationContent from "./ConfirmationContent";
 
 export const metadata: Metadata = {
-  title: "Order Confirmed — Tesco Grocery",
+  title: "Order Confirmed — Prakash Supermarket",
 };
 
 export default function ConfirmationPage() {

@@ -1,44 +1,68 @@
 export const CATEGORY_SLUGS = [
+  "clothing-accessories",
+  "marketplace",
   "fresh-food",
   "bakery",
-  "dairy-eggs",
-  "meat-fish",
   "frozen-food",
+  "treats-snacks",
+  "food-cupboard",
   "drinks",
-  "snacks",
-  "household",
+  "baby-toddler",
   "health-beauty",
-  "baby",
+  "pets",
+  "household",
+  "home-furniture",
+  "electronics-gaming",
+  "toys-games",
+  "parties-seasonal",
+  "sports-leisure",
+  "hobbies-stationery",
+  "garden-diy-car",
+  "kiosk",
+  "inspiration-events",
 ] as const;
 
 export type CategorySlug = (typeof CATEGORY_SLUGS)[number];
 
 export const SORT_OPTIONS = [
-  { label: "Relevance", value: "relevance" },
-  { label: "Price: Low to High", value: "price-asc" },
-  { label: "Price: High to Low", value: "price-desc" },
-  { label: "Top Rated", value: "rating" },
-  { label: "Newest", value: "newest" },
+  { label: "Relevance",           value: "relevance"  },
+  { label: "Price: Low to High",  value: "price-asc"  },
+  { label: "Price: High to Low",  value: "price-desc" },
+  { label: "Top Rated",           value: "rating"     },
+  { label: "Newest",              value: "newest"     },
 ] as const;
 
 export const PRODUCTS_PER_PAGE = 12;
 
 export const CATEGORY_NAME_MAP: Record<string, string> = {
-  "fresh-food":     "Fresh Food",
-  "bakery":         "Bakery",
-  "dairy-eggs":     "Dairy & Eggs",
-  "meat-fish":      "Meat & Fish",
-  "frozen-food":    "Frozen Food",
-  "drinks":         "Drinks",
-  "snacks":         "Snacks",
-  "household":      "Household",
-  "health-beauty":  "Health & Beauty",
-  "baby":           "Baby",
+  "clothing-accessories": "Clothing & Accessories",
+  "marketplace":          "Marketplace",
+  "fresh-food":           "Fresh Food",
+  "bakery":               "Bakery",
+  "frozen-food":          "Frozen Food",
+  "treats-snacks":        "Treats & Snacks",
+  "food-cupboard":        "Food Cupboard",
+  "drinks":               "Drinks",
+  "baby-toddler":         "Baby & Toddler",
+  "health-beauty":        "Health & Beauty",
+  "pets":                 "Pets",
+  "household":            "Household",
+  "home-furniture":       "Home & Furniture",
+  "electronics-gaming":   "Electronics & Gaming",
+  "toys-games":           "Toys & Games",
+  "parties-seasonal":     "Parties & Seasonal",
+  "sports-leisure":       "Sports & Leisure",
+  "hobbies-stationery":   "Hobbies & Stationery",
+  "garden-diy-car":       "Garden, DIY & Car Care",
+  "kiosk":                "Kiosk",
+  "inspiration-events":   "Inspiration & Events",
 };
 
-export const TESCO_COLORS = {
-  blue: "#00539F",
-  red: "#EE1C2E",
-  lightBlue: "#007DC6",
-  darkBlue: "#003B7A",
+/** Prakash Supermarket brand palette — navy + saffron */
+export const BRAND_COLORS = {
+  primary:      "#0F4C75",
+  primaryDark:  "#0A3352",
+  primaryLight: "#1B6CA8",
+  accent:       "#F57C00",
+  accentDark:   "#E65100",
 } as const;
