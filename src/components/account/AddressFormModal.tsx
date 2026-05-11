@@ -54,6 +54,7 @@ export default function AddressFormModal({
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
@@ -62,7 +63,7 @@ export default function AddressFormModal({
           label: initial.label,
           customLabel: initial.customLabel ?? "",
           fullName: initial.fullName,
-          phone: initial.phone,
+          phone: initial.phone.replace(/\D/g, "").slice(0, 10),
           line1: initial.line1,
           line2: initial.line2 ?? "",
           city: initial.city,
@@ -153,9 +154,15 @@ export default function AddressFormModal({
               <Field label="Phone number" error={errors.phone}>
                 <input
                   type="tel"
-                  placeholder="07700 900000"
+                  inputMode="numeric"
+                  placeholder="9876543210"
+                  maxLength={10}
                   className={inputCls(!!errors.phone)}
                   {...register("phone")}
+                  onChange={(e) => {
+                    const numeric = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setValue("phone", numeric, { shouldValidate: true, shouldDirty: true });
+                  }}
                 />
               </Field>
             </div>
