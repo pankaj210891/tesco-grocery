@@ -18,17 +18,17 @@ export default function AuthFormField({
 }: AuthFormFieldProps) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-sm font-semibold text-gray-700">
+      <label htmlFor={id} className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
         {label}
       </label>
       <input
         id={id}
         className={cn(
           "w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none transition-colors",
-          "placeholder:text-gray-400 text-gray-900 bg-white",
+          "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800",
           error
             ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-            : "border-gray-300 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
+            : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
           className
         )}
         {...props}

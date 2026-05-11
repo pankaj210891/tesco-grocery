@@ -23,8 +23,8 @@ interface Props {
 function Row({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className={cn("font-semibold text-gray-900", className)}>{value}</span>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span className={cn("font-semibold text-gray-900 dark:text-white", className)}>{value}</span>
     </div>
   );
 }
@@ -80,12 +80,12 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, onPromo
               onChange={(e) => { setInput(e.target.value); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && applyPromo()}
               placeholder="Promo code"
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-[#00539F] focus:ring-2 focus:ring-blue-100 uppercase placeholder:normal-case placeholder:text-gray-400"
+              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-[#00539F] focus:ring-2 focus:ring-blue-100 uppercase"
             />
             <button
               type="button"
               onClick={applyPromo}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 bg-gray-900 dark:bg-gray-600 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 dark:hover:bg-gray-500 transition-colors"
             >
               Apply
             </button>
@@ -95,7 +95,7 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, onPromo
       )}
 
       {/* Price breakdown */}
-      <div className="space-y-2 pt-2 border-t border-gray-100">
+      <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
         <Row label="Subtotal" value={formatPrice(subtotal)} />
         <Row
           label="Delivery"
@@ -109,9 +109,9 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, onPromo
             className="text-green-600"
           />
         )}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <span className="font-black text-gray-900">Total</span>
-          <span className="text-xl font-black text-gray-900">{formatPrice(total)}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+          <span className="font-black text-gray-900 dark:text-white">Total</span>
+          <span className="text-xl font-black text-gray-900 dark:text-white">{formatPrice(total)}</span>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, onPromo
         {isSubmitting ? "Placing order…" : `Place order · ${formatPrice(total)}`}
       </button>
 
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
         Secure checkout. No real payment is processed.
       </p>
     </div>

@@ -31,7 +31,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1">
-      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
         {label}
       </label>
       {children}
@@ -44,11 +44,11 @@ function Field({
 
 const inputCls = (hasError?: boolean) =>
   cn(
-    "w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white",
-    "placeholder:text-gray-400 text-gray-900",
+    "w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
+    "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white",
     hasError
       ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-      : "border-gray-300 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100"
+      : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100"
   );
 
 export default function CheckoutPageContent() {
@@ -242,7 +242,7 @@ export default function CheckoutPageContent() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
-      <h1 className="text-2xl font-black text-gray-900 mb-8">Checkout</h1>
+      <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-8">Checkout</h1>
 
       <form
         id="checkout-form"
@@ -255,19 +255,19 @@ export default function CheckoutPageContent() {
           <div className="lg:col-span-7 space-y-6">
 
             {/* Delivery section */}
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 mb-5">
+            <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
                 <MapPin className="h-5 w-5 text-[#00539F]" aria-hidden />
                 Delivery details
               </h2>
 
               {user && savedAddresses.length > 0 && (
-                <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between gap-3">
-                  <div className="text-sm text-gray-700 min-w-0">
+                <div className="mb-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 flex items-center justify-between gap-3">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 min-w-0">
                     {selectedAddress ? (
                       <>
                         <p className="font-semibold truncate">{selectedAddress.fullName}</p>
-                        <p className="text-gray-500 truncate">
+                        <p className="text-gray-500 dark:text-gray-400 truncate">
                           {selectedAddress.line1}, {selectedAddress.city}, {selectedAddress.postcode}
                         </p>
                       </>
@@ -351,8 +351,8 @@ export default function CheckoutPageContent() {
             </section>
 
             {/* Payment section */}
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 mb-1">
+            <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-1">
                 <CreditCard className="h-5 w-5 text-[#00539F]" aria-hidden />
                 Payment details
               </h2>
@@ -361,8 +361,8 @@ export default function CheckoutPageContent() {
               </p>
 
               {user && savedPayments.length > 0 && (
-                <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between gap-3">
-                  <div className="text-sm text-gray-700 min-w-0">
+                <div className="mb-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 flex items-center justify-between gap-3">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 min-w-0">
                     {selectedPayment ? (
                       <>
                         <p className="font-semibold">
@@ -443,9 +443,9 @@ export default function CheckoutPageContent() {
 
           {/* ── Right column (sticky) ──────────────────────── */}
           <div className="lg:col-span-5 lg:sticky lg:top-24">
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-5">
               <OrderReview items={items} />
-              <div className="border-t border-gray-100 pt-5">
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-5">
                 <CheckoutPricingSummary
                   subtotal={totalPrice}
                   isSubmitting={isSubmitting}

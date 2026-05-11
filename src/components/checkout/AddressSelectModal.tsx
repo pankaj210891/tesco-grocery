@@ -30,15 +30,15 @@ export default function AddressSelectModal({
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 px-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="flex items-center gap-2 font-black text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white">
             <MapPin className="h-4 w-4 text-[#00539F]" aria-hidden />
             Choose address
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5 text-gray-500" />
@@ -54,15 +54,15 @@ export default function AddressSelectModal({
                   onClick={() => { onSelect(addr); onClose(); }}
                   className={`w-full text-left p-4 rounded-xl border transition-colors ${
                     isSelected
-                      ? "border-[#00539F] bg-blue-50"
-                      : "border-gray-100 hover:border-[#00539F]/40 hover:bg-gray-50"
+                      ? "border-[#00539F] bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-100 dark:border-gray-700 hover:border-[#00539F]/40 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-sm space-y-0.5">
-                      <p className="font-semibold text-gray-900">{addr.fullName}</p>
-                      <p className="text-gray-600">{addr.line1}{addr.line2 ? `, ${addr.line2}` : ""}</p>
-                      <p className="text-gray-600">{addr.city}, {addr.postcode}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{addr.fullName}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{addr.line1}{addr.line2 ? `, ${addr.line2}` : ""}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{addr.city}, {addr.postcode}</p>
                     </div>
                     {isSelected && (
                       <Check className="h-4 w-4 text-[#00539F] shrink-0 mt-1" aria-hidden />
@@ -76,7 +76,7 @@ export default function AddressSelectModal({
           <li>
             <button
               onClick={() => { onSelect(null); onClose(); }}
-              className="w-full text-left p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 transition-colors text-sm text-gray-500 hover:text-gray-700"
+              className="w-full text-left p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-600 hover:border-gray-400 transition-colors text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             >
               Use a new address
             </button>

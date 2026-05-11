@@ -82,12 +82,12 @@ export default function CardNumberInput({
         value={value}
         onChange={handleChange}
         className={cn(
-          "w-full pl-3.5 pr-12 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white",
-          "placeholder:text-gray-400 text-gray-900",
+          "w-full pl-3.5 pr-12 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
+          "placeholder:text-gray-400 text-gray-900 dark:text-white dark:placeholder:text-gray-500",
           error
             ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-            : "border-gray-300 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
-          isMasked && "bg-gray-50 cursor-default"
+            : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
+          isMasked && "bg-gray-50 dark:bg-gray-700 cursor-default"
         )}
       />
       {cardType !== "other" && (

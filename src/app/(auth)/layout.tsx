@@ -3,9 +3,9 @@ import { Store } from "lucide-react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Minimal header */}
-      <header className="bg-white border-b border-gray-100">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="flex items-center gap-2">
             <div className="bg-[#0F4C75] rounded-lg px-2 py-1 flex items-center gap-1.5">
@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 Prakash
               </span>
             </div>
-            <span className="font-semibold text-gray-600 text-sm hidden sm:inline">
+            <span className="font-semibold text-gray-600 dark:text-gray-300 text-sm hidden sm:inline">
               Supermarket
             </span>
           </Link>
@@ -27,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-4 text-xs text-gray-400 border-t border-gray-100">
+      <footer className="text-center py-4 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700">
         © {new Date().getFullYear()} Prakash Supermarket Ltd. All rights reserved.
       </footer>
     </div>

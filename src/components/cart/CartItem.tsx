@@ -38,11 +38,11 @@ export default function CartItem({ item }: CartItemProps) {
   const lineTotal = product.price * quantity;
 
   return (
-    <article className="flex gap-3 sm:gap-4 bg-white rounded-xl border border-gray-100 p-3 sm:p-4 shadow-sm">
+    <article className="flex gap-3 sm:gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
       {/* Image */}
       <Link
         href={`/products/${product.slug}`}
-        className="shrink-0 relative h-20 w-20 sm:h-24 sm:w-24 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 hover:opacity-90 transition-opacity"
+        className="shrink-0 relative h-20 w-20 sm:h-24 sm:w-24 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 hover:opacity-90 transition-opacity"
         tabIndex={-1}
         aria-hidden
       >
@@ -62,19 +62,19 @@ export default function CartItem({ item }: CartItemProps) {
           <div className="min-w-0">
             <Link
               href={`/products/${product.slug}`}
-              className="font-semibold text-sm text-gray-900 hover:text-[#00539F] transition-colors line-clamp-2 leading-snug"
+              className="font-semibold text-sm text-gray-900 dark:text-white hover:text-[#00539F] dark:hover:text-blue-400 transition-colors line-clamp-2 leading-snug"
             >
               {product.name}
             </Link>
-            <p className="text-xs text-gray-500 mt-0.5">{product.brand}</p>
-            <p className="text-xs text-gray-400">{product.unit}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{product.brand}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{product.unit}</p>
           </div>
 
           {/* Remove */}
           <button
             onClick={handleRemove}
             aria-label={`Remove ${product.name} from cart`}
-            className="shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -83,26 +83,26 @@ export default function CartItem({ item }: CartItemProps) {
         {/* Bottom row: qty controls + price */}
         <div className="flex items-center justify-between mt-3 gap-2">
           {/* Qty stepper */}
-          <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden">
+          <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
             <button
               onClick={() => handleQtyChange(quantity - 1)}
               aria-label="Decrease quantity"
               className={cn(
                 "px-2.5 py-1.5 transition-colors",
                 quantity <= 1
-                  ? "text-gray-300 cursor-default"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "text-gray-300 dark:text-gray-600 cursor-default"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               )}
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="px-3 py-1.5 text-sm font-bold tabular-nums min-w-[2.5rem] text-center border-x border-gray-200">
+            <span className="px-3 py-1.5 text-sm font-bold tabular-nums min-w-[2.5rem] text-center border-x border-gray-200 dark:border-gray-600 dark:text-white dark:bg-gray-800">
               {quantity}
             </span>
             <button
               onClick={() => handleQtyChange(quantity + 1)}
               aria-label="Increase quantity"
-              className="px-2.5 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors"
+              className="px-2.5 py-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -110,11 +110,11 @@ export default function CartItem({ item }: CartItemProps) {
 
           {/* Price */}
           <div className="text-right">
-            <p className="font-black text-gray-900 text-base">
+            <p className="font-black text-gray-900 dark:text-white text-base">
               {formatPrice(lineTotal)}
             </p>
             {quantity > 1 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 {formatPrice(product.price)} each
               </p>
             )}

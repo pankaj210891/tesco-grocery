@@ -16,7 +16,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
   return (
     <div className="flex flex-col gap-3">
       {/* Main image */}
-      <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-100">
+      <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
         <Image
           key={src}
           src={src}
@@ -41,7 +41,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                 "relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all",
                 i === selected
                   ? "border-[#00539F] shadow-sm"
-                  : "border-gray-200 hover:border-gray-400"
+                  : "border-gray-200 dark:border-gray-600 hover:border-gray-400"
               )}
             >
               <Image
