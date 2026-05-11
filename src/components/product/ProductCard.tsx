@@ -9,6 +9,22 @@ import { useCartStore } from "@/store/cart.store";
 import WishlistButton from "./WishlistButton";
 import type { Product } from "@/types";
 
+const BADGE_STYLES: Record<string, string> = {
+  NEW:      "bg-blue-500 text-white",
+  HOT:      "bg-red-500 text-white",
+  LIMITED:  "bg-orange-500 text-white",
+  ORGANIC:  "bg-green-600 text-white",
+  EXCLUSIVE:"bg-purple-600 text-white",
+};
+
+function CustomBadge({ badge }: { badge: string }) {
+  return (
+    <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded tracking-wide", BADGE_STYLES[badge] ?? "bg-gray-500 text-white")}>
+      {badge}
+    </span>
+  );
+}
+
 interface ProductCardProps {
   product: Product;
   className?: string;
@@ -38,6 +54,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     >
       {/* Badges */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+        {product.badge && <CustomBadge badge={product.badge} />}
         {discount && <Badge variant="sale" label={`${discount}% off`} />}
         {!product.inStock && <Badge variant="outOfStock" />}
       </div>

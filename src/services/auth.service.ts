@@ -2,12 +2,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/db/mongoose";
 import UserModel from "@/lib/db/models/user.model";
-import type { User } from "@/types";
+import type { User, UserRole } from "@/types";
 
 const JWT_SECRET = (() => {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET environment variable is not set.");
-  return secret; // inferred as string, never undefined
+  return secret;
 })();
 const JWT_EXPIRES_IN = "7d";
 
@@ -15,6 +15,7 @@ export interface AuthPayload {
   userId: string;
   email:  string;
   name:   string;
+  role:   UserRole;
 }
 
 export function signToken(payload: AuthPayload): string {
@@ -38,14 +39,17 @@ export async function registerUser(
   const hashed = await bcrypt.hash(password, 12);
   const doc    = await UserModel.create({ name, email, password: hashed });
 
+  const role = (doc.role ?? "customer") as UserRole;
   const user: User = {
     _id:       doc._id.toString(),
     name:      doc.name,
     email:     doc.email,
+    role,
+    status:    (doc.status ?? "active") as "active" | "suspended",
     createdAt: doc.createdAt.toISOString(),
   };
 
-  const token = signToken({ userId: user._id, email: user.email, name: user.name });
+  const token = signToken({ userId: user._id, email: user.email, name: user.name, role });
   return { user, token };
 }
 
@@ -61,13 +65,18 @@ export async function loginUser(
   const valid = await bcrypt.compare(password, doc.password);
   if (!valid) throw new Error("Invalid email or password.");
 
+  if (doc.status === "suspended") throw new Error("Your account has been suspended.");
+
+  const role = (doc.role ?? "customer") as UserRole;
   const user: User = {
     _id:       doc._id.toString(),
     name:      doc.name,
     email:     doc.email,
+    role,
+    status:    (doc.status ?? "active") as "active" | "suspended",
     createdAt: doc.createdAt.toISOString(),
   };
 
-  const token = signToken({ userId: user._id, email: user.email, name: user.name });
+  const token = signToken({ userId: user._id, email: user.email, name: user.name, role });
   return { user, token };
 }
