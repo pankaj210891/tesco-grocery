@@ -1,5 +1,7 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
+export type ProductBadge = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+
 export interface Product {
   _id: string;
   name: string;
@@ -15,6 +17,9 @@ export interface Product {
   rating: number;
   reviewCount: number;
   tags: string[];
+  badge?: ProductBadge | null;
+  vendorId?: string | null;
+  vendorName?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,10 +67,15 @@ export interface Cart {
 
 // ─── User / Auth ─────────────────────────────────────────────────────────────
 
+export type UserRole = "customer" | "vendor" | "admin";
+export type UserStatus = "active" | "suspended";
+
 export interface User {
   _id: string;
   name: string;
   email: string;
+  role: UserRole;
+  status: UserStatus;
   createdAt: string;
 }
 
@@ -73,6 +83,26 @@ export interface AuthFormData {
   name?: string;
   email: string;
   password: string;
+}
+
+// ─── Vendor ───────────────────────────────────────────────────────────────────
+
+export type VendorStatus = "pending" | "active" | "suspended";
+
+export interface Vendor {
+  _id:         string;
+  name:        string;
+  slug:        string;
+  description: string;
+  logo:        string;
+  email:       string;
+  phone:       string;
+  address:     string;
+  city:        string;
+  status:      VendorStatus;
+  ownerId:     string;
+  ownerName:   string;
+  createdAt:   string;
 }
 
 // ─── Orders ──────────────────────────────────────────────────────────────────

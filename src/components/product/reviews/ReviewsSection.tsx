@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { MessageSquare, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import RatingBreakdown from "./RatingBreakdown";
@@ -17,6 +18,7 @@ interface ReviewsData {
 
 export default function ReviewsSection({ productSlug }: { productSlug: string }) {
   const { user, token } = useAuthStore();
+  const router = useRouter();
   const [data,    setData]    = useState<ReviewsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [page,    setPage]    = useState(1);
@@ -46,27 +48,30 @@ export default function ReviewsSection({ productSlug }: { productSlug: string })
     void load();
   }, [productSlug, page]);
 
+  async function syncSummary() {
+    const res  = await fetch(`/api/products/${productSlug}/reviews?page=1&limit=1`);
+    const json = await res.json() as { success: boolean; data: ReviewsData };
+    if (json.success) {
+      setData((prev) => prev ? { ...prev, summary: json.data.summary } : json.data);
+    }
+  }
+
   function handleSubmitted(review: Review) {
     setAllReviews((prev) => [review, ...prev]);
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            summary: {
-              ...prev.summary,
-              total: prev.summary.total + 1,
-            },
-          }
-        : prev
-    );
+    void syncSummary();
+    router.refresh();
   }
 
   function handleDeleted(id: string) {
     setAllReviews((prev) => prev.filter((r) => r._id !== id));
+    void syncSummary();
+    router.refresh();
   }
 
   function handleUpdated(updated: Review) {
     setAllReviews((prev) => prev.map((r) => (r._id === updated._id ? updated : r)));
+    void syncSummary();
+    router.refresh();
   }
 
   const summary = data?.summary;

@@ -15,6 +15,9 @@ const ProductSchema = new Schema(
     rating:        { type: Number, default: 0, min: 0, max: 5 },
     reviewCount:   { type: Number, default: 0, min: 0 },
     tags:          [String],
+    badge:         { type: String, enum: ["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"], default: null },
+    vendorId:      { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
+    vendorName:    { type: String, default: null },
   },
   { timestamps: true }
 );

@@ -13,6 +13,7 @@ import {
   LogOut,
   Heart,
   Store,
+  LayoutDashboard,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils/cn";
@@ -208,7 +209,7 @@ export default function Navbar() {
                 </button>
 
                 {accountOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-1 z-50">
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-1 z-50">
                     <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
                       <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                         {user.name}
@@ -216,7 +217,25 @@ export default function Navbar() {
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                         {user.email}
                       </p>
+                      {user.role !== "customer" && (
+                        <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded capitalize ${user.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
+                          {user.role}
+                        </span>
+                      )}
                     </div>
+                    {user.role === "admin" && (
+                      <Link href="/admin" onClick={() => setAccountOpen(false)} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors">
+                        <LayoutDashboard className="h-4 w-4" /> Admin Panel
+                      </Link>
+                    )}
+                    {user.role === "vendor" && (
+                      <Link href="/vendor" onClick={() => setAccountOpen(false)} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors">
+                        <Store className="h-4 w-4" /> Vendor Portal
+                      </Link>
+                    )}
+                    {(user.role === "admin" || user.role === "vendor") && (
+                      <div className="border-t border-gray-100 dark:border-gray-800 mt-1" />
+                    )}
                     <Link
                       href="/account"
                       onClick={() => setAccountOpen(false)}

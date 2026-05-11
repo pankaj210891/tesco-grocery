@@ -45,11 +45,23 @@ function todayKey(): Day {
   return DAYS[day === 0 ? 6 : day - 1];
 }
 
+/** Returns true if the current local time falls between "HH:MM" open and close strings. */
+function isCurrentlyOpen(open: string, close: string): boolean {
+  const now  = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = open.split(":").map(Number);
+  const [ch, cm] = close.split(":").map(Number);
+  return mins >= oh * 60 + om && mins < ch * 60 + cm;
+}
+
 function StoreCard({ store }: { store: Store }) {
   const [expanded, setExpanded] = useState(false);
   const today = todayKey();
   const todayHours = store.openingHours?.[today];
-  const isOpenNow = todayHours && !todayHours.closed;
+  const isOpenNow =
+    !!todayHours &&
+    !todayHours.closed &&
+    isCurrentlyOpen(todayHours.open, todayHours.close);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
