@@ -1,13 +1,6 @@
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { createOrder, type OrderItem } from "@/services/order.service";
-
-const FREE_DELIVERY_THRESHOLD = 40;
-const DELIVERY_COST           = 3.99;
-const VALID_PROMOS: Record<string, number> = {
-  PRAKASH10: 0.1,
-  FRESH5:    0.05,
-  SAVE15:    0.15,
-};
+import { VALID_PROMOS, FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
 
 export async function POST(req: Request) {
   try {
@@ -33,7 +26,7 @@ export async function POST(req: Request) {
     // Re-compute pricing server-side (never trust client totals)
     const subtotal    = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const promoCode   = (body.promoCode as string | undefined)?.toUpperCase();
-    const promoPct    = promoCode ? (VALID_PROMOS[promoCode] ?? 0) : 0;
+    const promoPct    = promoCode ? (VALID_PROMOS[promoCode]?.pct ?? 0) : 0;
     const discount    = subtotal * promoPct;
     const deliveryFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
     const total       = subtotal + deliveryFee - discount;

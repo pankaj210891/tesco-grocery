@@ -80,7 +80,7 @@ export default function LoginForm() {
                 autoComplete="current-password"
                 placeholder="Your password"
                 className={[
-                  "w-full px-3.5 py-2.5 pr-10 text-sm border rounded-xl outline-none transition-colors",
+                  "w-full px-3.5 py-2.5 pr-10 text-base border rounded-xl outline-none transition-colors",
                   "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800",
                   errors.password
                     ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"

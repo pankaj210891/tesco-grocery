@@ -112,7 +112,7 @@ export default function OfferCards({ section }: { section: HomepageSection }) {
           <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
         </button>
 
-        <div ref={trackRef} className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-none pb-1">
+        <div ref={trackRef} className="flex gap-3 sm:gap-4 overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
           {section.items.map((item) => <OfferCard key={item._id} item={item} />)}
         </div>
 

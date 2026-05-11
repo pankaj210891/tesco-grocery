@@ -1,47 +1,38 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Tag, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
-
-const FREE_DELIVERY_THRESHOLD = 40;
-const DELIVERY_COST = 3.99;
-
-const VALID_PROMOS: Record<string, { pct: number; label: string }> = {
-  TESCO10: { pct: 0.1,  label: "10% off your order"  },
-  FRESH5:  { pct: 0.05, label: "5% off fresh items"  },
-  SAVE15:  { pct: 0.15, label: "15% off today only"  },
-};
+import { VALID_PROMOS, FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
+import { useCartStore } from "@/store/cart.store";
+import { useState } from "react";
 
 interface OrderSummaryProps {
   subtotal: number;
 }
 
 export default function OrderSummary({ subtotal }: OrderSummaryProps) {
-  const [promoInput, setPromoInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<{
-    code: string;
-    pct: number;
-    label: string;
-  } | null>(null);
+  const promoCode    = useCartStore((s) => s.promoCode);
+  const setPromoCode = useCartStore((s) => s.setPromoCode);
+  const [promoInput, setPromoInput] = useState(promoCode ?? "");
   const [promoError, setPromoError] = useState("");
 
-  const deliveryCost =
-    subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
-  const needed = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
-  const progress = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
-  const discount = appliedPromo ? subtotal * appliedPromo.pct : 0;
-  const total = subtotal + deliveryCost - discount;
+  const appliedPromo = promoCode ? VALID_PROMOS[promoCode] ?? null : null;
+
+  const deliveryCost = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
+  const needed       = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
+  const progress     = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
+  const discount     = appliedPromo ? subtotal * appliedPromo.pct : 0;
+  const total        = subtotal + deliveryCost - discount;
 
   function applyPromo(e: React.FormEvent) {
     e.preventDefault();
-    const code = promoInput.trim().toUpperCase();
+    const code  = promoInput.trim().toUpperCase();
     const promo = VALID_PROMOS[code];
     if (promo) {
-      setAppliedPromo({ code, ...promo });
+      setPromoCode(code);
       setPromoError("");
       toast.success(`${code} applied — ${promo.label}`);
     } else {
@@ -50,7 +41,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   }
 
   function removePromo() {
-    setAppliedPromo(null);
+    setPromoCode(null);
     setPromoInput("");
   }
 
@@ -68,7 +59,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
         />
         {appliedPromo && (
           <SummaryRow
-            label={`${appliedPromo.code} discount`}
+            label={`${promoCode} discount`}
             value={`–${formatPrice(discount)}`}
             valueClassName="text-green-600 font-semibold"
           />
@@ -114,11 +105,11 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
           Promo Code
         </p>
         {appliedPromo ? (
-          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+          <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl px-4 py-2.5">
             <div className="flex items-center gap-2">
               <Tag className="h-3.5 w-3.5 text-green-600" />
-              <span className="text-sm font-semibold text-green-700">
-                {appliedPromo.code}
+              <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                {promoCode}
               </span>
             </div>
             <button

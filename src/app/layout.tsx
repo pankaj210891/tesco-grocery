@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import ScrollRestorer from "@/components/layout/ScrollRestorer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,14 +42,18 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body>
         <ThemeProvider>
+          <ScrollRestorer />
           {children}
           <Toaster
             position="top-right"
             toastOptions={{
-              duration: 3000,
+              duration: 4500,
               style: {
-                borderRadius: "8px",
-                fontFamily:   "var(--font-sans)",
+                borderRadius:  "10px",
+                fontFamily:    "var(--font-sans)",
+                fontSize:      "14px",
+                cursor:        "pointer",
+                paddingRight:  "12px",
               },
               success: {
                 iconTheme: { primary: "#0F4C75", secondary: "#fff" },

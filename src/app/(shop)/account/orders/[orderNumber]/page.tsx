@@ -13,11 +13,11 @@ import type { Order } from "@/types";
 import { use } from "react";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
-  pending:    "bg-yellow-50  text-yellow-700  border-yellow-200",
-  processing: "bg-blue-50    text-blue-700    border-blue-200",
-  shipped:    "bg-purple-50  text-purple-700  border-purple-200",
-  delivered:  "bg-green-50   text-green-700   border-green-200",
-  cancelled:  "bg-red-50     text-red-700     border-red-200",
+  pending:    "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
+  processing: "bg-blue-50   dark:bg-blue-900/20    text-blue-700   dark:text-blue-400    border-blue-200   dark:border-blue-800/40",
+  shipped:    "bg-purple-50 dark:bg-purple-900/20  text-purple-700 dark:text-purple-400  border-purple-200 dark:border-purple-800/40",
+  delivered:  "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
+  cancelled:  "bg-red-50    dark:bg-red-900/20     text-red-700    dark:text-red-400     border-red-200    dark:border-red-800/40",
 };
 
 function formatDate(iso: string) {
@@ -71,9 +71,9 @@ export default function OrderDetailPage({
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-200 rounded w-40" />
-          <div className="h-48 bg-gray-100 rounded-2xl" />
-          <div className="h-32 bg-gray-100 rounded-2xl" />
+          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-40" />
+          <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+          <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
         </div>
       </div>
     );
@@ -82,8 +82,8 @@ export default function OrderDetailPage({
   if (error) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <p className="text-red-600 mb-4">{error}</p>
-        <Link href="/account" className="text-[#00539F] text-sm font-semibold hover:underline">
+        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+        <Link href="/account" className="text-[#00539F] dark:text-blue-400 text-sm font-semibold hover:underline">
           Back to account
         </Link>
       </div>
@@ -97,7 +97,7 @@ export default function OrderDetailPage({
       {/* Back link */}
       <Link
         href="/account"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Back to account
@@ -106,8 +106,8 @@ export default function OrderDetailPage({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
         <div>
-          <h1 className="text-xl font-black text-gray-900">{order.orderNumber}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{formatDate(order.createdAt)}</p>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white">{order.orderNumber}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(order.createdAt)}</p>
         </div>
         <span className={`self-start sm:self-auto inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border capitalize ${STATUS_STYLES[order.status]}`}>
           {order.status}
@@ -117,26 +117,26 @@ export default function OrderDetailPage({
       <div className="space-y-5">
 
         {/* Items */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="flex items-center gap-2 font-black text-gray-900 mb-4">
+        <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-4">
             <Package className="h-4 w-4 text-[#00539F]" aria-hidden />
             Items ({order.items.reduce((s, i) => s + i.quantity, 0)})
           </h2>
           <ul className="space-y-3">
             {order.items.map((item, idx) => (
               <li key={idx} className="flex items-center gap-3">
-                <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
+                <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600">
                   {item.image ? (
                     <Image src={item.image} alt={item.name} fill className="object-cover" sizes="56px" />
                   ) : (
-                    <div className="w-full h-full bg-gray-100" />
+                    <div className="w-full h-full bg-gray-100 dark:bg-gray-700" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
-                  <p className="text-xs text-gray-500">{formatPrice(item.price)} × {item.quantity}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{formatPrice(item.price)} × {item.quantity}</p>
                 </div>
-                <span className="text-sm font-bold text-gray-900 shrink-0">
+                <span className="text-sm font-bold text-gray-900 dark:text-white shrink-0">
                   {formatPrice(item.price * item.quantity)}
                 </span>
               </li>
@@ -148,46 +148,46 @@ export default function OrderDetailPage({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
           {/* Delivery */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h2 className="flex items-center gap-2 font-black text-gray-900 mb-3">
+          <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+            <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-3">
               <MapPin className="h-4 w-4 text-[#00539F]" aria-hidden />
               Delivery address
             </h2>
-            <address className="not-italic text-sm text-gray-600 space-y-0.5">
-              <p className="font-semibold text-gray-900">{order.delivery.fullName}</p>
+            <address className="not-italic text-sm text-gray-600 dark:text-gray-300 space-y-0.5">
+              <p className="font-semibold text-gray-900 dark:text-white">{order.delivery.fullName}</p>
               <p>{order.delivery.address}</p>
               <p>{order.delivery.city}, {order.delivery.postcode}</p>
-              <p className="pt-1 text-gray-500">{order.delivery.phone}</p>
-              <p className="text-gray-500">{order.delivery.email}</p>
+              <p className="pt-1 text-gray-500 dark:text-gray-400">{order.delivery.phone}</p>
+              <p className="text-gray-500 dark:text-gray-400">{order.delivery.email}</p>
             </address>
           </section>
 
           {/* Pricing */}
-          <section className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h2 className="flex items-center gap-2 font-black text-gray-900 mb-3">
+          <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+            <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-3">
               <CreditCard className="h-4 w-4 text-[#00539F]" aria-hidden />
               Payment summary
             </h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="font-semibold text-gray-900">{formatPrice(order.subtotal)}</span>
+                <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(order.subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Delivery</span>
-                <span className={`font-semibold ${order.deliveryFee === 0 ? "text-green-600" : "text-gray-900"}`}>
+                <span className="text-gray-500 dark:text-gray-400">Delivery</span>
+                <span className={`font-semibold ${order.deliveryFee === 0 ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"}`}>
                   {order.deliveryFee === 0 ? "Free" : formatPrice(order.deliveryFee)}
                 </span>
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{order.promoCode} discount</span>
-                  <span className="font-semibold text-green-600">–{formatPrice(order.discount)}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{order.promoCode} discount</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">–{formatPrice(order.discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-gray-100">
-                <span className="font-black text-gray-900">Total</span>
-                <span className="font-black text-gray-900 text-base">{formatPrice(order.total)}</span>
+              <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                <span className="font-black text-gray-900 dark:text-white">Total</span>
+                <span className="font-black text-gray-900 dark:text-white text-base">{formatPrice(order.total)}</span>
               </div>
             </div>
           </section>

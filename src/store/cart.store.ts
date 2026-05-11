@@ -8,6 +8,10 @@ interface CartState {
   loading:    boolean;
   loaded:     boolean;
 
+  /* Promo code lifted here so it survives cart → checkout navigation */
+  promoCode: string | null;
+  setPromoCode: (code: string | null) => void;
+
   fetchCart:      (token: string) => Promise<void>;
   addItem:        (product: Product, quantity: number, token: string) => Promise<void>;
   removeItem:     (productId: string, token: string) => Promise<void>;
@@ -34,6 +38,8 @@ export const useCartStore = create<CartState>()((set, get) => ({
   totalPrice: 0,
   loading:    false,
   loaded:     false,
+  promoCode:  null,
+  setPromoCode: (code) => set({ promoCode: code }),
 
   fetchCart: async (token) => {
     set({ loading: true });
@@ -88,9 +94,9 @@ export const useCartStore = create<CartState>()((set, get) => ({
   },
 
   clearCart: async (token) => {
-    set({ items: [], totalItems: 0, totalPrice: 0 });
+    set({ items: [], totalItems: 0, totalPrice: 0, promoCode: null });
     await fetch("/api/account/cart", { method: "DELETE", headers: AUTH(token) });
   },
 
-  reset: () => set({ items: [], totalItems: 0, totalPrice: 0, loading: false, loaded: false }),
+  reset: () => set({ items: [], totalItems: 0, totalPrice: 0, loading: false, loaded: false, promoCode: null }),
 }));
