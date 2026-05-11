@@ -74,7 +74,9 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
+  const [deptOpen, setDeptOpen]       = useState(false);
   const accountRef                    = useRef<HTMLDivElement>(null);
+  const deptRef                       = useRef<HTMLDivElement>(null);
   const pathname  = usePathname();
   const router    = useRouter();
 
@@ -88,6 +90,9 @@ export default function Navbar() {
     function handleClick(e: MouseEvent) {
       if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
         setAccountOpen(false);
+      }
+      if (deptRef.current && !deptRef.current.contains(e.target as Node)) {
+        setDeptOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -317,9 +322,44 @@ export default function Navbar() {
         style={{ backgroundColor: PRIMARY_DARK }}
         aria-label="Product departments"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ul className="flex items-center gap-0 overflow-x-auto scrollbar-none">
-            {NAV_CATEGORIES.map((cat) => (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+          {/* "All Departments" dropdown — always visible, never scrolls away */}
+          <div ref={deptRef} className="relative shrink-0">
+            <button
+              onClick={() => setDeptOpen((o) => !o)}
+              className={cn(
+                "flex items-center gap-1 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-r border-white/10",
+                deptOpen ? "text-white bg-[#0F4C75]" : "text-white hover:bg-[#0F4C75]"
+              )}
+            >
+              All Departments
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", deptOpen && "rotate-180")} />
+            </button>
+
+            {deptOpen && (
+              <div className="absolute top-full left-0 z-50 mt-0 w-56 bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-b-xl overflow-y-auto max-h-80">
+                {ALL_DEPARTMENTS.map((dept) => (
+                  <Link
+                    key={dept.href}
+                    href={dept.href}
+                    onClick={() => setDeptOpen(false)}
+                    className={cn(
+                      "flex items-center px-4 py-2.5 text-sm transition-colors",
+                      pathname === dept.href
+                        ? "bg-[#0F4C75] text-white font-semibold"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    {dept.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Scrollable — exactly 7 departments */}
+          <ul className="flex items-center overflow-x-auto scrollbar-none flex-1 min-w-0">
+            {NAV_CATEGORIES.slice(0, 7).map((cat) => (
               <li key={cat.href}>
                 <Link
                   href={cat.href}
@@ -334,67 +374,63 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
-            <li className="ml-auto shrink-0 flex items-center">
-              <Link
-                href="/offers"
-                className="flex items-center px-3 py-2.5 text-sm font-medium text-[#F57C00] hover:text-white transition-colors whitespace-nowrap"
-              >
-                Special Offers
-              </Link>
-              <Link
-                href="/store-locator"
-                className="flex items-center px-3 py-2.5 text-sm font-medium text-blue-200 hover:text-white transition-colors whitespace-nowrap"
-              >
-                Store Locator
-              </Link>
-              <Link
-                href="/categories"
-                className="flex items-center gap-1 px-3 py-2.5 text-sm font-medium text-blue-200 hover:text-white transition-colors whitespace-nowrap"
-              >
-                All Departments <ChevronDown className="h-3.5 w-3.5" />
-              </Link>
-            </li>
           </ul>
+
+          {/* Right-side links — always visible */}
+          <div className="shrink-0 flex items-center border-l border-white/10">
+            <Link
+              href="/offers"
+              className="flex items-center px-3 py-2.5 text-sm font-medium text-[#F57C00] hover:text-white transition-colors whitespace-nowrap"
+            >
+              Special Offers
+            </Link>
+            <Link
+              href="/store-locator"
+              className="flex items-center px-3 py-2.5 text-sm font-medium text-blue-200 hover:text-white transition-colors whitespace-nowrap"
+            >
+              Store Locator
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* ── Mobile drawer ───────────────────────────────────────── */}
       {mobileOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-lg">
+        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-lg overflow-y-auto max-h-[calc(100dvh-64px)]">
 
-          {/* Mobile search */}
-          <div className="px-4 pt-4 pb-2">
-            <form onSubmit={handleSearch} role="search">
-              <div className="relative">
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products…"
-                  aria-label="Search products"
-                  className={cn(
-                    "w-full h-10 pl-4 pr-12 rounded-full text-sm",
-                    "border border-gray-300 dark:border-gray-700",
-                    "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
-                    "focus:outline-none focus:border-[#0F4C75]"
-                  )}
-                />
-                <button
-                  type="submit"
-                  aria-label="Submit search"
-                  className="absolute right-0 top-0 h-10 w-12 flex items-center justify-center rounded-r-full text-white"
-                  style={{ backgroundColor: ACCENT }}
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Theme toggle row */}
-          <div className="px-4 py-2 flex items-center gap-3 border-b border-gray-100 dark:border-gray-800">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</span>
-            <ThemeToggle />
+          {/* Sticky header — search + theme toggle */}
+          <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+            <div className="px-4 pt-4 pb-2">
+              <form onSubmit={handleSearch} role="search">
+                <div className="relative">
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search products…"
+                    aria-label="Search products"
+                    className={cn(
+                      "w-full h-10 pl-4 pr-12 rounded-full text-sm",
+                      "border border-gray-300 dark:border-gray-700",
+                      "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+                      "focus:outline-none focus:border-[#0F4C75]"
+                    )}
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Submit search"
+                    className="absolute right-0 top-0 h-10 w-12 flex items-center justify-center rounded-r-full text-white"
+                    style={{ backgroundColor: ACCENT }}
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div className="px-4 py-2 flex items-center gap-3">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</span>
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* All departments */}

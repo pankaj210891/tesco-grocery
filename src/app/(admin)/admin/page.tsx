@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, ShoppingBag, Users, Store, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { Package, ShoppingBag, Users, Store, TrendingUp, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import StatsCard from "@/components/admin/StatsCard";
 
@@ -68,18 +69,45 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatsCard label="Products"  value={stats.totalProducts} icon={Package}     color="blue"   />
-        <StatsCard label="Orders"    value={stats.totalOrders}   icon={ShoppingBag} color="green"  sub={`${stats.pendingOrders} pending`} />
-        <StatsCard label="Users"     value={stats.totalUsers}    icon={Users}       color="purple" />
-        <StatsCard label="Vendors"   value={stats.totalVendors}  icon={Store}       color="orange" />
+        <StatsCard label="Products"  value={stats.totalProducts} icon={Package}     color="blue"   href="/admin/products" />
+        <StatsCard label="Orders"    value={stats.totalOrders}   icon={ShoppingBag} color="green"  sub={`${stats.pendingOrders} pending`} href="/admin/orders" />
+        <StatsCard label="Users"     value={stats.totalUsers}    icon={Users}       color="purple" href="/admin/users" />
+        <StatsCard label="Vendors"   value={stats.totalVendors}  icon={Store}       color="orange" href="/admin/vendors" />
         <StatsCard label="Revenue"   value={`£${stats.totalRevenue.toFixed(2)}`} icon={TrendingUp} color="red" />
+      </div>
+
+      {/* Quick Navigation */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Manage</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[
+            { href: "/admin/products", icon: Package,     color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-50 dark:bg-blue-950/40",   title: "Products",  desc: "Add, edit, or remove products and manage inventory" },
+            { href: "/admin/orders",   icon: ShoppingBag, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/40", title: "Orders",    desc: "View all customer orders and update their status" },
+            { href: "/admin/users",    icon: Users,       color: "text-purple-600 dark:text-purple-400",bg: "bg-purple-50 dark:bg-purple-950/40",title: "Users",   desc: "Manage customer accounts, roles, and access" },
+            { href: "/admin/vendors",  icon: Store,       color: "text-orange-600 dark:text-orange-400",bg: "bg-orange-50 dark:bg-orange-950/40",title: "Vendors", desc: "Approve and manage vendor stores and accounts" },
+          ].map(({ href, icon: Icon, color, bg, title, desc }) => (
+            <Link key={href} href={href}
+              className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+            >
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                <Icon className={`h-5 w-5 ${color}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">{title}</p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{desc}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Recent Orders */}
         <div className="xl:col-span-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h2 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Recent Orders</h2>
+            <Link href="/admin/orders" className="text-xs font-semibold text-[#0F4C75] hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-50 dark:divide-gray-800">
             {stats.recentOrders.length === 0 ? (
@@ -103,8 +131,9 @@ export default function AdminDashboard() {
 
         {/* Out of Stock */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h2 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Out of Stock</h2>
+            <Link href="/admin/products" className="text-xs font-semibold text-[#0F4C75] hover:underline">Manage</Link>
           </div>
           <div className="divide-y divide-gray-50 dark:divide-gray-800">
             {stats.lowStock.length === 0 ? (

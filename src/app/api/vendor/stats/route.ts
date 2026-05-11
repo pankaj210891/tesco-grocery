@@ -11,18 +11,17 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const [totalProducts, inStockProducts, outOfStockProducts, totalOrders] = await Promise.all([
+    const [totalProducts, inStockProducts, outOfStockProducts, totalOrders, pendingOrders] = await Promise.all([
       ProductModel.countDocuments({ vendorId: auth.vendorId }),
       ProductModel.countDocuments({ vendorId: auth.vendorId, inStock: true }),
       ProductModel.countDocuments({ vendorId: auth.vendorId, inStock: false }),
-      OrderModel.countDocuments({
-        "items.vendorId": auth.vendorId,
-      }),
+      OrderModel.countDocuments({ "items.vendorId": auth.vendorId }),
+      OrderModel.countDocuments({ "items.vendorId": auth.vendorId, status: "pending" }),
     ]);
 
     return NextResponse.json({
       success: true,
-      data: { totalProducts, inStockProducts, outOfStockProducts, totalOrders },
+      data: { totalProducts, inStockProducts, outOfStockProducts, totalOrders, pendingOrders },
     });
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch stats" }, { status: 500 });

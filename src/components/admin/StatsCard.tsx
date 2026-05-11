@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -7,6 +8,7 @@ interface StatsCardProps {
   icon: LucideIcon;
   color: "blue" | "green" | "purple" | "orange" | "red";
   sub?: string;
+  href?: string;
 }
 
 const COLOR_MAP = {
@@ -17,10 +19,10 @@ const COLOR_MAP = {
   red:    { bg: "bg-red-50 dark:bg-red-950/40",     icon: "bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-400",       text: "text-red-700 dark:text-red-300" },
 };
 
-export default function StatsCard({ label, value, icon: Icon, color, sub }: StatsCardProps) {
+export default function StatsCard({ label, value, icon: Icon, color, sub, href }: StatsCardProps) {
   const c = COLOR_MAP[color];
-  return (
-    <div className={cn("rounded-xl p-5 flex items-center gap-4", c.bg)}>
+  const inner = (
+    <>
       <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center shrink-0", c.icon)}>
         <Icon className="h-6 w-6" />
       </div>
@@ -29,6 +31,10 @@ export default function StatsCard({ label, value, icon: Icon, color, sub }: Stat
         <p className={cn("text-2xl font-black", c.text)}>{value}</p>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
-    </div>
+    </>
   );
+  const base = cn("rounded-xl p-5 flex items-center gap-4", c.bg);
+  return href
+    ? <Link href={href} className={cn(base, "hover:ring-2 hover:ring-offset-1 hover:ring-current/20 transition-shadow")}>{inner}</Link>
+    : <div className={base}>{inner}</div>;
 }
