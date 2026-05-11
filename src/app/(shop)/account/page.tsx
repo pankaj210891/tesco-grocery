@@ -95,18 +95,18 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
-      <h1 className="text-2xl font-black text-gray-900 mb-6">My Account</h1>
+      <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-6">My Account</h1>
 
       {/* ── Tab bar ─────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-8 w-full sm:w-auto sm:inline-flex">
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-8 w-full sm:w-auto sm:inline-flex">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               activeTab === id
-                ? "bg-white text-[#00539F] shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white dark:bg-gray-700 text-[#00539F] dark:text-blue-400 shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -121,31 +121,31 @@ export default function AccountPage() {
 
           {/* Profile card */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center gap-4 mb-5">
                 <div className="inline-flex bg-[#00539F]/10 rounded-full p-3">
                   <User className="h-7 w-7 text-[#00539F]" aria-hidden />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-black text-gray-900 truncate">{user.name}</p>
-                  <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                  <p className="font-black text-gray-900 dark:text-white truncate">{user.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                 </div>
               </div>
 
-              <div className="space-y-1 text-sm border-t border-gray-100 pt-4">
+              <div className="space-y-1 text-sm border-t border-gray-100 dark:border-gray-700 pt-4">
                 <div className="flex justify-between py-1">
-                  <span className="text-gray-500">Member since</span>
-                  <span className="font-semibold text-gray-800">{formatDate(user.createdAt)}</span>
+                  <span className="text-gray-500 dark:text-gray-400">Member since</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatDate(user.createdAt)}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-gray-500">Total orders</span>
-                  <span className="font-semibold text-gray-800">{orders.length}</span>
+                  <span className="text-gray-500 dark:text-gray-400">Total orders</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{orders.length}</span>
                 </div>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="mt-5 w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                className="mt-5 w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold rounded-xl hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <LogOut className="h-4 w-4" aria-hidden />
                 Sign out
@@ -155,8 +155,8 @@ export default function AccountPage() {
 
           {/* Order history */}
           <div className="lg:col-span-8">
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 mb-5">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
                 <Package className="h-5 w-5 text-[#00539F]" aria-hidden />
                 Order history
               </h2>
@@ -188,7 +188,7 @@ export default function AccountPage() {
                     <li key={order._id}>
                       <Link
                         href={`/account/orders/${order.orderNumber}`}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-[#00539F]/30 hover:bg-blue-50/30 transition-colors group"
+                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-[#00539F]/30 dark:hover:border-blue-500/40 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-colors group"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -197,12 +197,12 @@ export default function AccountPage() {
                             </span>
                             <StatusBadge status={order.status} />
                           </div>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatDate(order.createdAt)} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="font-black text-gray-900">{formatPrice(order.total)}</p>
+                          <p className="font-black text-gray-900 dark:text-white">{formatPrice(order.total)}</p>
                           <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-[#00539F] transition-colors ml-auto mt-1" aria-hidden />
                         </div>
                       </Link>
@@ -218,14 +218,14 @@ export default function AccountPage() {
 
       {/* ── Addresses tab ───────────────────────────────────── */}
       {activeTab === "addresses" && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <AddressSection />
         </div>
       )}
 
       {/* ── Payments tab ────────────────────────────────────── */}
       {activeTab === "payments" && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <PaymentSection />
         </div>
       )}

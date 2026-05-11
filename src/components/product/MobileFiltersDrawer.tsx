@@ -19,8 +19,8 @@ export default function MobileFiltersDrawer({
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-300",
-          "text-sm font-medium text-gray-700 bg-white",
+          "flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600",
+          "text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800",
           "hover:border-[#00539F] hover:text-[#00539F] transition-colors"
         )}
         aria-expanded={open}
@@ -45,14 +45,14 @@ export default function MobileFiltersDrawer({
           />
 
           {/* Drawer panel */}
-          <div className="relative w-72 max-w-[85vw] h-full bg-white shadow-2xl flex flex-col">
+          <div className="relative w-72 max-w-[85vw] h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col">
             {/* Drawer header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <span className="font-bold text-gray-900">Filters</span>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <span className="font-bold text-gray-900 dark:text-white">Filters</span>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close filters"
-                className="p-1 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
+                className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -64,7 +64,7 @@ export default function MobileFiltersDrawer({
             </div>
 
             {/* Apply footer */}
-            <div className="px-5 py-4 border-t border-gray-100">
+            <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700">
               <button
                 onClick={() => setOpen(false)}
                 className="w-full py-2.5 bg-[#00539F] text-white rounded-xl font-semibold text-sm hover:bg-[#003B7A] transition-colors"

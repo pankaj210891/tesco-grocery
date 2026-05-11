@@ -13,7 +13,7 @@ export default function CartPageContent() {
   const { user, token, hasHydrated } = useAuthStore();
   const { items, totalItems, totalPrice, clearCart, loading, loaded } = useCartStore();
 
-  if (!hasHydrated || (loading && !loaded)) return <CartSkeleton />;
+  if (!hasHydrated || !loaded || loading) return <CartSkeleton />;
 
   if (!user || !token) {
     return (

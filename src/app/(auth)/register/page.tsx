@@ -41,14 +41,14 @@ export default function RegisterPage() {
   return (
     <div className="w-full max-w-md">
       {/* Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
         {/* Heading */}
         <div className="mb-7 text-center">
           <div className="w-12 h-12 bg-[#0F4C75] rounded-xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-black text-xl">P</span>
           </div>
-          <h1 className="text-2xl font-black text-gray-900">Create an account</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white">Create an account</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Join Prakash Supermarket and start shopping online
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function RegisterPage() {
 
           {/* Password with toggle */}
           <div className="space-y-1">
-            <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
+            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Password
             </label>
             <div className="relative">
@@ -87,10 +87,10 @@ export default function RegisterPage() {
                 placeholder="Min 8 chars, 1 uppercase, 1 number"
                 className={[
                   "w-full px-3.5 py-2.5 pr-10 text-sm border rounded-xl outline-none transition-colors",
-                  "placeholder:text-gray-400 text-gray-900 bg-white",
+                  "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800",
                   errors.password
                     ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-300 focus:border-[#0F4C75] focus:ring-2 focus:ring-blue-100",
+                    : "border-gray-300 dark:border-gray-600 focus:border-[#0F4C75] focus:ring-2 focus:ring-blue-100",
                 ].join(" ")}
                 {...register("password")}
               />
@@ -110,7 +110,7 @@ export default function RegisterPage() {
 
           {/* Confirm password with toggle */}
           <div className="space-y-1">
-            <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700">
+            <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Confirm password
             </label>
             <div className="relative">
@@ -152,7 +152,7 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           Already have an account?{" "}
           <Link href="/login" className="text-[#0F4C75] font-semibold hover:underline">
             Sign in

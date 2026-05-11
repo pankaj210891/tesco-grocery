@@ -56,7 +56,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   return (
     <article
       className={cn(
-        "group relative bg-white rounded-xl border border-gray-100 shadow-sm",
+        "group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm",
         "hover:shadow-md transition-shadow flex flex-col",
         className
       )}
@@ -74,7 +74,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       {/* Image */}
       <Link
         href={`/products/${product.slug}`}
-        className="block relative h-44 rounded-t-xl overflow-hidden bg-gray-50"
+        className="block relative h-44 rounded-t-xl overflow-hidden bg-gray-50 dark:bg-gray-700"
         tabIndex={-1}
         aria-hidden
       >
@@ -89,18 +89,18 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
       {/* Body */}
       <div className="flex flex-col flex-1 p-3 gap-1.5">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
           {product.category}
         </p>
 
         <Link
           href={`/products/${product.slug}`}
-          className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-[#00539F] transition-colors leading-snug"
+          className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 hover:text-[#00539F] dark:hover:text-blue-400 transition-colors leading-snug"
         >
           {product.name}
         </Link>
 
-        <p className="text-xs text-gray-500">{product.brand}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{product.brand}</p>
 
         {/* Rating */}
         <div className="flex items-center gap-1 mt-0.5">
@@ -112,26 +112,26 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                   "h-3 w-3",
                   i < Math.floor(product.rating)
                     ? "fill-amber-400 text-amber-400"
-                    : "fill-gray-200 text-gray-200"
+                    : "fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600"
                 )}
               />
             ))}
           </div>
-          <span className="text-[11px] text-gray-400">({product.reviewCount})</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">({product.reviewCount})</span>
         </div>
 
         {/* Price */}
         <div className="flex items-baseline gap-1.5 mt-auto pt-1.5">
-          <span className="text-lg font-black text-gray-900">
+          <span className="text-lg font-black text-gray-900 dark:text-white">
             £{product.price.toFixed(2)}
           </span>
           {product.originalPrice && (
-            <span className="text-xs text-gray-400 line-through">
+            <span className="text-xs text-gray-400 dark:text-gray-500 line-through">
               £{product.originalPrice.toFixed(2)}
             </span>
           )}
         </div>
-        <p className="text-[11px] text-gray-400">{product.unit}</p>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500">{product.unit}</p>
 
         {/* Cart control */}
         {product.inStock ? (
@@ -154,13 +154,13 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 onClick={() => requireAuth(() => void updateQuantity(product._id, qty - 1, token!))}
                 className={cn(
                   "h-9 w-9 flex items-center justify-center rounded-lg",
-                  "bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+                  "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 active:scale-95 transition-all"
                 )}
                 aria-label="Decrease quantity"
               >
-                <Minus className="h-4 w-4 text-gray-700" />
+                <Minus className="h-4 w-4 text-gray-700 dark:text-gray-300" />
               </button>
-              <span className="text-sm font-bold text-gray-900 tabular-nums w-6 text-center">
+              <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums w-6 text-center">
                 {qty}
               </span>
               <button
@@ -178,7 +178,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         ) : (
           <button
             disabled
-            className="mt-2 w-full h-9 bg-gray-100 text-gray-400 text-sm font-semibold rounded-lg cursor-not-allowed"
+            className="mt-2 w-full h-9 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-semibold rounded-lg cursor-not-allowed"
           >
             Out of Stock
           </button>

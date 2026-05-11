@@ -55,8 +55,8 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20">
-      <h2 className="text-base font-black text-gray-900">Order Summary</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20">
+      <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
 
       {/* Line items */}
       <ul className="space-y-2.5 text-sm">
@@ -76,9 +76,9 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
       </ul>
 
       {/* Divider + total */}
-      <div className="border-t border-gray-100 pt-4 flex items-baseline justify-between">
-        <span className="text-base font-bold text-gray-900">Total</span>
-        <span className="text-2xl font-black text-gray-900">
+      <div className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-baseline justify-between">
+        <span className="text-base font-bold text-gray-900 dark:text-white">Total</span>
+        <span className="text-2xl font-black text-gray-900 dark:text-white">
           {formatPrice(total)}
         </span>
       </div>
@@ -95,7 +95,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
             ? "You qualify for free delivery! 🎉"
             : `Add ${formatPrice(needed)} more for free delivery`}
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-[#00539F] rounded-full transition-all duration-700"
             style={{ width: `${progress}%` }}
@@ -110,7 +110,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
 
       {/* Promo code */}
       <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
           Promo Code
         </p>
         {appliedPromo ? (
@@ -142,14 +142,14 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
                 placeholder="Enter code"
                 aria-label="Promo code"
                 className={cn(
-                  "flex-1 border rounded-xl px-3 py-2 text-sm bg-white",
+                  "flex-1 border rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
                   "focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F]",
-                  promoError ? "border-red-400" : "border-gray-300"
+                  promoError ? "border-red-400" : "border-gray-300 dark:border-gray-600"
                 )}
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 bg-gray-900 dark:bg-gray-600 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 dark:hover:bg-gray-500 transition-colors"
               >
                 Apply
               </button>
@@ -195,8 +195,8 @@ function SummaryRow({
 }) {
   return (
     <li className="flex items-center justify-between">
-      <span className="text-gray-600">{label}</span>
-      <span className={cn("font-medium text-gray-900", valueClassName)}>
+      <span className="text-gray-600 dark:text-gray-400">{label}</span>
+      <span className={cn("font-medium text-gray-900 dark:text-white", valueClassName)}>
         {value}
       </span>
     </li>

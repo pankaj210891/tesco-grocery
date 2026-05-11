@@ -19,7 +19,7 @@ function PaymentCard({
   onSetDefault: () => void;
 }) {
   return (
-    <div className="relative bg-white rounded-xl border border-gray-100 p-4 space-y-2">
+    <div className="relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-2">
       {method.isDefault && (
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-semibold text-[#00539F] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
           <Star className="h-3 w-3" aria-hidden /> Default
@@ -28,16 +28,16 @@ function PaymentCard({
 
       <div className="flex items-center gap-2">
         <CreditCard className="h-4 w-4 text-gray-400" aria-hidden />
-        <span className="text-sm font-black text-gray-900">
+        <span className="text-sm font-black text-gray-900 dark:text-white">
           {CARD_LABELS[method.cardType as CardType]}
         </span>
       </div>
 
-      <p className="text-sm text-gray-700 font-mono tracking-wider">
+      <p className="text-sm text-gray-700 dark:text-gray-300 font-mono tracking-wider">
         **** **** **** {method.lastFour}
       </p>
-      <p className="text-sm text-gray-600">{method.cardholderName}</p>
-      <p className="text-xs text-gray-400">
+      <p className="text-sm text-gray-600 dark:text-gray-400">{method.cardholderName}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500">
         Expires {method.expiryMonth}/{method.expiryYear}
       </p>
 
@@ -124,7 +124,7 @@ export default function PaymentSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 font-black text-gray-900">
+        <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white">
           <CreditCard className="h-5 w-5 text-[#00539F]" aria-hidden />
           Saved cards
         </h2>

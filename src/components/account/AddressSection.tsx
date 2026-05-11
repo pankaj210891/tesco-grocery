@@ -27,7 +27,7 @@ function AddressCard({
   onSetDefault: () => void;
 }) {
   return (
-    <div className="relative bg-white rounded-xl border border-gray-100 p-4 space-y-2">
+    <div className="relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-2">
       {address.isDefault && (
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-semibold text-[#00539F] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
           <Star className="h-3 w-3" aria-hidden /> Default
@@ -36,13 +36,13 @@ function AddressCard({
 
       <div className="flex items-center gap-2">
         <span className="text-base">{LABEL_ICON[address.label]}</span>
-        <span className="text-sm font-black text-gray-900">
+        <span className="text-sm font-black text-gray-900 dark:text-white">
           {address.label === "Other" ? (address.customLabel ?? "Other") : address.label}
         </span>
       </div>
 
-      <div className="text-sm text-gray-600 space-y-0.5">
-        <p className="font-semibold text-gray-800">{address.fullName}</p>
+      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
+        <p className="font-semibold text-gray-800 dark:text-gray-200">{address.fullName}</p>
         <p>{address.phone}</p>
         <p>{address.line1}{address.line2 ? `, ${address.line2}` : ""}</p>
         <p>{address.city}, {address.postcode}</p>
@@ -60,7 +60,7 @@ function AddressCard({
         )}
         <button
           onClick={onEdit}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 ml-auto"
+          className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 ml-auto"
         >
           <Pencil className="h-3.5 w-3.5" aria-hidden /> Edit
         </button>
@@ -145,7 +145,7 @@ export default function AddressSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 font-black text-gray-900">
+        <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white">
           <MapPin className="h-5 w-5 text-[#00539F]" aria-hidden />
           Saved addresses
         </h2>

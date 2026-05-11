@@ -25,7 +25,7 @@ export default function SortControl() {
     <div className="flex items-center gap-2">
       <label
         htmlFor="sort-select"
-        className="text-sm text-gray-600 whitespace-nowrap hidden sm:inline"
+        className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap hidden sm:inline"
       >
         Sort by:
       </label>
@@ -33,7 +33,7 @@ export default function SortControl() {
         id="sort-select"
         value={current}
         onChange={(e) => handleChange(e.target.value)}
-        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] cursor-pointer"
+        className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] cursor-pointer"
       >
         {SORT_OPTIONS.map((opt) => (
           <option

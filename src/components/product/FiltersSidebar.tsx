@@ -64,7 +64,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="font-bold text-gray-900 text-base">Filters</span>
+        <span className="font-bold text-gray-900 dark:text-white text-base">Filters</span>
         {hasActive && (
           <button
             onClick={clearAll}
@@ -77,7 +77,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
 
       {/* ── Category ─────────────────────────────── */}
       <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
           Category
         </p>
         <ul className="space-y-0.5">
@@ -88,7 +88,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
                 "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors",
                 !activeCategory
                   ? "bg-blue-50 text-[#00539F] font-semibold"
-                  : "text-gray-600 hover:bg-gray-50"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               )}
             >
               All Products
@@ -107,7 +107,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
                     "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors",
                     isActive
                       ? "bg-blue-50 text-[#00539F] font-semibold"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   )}
                 >
                   {cat}
@@ -120,7 +120,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
 
       {/* ── Price ────────────────────────────────── */}
       <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
           Price
         </p>
         <ul className="space-y-0.5">
@@ -140,7 +140,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
                     "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors",
                     isActive
                       ? "bg-blue-50 text-[#00539F] font-semibold"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   )}
                 >
                   {r.label}
@@ -153,7 +153,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
 
       {/* ── Availability ─────────────────────────── */}
       <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
           Availability
         </p>
         <label className="flex items-center gap-2.5 cursor-pointer group px-1">
@@ -163,9 +163,9 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
             onChange={() =>
               navigate({ inStock: inStock ? null : "true" })
             }
-            className="w-4 h-4 rounded border-gray-300 text-[#00539F] focus:ring-[#00539F] cursor-pointer"
+            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-[#00539F] focus:ring-[#00539F] cursor-pointer dark:bg-gray-700"
           />
-          <span className="text-sm text-gray-700 select-none">
+          <span className="text-sm text-gray-700 dark:text-gray-300 select-none">
             In Stock Only
           </span>
         </label>

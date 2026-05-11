@@ -21,7 +21,7 @@ const variantClasses: Record<Variant, string> = {
   outline:
     "border border-tesco-blue text-tesco-blue bg-transparent hover:bg-blue-50 focus-visible:ring-[#00539F]",
   ghost:
-    "bg-transparent text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-400",
+    "bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:ring-gray-400",
   danger:
     "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
 };
