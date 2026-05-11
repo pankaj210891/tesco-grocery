@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
+import { VALID_PROMOS, FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
 import { cn } from "@/lib/utils/cn";
 import { detectCardType, formatExpiry } from "@/lib/utils/card";
 import { CARD_LABELS } from "@/lib/utils/card";
@@ -53,9 +54,8 @@ const inputCls = (hasError?: boolean) =>
 
 export default function CheckoutPageContent() {
   const router    = useRouter();
-  const { items, totalPrice, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
-  const { user, token, hasHydrated }  = useAuthStore();
-  const [promoCode, setPromoCode] = useState<string | undefined>();
+  const { items, totalPrice, promoCode, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
+  const { user, token, hasHydrated } = useAuthStore();
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [savedPayments, setSavedPayments] = useState<PaymentMethod[]>([]);
@@ -252,10 +252,14 @@ export default function CheckoutPageContent() {
 
       if (token) void clearCart(token);
       const { orderNumber } = json.data as { orderNumber: string };
+      const promoEntry   = promoCode ? VALID_PROMOS[promoCode] : null;
+      const deliveryFee  = totalPrice >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
+      const discount     = promoEntry ? totalPrice * promoEntry.pct : 0;
+      const finalTotal   = totalPrice + deliveryFee - discount;
       const params = new URLSearchParams({
         order: orderNumber,
         email: data.email,
-        total: String(totalPrice.toFixed(2)),
+        total: finalTotal.toFixed(2),
       });
       router.push(`/checkout/confirmation?${params.toString()}`);
     } catch (err) {
@@ -481,7 +485,6 @@ export default function CheckoutPageContent() {
                 <CheckoutPricingSummary
                   subtotal={totalPrice}
                   isSubmitting={isSubmitting}
-                  onPromoChange={setPromoCode}
                 />
               </div>
             </div>

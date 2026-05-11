@@ -68,7 +68,7 @@ export default function BrandGrid({ section }: { section: HomepageSection }) {
           <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
         </button>
 
-        <div ref={trackRef} className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-none pb-1 py-1">
+        <div ref={trackRef} className="flex gap-4 sm:gap-6 overflow-x-auto overscroll-x-contain scrollbar-none pb-1 py-1">
           {section.items.map((item) => <BrandCard key={item._id} item={item} />)}
         </div>
 

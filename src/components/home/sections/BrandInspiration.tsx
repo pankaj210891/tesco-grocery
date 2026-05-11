@@ -13,34 +13,34 @@ function BrandCard({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="flex-shrink-0 w-64 sm:w-72 rounded-2xl overflow-hidden group relative"
+      className="flex-shrink-0 w-64 sm:w-72 h-48 sm:h-52 rounded-2xl overflow-hidden group relative"
       style={{ backgroundColor: item.color ?? "#1E293B" }}
     >
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      {/* Gradient overlay — stronger at bottom so text is always readable */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-      {/* Content */}
-      <div className="relative h-48 sm:h-52 flex flex-col justify-between p-5">
-        {/* Emoji top-right */}
-        <div className="self-end text-5xl sm:text-6xl select-none leading-none opacity-90" aria-hidden>
-          {item.emoji}
-        </div>
+      {/* Emoji — pinned top-right, never affects bottom content */}
+      <div
+        className="absolute top-4 right-5 text-5xl sm:text-6xl select-none leading-none opacity-90"
+        aria-hidden
+      >
+        {item.emoji}
+      </div>
 
-        {/* Brand info bottom */}
-        <div>
-          <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-1">
-            Brand Partner
-          </p>
-          <h3 className="text-white text-2xl font-black leading-tight mb-1">
-            {item.title}
-          </h3>
-          <p className="text-white/80 text-sm font-medium leading-snug mb-3">
-            {item.subtitle}
-          </p>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 text-white text-xs font-bold backdrop-blur-sm border border-white/30 group-hover:bg-white/30 transition-colors">
-            Explore range →
-          </span>
-        </div>
+      {/* Brand info — pinned to bottom, always fully visible */}
+      <div className="absolute bottom-0 left-0 right-0 p-5">
+        <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-1">
+          Brand Partner
+        </p>
+        <h3 className="text-white text-xl sm:text-2xl font-black leading-tight mb-1 line-clamp-2">
+          {item.title}
+        </h3>
+        <p className="text-white/80 text-sm font-medium leading-snug mb-3 line-clamp-1">
+          {item.subtitle}
+        </p>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 text-white text-xs font-bold backdrop-blur-sm border border-white/30 group-hover:bg-white/30 transition-colors">
+          Explore range →
+        </span>
       </div>
     </Link>
   );
@@ -85,7 +85,7 @@ export default function BrandInspiration({ section }: { section: HomepageSection
           <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
         </button>
 
-        <div ref={trackRef} className="flex gap-4 overflow-x-auto scrollbar-none pb-1">
+        <div ref={trackRef} className="flex gap-4 overflow-x-auto overscroll-x-contain scrollbar-none pb-1">
           {section.items.map((item) => <BrandCard key={item._id} item={item} />)}
         </div>
 

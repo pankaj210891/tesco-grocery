@@ -135,7 +135,7 @@ export default function CategoryGrid() {
         {/* Scroll track */}
         <div
           ref={trackRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-none py-1"
+          className="flex gap-3 sm:gap-4 overflow-x-auto overscroll-x-contain scrollbar-none py-1"
         >
           {categories.map((cat) => (
             <Link
