@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useWishlistStore } from "@/store/wishlist.store";
-import { useWishlistSync } from "@/hooks/useWishlistSync";
+import { useAuthData } from "@/hooks/useAuthData";
 import { useHydrated } from "@/hooks/useHydrated";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
@@ -82,8 +82,10 @@ export default function Navbar() {
 
   const totalItems    = useCartStore((s) => s.totalItems);
   const wishlistCount = useWishlistStore((s) => s.items.length);
-  useWishlistSync();
+  useAuthData();
   const { user, logout } = useAuthStore();
+  const resetCart     = useCartStore((s) => s.reset);
+  const resetWishlist = useWishlistStore((s) => s.reset);
   const hydrated = useHydrated();
 
   useEffect(() => {
@@ -101,6 +103,8 @@ export default function Navbar() {
 
   function handleLogout() {
     logout();
+    resetCart();
+    resetWishlist();
     setAccountOpen(false);
     toast.success("You've been signed out.");
     router.push("/");

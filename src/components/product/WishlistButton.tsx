@@ -1,10 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
-import axios from "axios";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
-import { useHydrated } from "@/hooks/useHydrated";
 import { cn } from "@/lib/utils/cn";
 import type { Product } from "@/types";
 
@@ -14,31 +13,16 @@ interface Props {
 }
 
 export default function WishlistButton({ product, className }: Props) {
-  const hydrated             = useHydrated();
   const { toggleItem, hasItem } = useWishlistStore();
-  const token                = useAuthStore((s) => s.token);
-  const saved                = hydrated && hasItem(product._id);
+  const { token } = useAuthStore();
+  const router = useRouter();
+  const saved = hasItem(product._id);
 
   async function handleToggle(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-
-    const willBeSaved = !hasItem(product._id);
-    toggleItem(product); // instant local update
-
-    if (!token) return; // not logged in — localStorage only
-
-    // fire-and-forget server sync
-    const authHeader = { Authorization: `Bearer ${token}` };
-    try {
-      if (willBeSaved) {
-        await axios.post("/api/account/wishlist", { productId: product._id }, { headers: authHeader });
-      } else {
-        await axios.delete(`/api/account/wishlist/${product._id}`, { headers: authHeader });
-      }
-    } catch {
-      // silently ignore — local state is already correct
-    }
+    if (!token) { router.push("/login"); return; }
+    await toggleItem(product, token);
   }
 
   return (

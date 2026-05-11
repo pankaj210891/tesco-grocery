@@ -10,7 +10,6 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
-import { useHydrated } from "@/hooks/useHydrated";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
 import { cn } from "@/lib/utils/cn";
 import { detectCardType, formatExpiry } from "@/lib/utils/card";
@@ -54,9 +53,8 @@ const inputCls = (hasError?: boolean) =>
 
 export default function CheckoutPageContent() {
   const router    = useRouter();
-  const hydrated  = useHydrated();
-  const { items, totalPrice, clearCart } = useCartStore();
-  const { user, token }  = useAuthStore();
+  const { items, totalPrice, clearCart, loading: cartLoading } = useCartStore();
+  const { user, token, hasHydrated }  = useAuthStore();
   const [promoCode, setPromoCode] = useState<string | undefined>();
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
@@ -149,7 +147,7 @@ export default function CheckoutPageContent() {
     }
   }
 
-  if (!hydrated) return <CheckoutLoading />;
+  if (!hasHydrated || cartLoading) return <CheckoutLoading />;
 
   if (items.length === 0) {
     return (
@@ -226,7 +224,7 @@ export default function CheckoutPageContent() {
         promoCode,
       });
 
-      clearCart();
+      if (token) void clearCart(token);
       const { orderNumber } = json.data as { orderNumber: string };
       const params = new URLSearchParams({
         order: orderNumber,
