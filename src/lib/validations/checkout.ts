@@ -6,9 +6,8 @@ export const checkoutSchema = z.object({
   email:    z.string().email("Enter a valid email address"),
   phone:    z
     .string()
-    .min(10, "Enter a valid phone number")
-    .max(15)
-    .regex(/^[0-9+\s()-]+$/, "Enter a valid phone number"),
+    .length(10, "Phone number must be exactly 10 digits")
+    .regex(/^\d{10}$/, "Numbers only, no spaces or symbols"),
   address:  z.string().min(5,  "Address is required"),
   city:     z.string().min(2,  "City is required"),
   postcode: z

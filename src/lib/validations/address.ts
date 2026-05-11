@@ -7,9 +7,8 @@ export const addressSchema = z
     fullName: z.string().min(2, "Full name is required"),
     phone: z
       .string()
-      .min(7, "Enter a valid phone number")
-      .max(15)
-      .regex(/^[0-9+\s()-]+$/, "Enter a valid phone number"),
+      .length(10, "Phone number must be exactly 10 digits")
+      .regex(/^\d{10}$/, "Numbers only, no spaces or symbols"),
     line1: z.string().min(5, "Address line 1 is required"),
     line2: z.string().optional(),
     city: z.string().min(2, "City is required"),

@@ -108,7 +108,7 @@ export default function CheckoutPageContent() {
         if (defaultAddr) {
           setSelectedAddress(defaultAddr);
           setValue("fullName", defaultAddr.fullName);
-          setValue("phone",    defaultAddr.phone);
+          setValue("phone",    defaultAddr.phone.replace(/\D/g, "").slice(0, 10));
           setValue("address",  defaultAddr.line1 + (defaultAddr.line2 ? `, ${defaultAddr.line2}` : ""));
           setValue("city",     defaultAddr.city);
           setValue("postcode", defaultAddr.postcode);
@@ -133,7 +133,7 @@ export default function CheckoutPageContent() {
     setSelectedAddress(addr);
     if (addr) {
       setValue("fullName", addr.fullName);
-      setValue("phone",    addr.phone);
+      setValue("phone",    addr.phone.replace(/\D/g, "").slice(0, 10));
       setValue("address",  addr.line1 + (addr.line2 ? `, ${addr.line2}` : ""));
       setValue("city",     addr.city);
       setValue("postcode", addr.postcode);
@@ -335,10 +335,16 @@ export default function CheckoutPageContent() {
                 <Field label="Phone number" error={errors.phone}>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     autoComplete="tel"
-                    placeholder="07700 900000"
+                    placeholder="9876543210"
+                    maxLength={10}
                     className={inputCls(!!errors.phone)}
                     {...register("phone")}
+                    onChange={(e) => {
+                      const numeric = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setValue("phone", numeric, { shouldValidate: true, shouldDirty: true });
+                    }}
                   />
                 </Field>
 
