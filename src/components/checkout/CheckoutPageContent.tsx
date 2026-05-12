@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
-import { VALID_PROMOS, FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
 import { cn } from "@/lib/utils/cn";
 import { detectCardType, formatExpiry } from "@/lib/utils/card";
 import { CARD_LABELS } from "@/lib/utils/card";
@@ -54,7 +54,7 @@ const inputCls = (hasError?: boolean) =>
 
 export default function CheckoutPageContent() {
   const router    = useRouter();
-  const { items, totalPrice, promoCode, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
+  const { items, totalPrice, promoCode, promoInfo, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
   const { user, token, hasHydrated } = useAuthStore();
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
@@ -252,10 +252,16 @@ export default function CheckoutPageContent() {
 
       if (token) void clearCart(token);
       const { orderNumber } = json.data as { orderNumber: string };
-      const promoEntry   = promoCode ? VALID_PROMOS[promoCode] : null;
-      const deliveryFee  = totalPrice >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
-      const discount     = promoEntry ? totalPrice * promoEntry.pct : 0;
-      const finalTotal   = totalPrice + deliveryFee - discount;
+      const deliveryFee = totalPrice >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
+      const effectiveDelivery = promoInfo?.discountType === "freeDelivery" ? 0 : deliveryFee;
+      const discount = promoInfo
+        ? promoInfo.discountType === "percentage"
+          ? totalPrice * (promoInfo.discountValue / 100)
+          : promoInfo.discountType === "fixed"
+          ? Math.min(promoInfo.discountValue, totalPrice)
+          : deliveryFee
+        : 0;
+      const finalTotal = totalPrice + effectiveDelivery - (promoInfo?.discountType === "freeDelivery" ? 0 : discount);
       const params = new URLSearchParams({
         order: orderNumber,
         email: data.email,

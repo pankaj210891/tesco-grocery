@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import type { CartItem, Product } from "@/types";
 
+export interface PromoInfo {
+  label:         string;
+  discountType:  "percentage" | "fixed" | "freeDelivery";
+  discountValue: number;
+  minOrderValue: number;
+}
+
 interface CartState {
   items:      CartItem[];
   totalItems: number;
@@ -8,9 +15,11 @@ interface CartState {
   loading:    boolean;
   loaded:     boolean;
 
-  /* Promo code lifted here so it survives cart → checkout navigation */
-  promoCode: string | null;
+  /* Promo code and validated info survive cart → checkout navigation */
+  promoCode:    string | null;
+  promoInfo:    PromoInfo | null;
   setPromoCode: (code: string | null) => void;
+  setPromoInfo: (info: PromoInfo | null) => void;
 
   fetchCart:      (token: string) => Promise<void>;
   addItem:        (product: Product, quantity: number, token: string) => Promise<void>;
@@ -38,8 +47,10 @@ export const useCartStore = create<CartState>()((set, get) => ({
   totalPrice: 0,
   loading:    false,
   loaded:     false,
-  promoCode:  null,
+  promoCode:    null,
+  promoInfo:    null,
   setPromoCode: (code) => set({ promoCode: code }),
+  setPromoInfo: (info) => set({ promoInfo: info }),
 
   fetchCart: async (token) => {
     set({ loading: true });
@@ -94,9 +105,9 @@ export const useCartStore = create<CartState>()((set, get) => ({
   },
 
   clearCart: async (token) => {
-    set({ items: [], totalItems: 0, totalPrice: 0, promoCode: null });
+    set({ items: [], totalItems: 0, totalPrice: 0, promoCode: null, promoInfo: null });
     await fetch("/api/account/cart", { method: "DELETE", headers: AUTH(token) });
   },
 
-  reset: () => set({ items: [], totalItems: 0, totalPrice: 0, loading: false, loaded: false, promoCode: null }),
+  reset: () => set({ items: [], totalItems: 0, totalPrice: 0, loading: false, loaded: false, promoCode: null, promoInfo: null }),
 }));

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
+import toast from "react-hot-toast";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";
@@ -21,8 +22,18 @@ export default function WishlistButton({ product, className }: Props) {
   async function handleToggle(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) { router.push("/login"); return; }
+    if (!token) {
+      toast.error("Sign in to save items to your wishlist");
+      router.push("/login");
+      return;
+    }
+    const wasSaved = saved;
     await toggleItem(product, token);
+    if (wasSaved) {
+      toast.success(`Removed from wishlist`);
+    } else {
+      toast.success(`Saved to wishlist`);
+    }
   }
 
   return (
