@@ -1,4 +1,4 @@
-import { connectDB, isDBConfigured } from "@/lib/db/mongoose";
+import { connectDB } from "@/lib/db/mongoose";
 import OrderModel, { type OrderDoc } from "@/lib/db/models/order.model";
 import type { Order } from "@/types";
 
@@ -42,24 +42,6 @@ function generateOrderNumber(): string {
   return `ORD-${date}-${random}`;
 }
 
-const MOCK_ORDERS: Order[] = [
-  {
-    _id:         "demo-order-1",
-    orderNumber: "ORD-20260507-DEMO",
-    items: [
-      { productId: "p1", name: "Prakash Whole Milk 2L", slug: "prakash-whole-milk-2l",  price: 1.35, quantity: 2, image: "" },
-      { productId: "p2", name: "Warburtons Medium Sliced White Bread", slug: "warburtons-white-bread", price: 1.20, quantity: 1, image: "" },
-    ],
-    delivery:    { fullName: "Demo User", email: "demo@example.com", phone: "07700900000", address: "1 Demo Street", city: "London", postcode: "SW1A 1AA" },
-    subtotal:    3.90,
-    deliveryFee: 0,
-    discount:    0,
-    total:       3.90,
-    status:      "delivered",
-    createdAt:   new Date(Date.now() - 7 * 86400_000).toISOString(),
-  },
-];
-
 function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date }): Order {
   return {
     _id:         doc._id.toString(),
@@ -75,7 +57,7 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
       quantity:  i.quantity,
       image:     i.image     ?? "",
     })),
-    delivery:    {
+    delivery: {
       fullName: doc.delivery?.fullName ?? "",
       email:    doc.delivery?.email    ?? "",
       phone:    doc.delivery?.phone    ?? "",
@@ -94,7 +76,6 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
 }
 
 export async function getOrdersByUserId(userId: string): Promise<Order[]> {
-  if (!isDBConfigured()) return MOCK_ORDERS;
   await connectDB();
   const docs = await OrderModel
     .find({ userId })
@@ -105,9 +86,6 @@ export async function getOrdersByUserId(userId: string): Promise<Order[]> {
 }
 
 export async function getOrderByNumber(orderNumber: string, userId: string): Promise<Order | null> {
-  if (!isDBConfigured()) {
-    return MOCK_ORDERS.find((o) => o.orderNumber === orderNumber) ?? null;
-  }
   await connectDB();
   const doc = await OrderModel.findOne({ orderNumber, userId }).lean();
   if (!doc) return null;
@@ -115,15 +93,8 @@ export async function getOrderByNumber(orderNumber: string, userId: string): Pro
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<OrderResult> {
-  const orderNumber = generateOrderNumber();
-
-  if (!isDBConfigured()) {
-    // Demo mode — return a mock order without DB
-    return { orderId: `demo-${Date.now()}`, orderNumber };
-  }
-
   await connectDB();
-
+  const orderNumber = generateOrderNumber();
   const doc = await OrderModel.create({ ...input, orderNumber });
   return { orderId: doc._id.toString(), orderNumber: doc.orderNumber };
 }

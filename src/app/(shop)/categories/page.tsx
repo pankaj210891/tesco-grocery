@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CATEGORIES } from "@/lib/data/categories";
-import { getCategories } from "@/services/product.service";
+import { getAllCategories } from "@/services/category.service";
 import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = {
@@ -11,9 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CategoriesPage() {
-  // Fetch live counts (falls back to mock data if DB not configured)
-  const liveCounts = await getCategories();
-  const countMap = Object.fromEntries(liveCounts.map((c) => [c.slug, c.count]));
+  const categories = await getAllCategories();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
@@ -23,15 +20,18 @@ export default async function CategoriesPage() {
           Shop by Category
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Browse our full range across {CATEGORIES.length} categories
+          Browse our full range across {categories.length} categories
         </p>
       </div>
 
-      {/* Category grid */}
-      <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {CATEGORIES.map((cat) => {
-          const count = countMap[cat.slug];
-          return (
+      {categories.length === 0 ? (
+        <div className="flex flex-col items-center py-20 text-center">
+          <p className="text-gray-400 text-lg">No categories available yet.</p>
+          <p className="text-sm text-gray-400 mt-1">Seed the database to get started.</p>
+        </div>
+      ) : (
+        <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {categories.map((cat) => (
             <li key={cat.slug}>
               <Link
                 href={`/categories/${cat.slug}`}
@@ -53,14 +53,16 @@ export default async function CategoriesPage() {
                 >
                   {cat.name}
                 </span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  {count ?? 0} {(count ?? 0) === 1 ? "product" : "products"}
-                </span>
+                {cat.productCount > 0 && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    {cat.productCount} {cat.productCount === 1 ? "product" : "products"}
+                  </span>
+                )}
               </Link>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

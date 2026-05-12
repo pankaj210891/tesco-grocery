@@ -45,11 +45,40 @@ export interface PaginatedProducts {
 // ─── Category ───────────────────────────────────────────────────────────────
 
 export interface Category {
-  _id: string;
-  name: string;
-  slug: string;
-  image: string;
+  _id:          string;
+  name:         string;
+  slug:         string;
+  emoji:        string;
+  description:  string;
+  color:        string;
+  textColor:    string;
+  order:        number;
+  isActive:     boolean;
   productCount: number;
+  createdAt:    string;
+}
+
+// Lightweight shape returned by the categories list API
+export interface CategorySummary {
+  name:  string;
+  slug:  string;
+  count: number;
+}
+
+// Extended seed shape used by the seed system
+export interface Department {
+  _id:   string;
+  name:  string;
+  slug:  string;
+  emoji: string;
+  categories: string[];   // category slugs
+}
+
+export interface SeedResult {
+  collection: string;
+  inserted:   number;
+  deleted:    number;
+  durationMs: number;
 }
 
 // ─── Cart ───────────────────────────────────────────────────────────────────
@@ -272,7 +301,8 @@ export type SectionType =
   | "info-cards"
   | "category-tiles"
   | "brand-grid"
-  | "explore-cards";
+  | "explore-cards"
+  | "hero-banner";
 
 export interface SectionItem {
   _id:            string;
