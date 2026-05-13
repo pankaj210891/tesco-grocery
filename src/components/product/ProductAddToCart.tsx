@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, Minus, Plus, CheckCircle2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -26,10 +26,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
   function handleAdd() {
     if (!token) { router.push("/login"); return; }
     void addItem(product, qty, token);
-    toast.success(
-      <span><strong>{product.name}</strong> × {qty} added to cart</span>,
-      { duration: 2500 }
-    );
+    toast.success(`${product.name} × ${qty} added to cart`);
   }
 
   return (

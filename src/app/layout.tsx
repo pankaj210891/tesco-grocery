@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -44,22 +44,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ScrollRestorer />
           {children}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 2000,
-              style: {
-                borderRadius: "10px",
-                fontFamily: "var(--font-sans)",
-                fontSize: "14px",
-                cursor: "pointer",
-                paddingRight: "12px",
-              },
-              success: {
-                iconTheme: { primary: "#0F4C75", secondary: "#fff" },
-              },
-            }}
-          />
+          <Toaster position="top-right" richColors duration={2000} />
         </ThemeProvider>
       </body>
     </html>

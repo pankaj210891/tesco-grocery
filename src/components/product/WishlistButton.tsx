@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";

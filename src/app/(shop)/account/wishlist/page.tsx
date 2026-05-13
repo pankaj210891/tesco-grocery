@@ -8,7 +8,7 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import WishlistButton from "@/components/product/WishlistButton";
 import { formatPrice } from "@/lib/utils/format";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import type { Product } from "@/types";
 
 function WishlistItem({ product }: { product: Product }) {
