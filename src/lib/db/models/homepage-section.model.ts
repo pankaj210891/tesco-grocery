@@ -35,6 +35,7 @@ const HomepageSectionSchema = new Schema(
         "category-tiles",
         "brand-grid",
         "explore-cards",
+        "hero-banner",
       ],
     },
     isActive: { type: Boolean, default: true },

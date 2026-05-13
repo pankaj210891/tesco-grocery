@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Plus, Trash2, Star } from "lucide-react";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import { CARD_LABELS } from "@/lib/utils/card";
 import type { PaymentMethod, CardType } from "@/types";

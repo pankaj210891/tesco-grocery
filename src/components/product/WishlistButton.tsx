@@ -1,9 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
+import { toast } from "sonner";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
+import { savePendingAction } from "@/lib/pending-action";
 import { cn } from "@/lib/utils/cn";
 import type { Product } from "@/types";
 
@@ -14,15 +16,27 @@ interface Props {
 
 export default function WishlistButton({ product, className }: Props) {
   const { toggleItem, hasItem } = useWishlistStore();
-  const { token } = useAuthStore();
-  const router = useRouter();
+  const { token }  = useAuthStore();
+  const router     = useRouter();
+  const pathname   = usePathname();
   const saved = hasItem(product._id);
 
   async function handleToggle(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) { router.push("/login"); return; }
+    if (!token) {
+      savePendingAction({ type: "toggleWishlist", product });
+      toast.info("Sign in to save items to your wishlist");
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    const wasSaved = saved;
     await toggleItem(product, token);
+    if (wasSaved) {
+      toast.success("Removed from wishlist");
+    } else {
+      toast.success("Saved to wishlist");
+    }
   }
 
   return (

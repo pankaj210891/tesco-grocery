@@ -7,13 +7,20 @@ import CategoryGrid from "@/components/home/CategoryGrid";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import HomepageSections from "@/components/home/HomepageSections";
 import { siteConfig } from "@/config/site";
+import { getAllCategories } from "@/services/category.service";
+import { getProducts } from "@/services/product.service";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} — Fresh Food & Groceries Online`,
   description: siteConfig.description,
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [categories, { products: featuredProducts }] = await Promise.all([
+    getAllCategories(),
+    getProducts({ sortBy: "rating", limit: 8 }),
+  ]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -23,8 +30,8 @@ export default function HomePage() {
         <PromoStrip />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-          <CategoryGrid />
-          <FeaturedProducts />
+          <CategoryGrid categories={categories} />
+          <FeaturedProducts products={featuredProducts} />
           <HomepageSections />
         </div>
       </main>

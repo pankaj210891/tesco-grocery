@@ -1,21 +1,19 @@
 import Link from "next/link";
 import ProductCard from "@/components/product/ProductCard";
-import { mockAllProducts } from "@/lib/data/mock-products";
+import { getProducts } from "@/services/product.service";
+import { slugify } from "@/lib/utils/format";
 import type { Product } from "@/types";
 
 interface RelatedProductsProps {
   currentProduct: Product;
 }
 
-export default function RelatedProducts({
-  currentProduct,
-}: RelatedProductsProps) {
-  const related = mockAllProducts
-    .filter(
-      (p) =>
-        p._id !== currentProduct._id &&
-        p.category === currentProduct.category
-    )
+export default async function RelatedProducts({ currentProduct }: RelatedProductsProps) {
+  const categorySlug = slugify(currentProduct.category);
+
+  const { products } = await getProducts({ category: categorySlug, limit: 5 });
+  const related = products
+    .filter((p) => p._id !== currentProduct._id)
     .slice(0, 4);
 
   if (related.length === 0) return null;
@@ -25,15 +23,13 @@ export default function RelatedProducts({
       <div className="flex items-center justify-between mb-5">
         <h2
           id="related-heading"
-          className="text-xl font-black text-gray-900"
+          className="text-xl font-black text-gray-900 dark:text-gray-100"
         >
           You might also like
         </h2>
         <Link
-          href={`/categories/${currentProduct.category
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")}`}
-          className="text-sm font-semibold text-[#00539F] hover:underline"
+          href={`/categories/${categorySlug}`}
+          className="text-sm font-semibold text-[#00539F] dark:text-blue-400 hover:underline"
         >
           View all →
         </Link>

@@ -10,10 +10,10 @@ interface FiltersSidebarProps {
 }
 
 const PRICE_RANGES = [
-  { label: "Under £1", min: "0", max: "1" },
-  { label: "£1 – £2", min: "1", max: "2" },
-  { label: "£2 – £5", min: "2", max: "5" },
-  { label: "Over £5", min: "5", max: "" },
+  { label: "Under ₹100", min: "0",   max: "100" },
+  { label: "₹100 – ₹300", min: "100", max: "300" },
+  { label: "₹300 – ₹600", min: "300", max: "600" },
+  { label: "Over ₹600",  min: "600", max: "" },
 ] as const;
 
 export default function FiltersSidebar({ categories }: FiltersSidebarProps) {

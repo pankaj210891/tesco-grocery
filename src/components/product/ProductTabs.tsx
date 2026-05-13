@@ -102,8 +102,8 @@ export default function ProductTabs({ product }: { product: Product }) {
               Delivery & Returns
             </h2>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 list-disc list-inside">
-              <li>Free delivery on orders over £40</li>
-              <li>Next-day delivery available for £5.99</li>
+              <li>Free delivery on orders over ₹500</li>
+              <li>Next-day delivery available for ₹49</li>
               <li>Click & Collect free at all Prakash stores</li>
               <li>Returns accepted within 14 days — see <a href="/help" className="text-[#0F4C75] dark:text-blue-400 hover:underline">Help Centre</a> for details</li>
             </ul>

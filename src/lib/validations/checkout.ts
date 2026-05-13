@@ -16,20 +16,10 @@ export const checkoutSchema = z.object({
     .max(8)
     .regex(/^[A-Z0-9 ]{5,8}$/i, "Enter a valid postcode"),
 
-  // ── Payment (mock UI — no real processing) ───────────────────────────────
-  cardNumber: z
-    .string()
-    .regex(
-      /^(\*{4} \*{4} \*{4} \d{4}|\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})$/,
-      "Enter a valid 16-digit card number"
-    ),
-  cardName:   z.string().min(2, "Name on card is required"),
-  expiry:     z
-    .string()
-    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Format: MM/YY"),
-  cvv:        z
-    .string()
-    .regex(/^\d{3,4}$/, "CVV must be 3 or 4 digits"),
+  // ── Payment method ────────────────────────────────────────────────────────
+  paymentMethod: z.enum(["razorpay", "cod"], {
+    error: "Select a payment method",
+  }),
 });
 
 export type CheckoutFormData = z.infer<typeof checkoutSchema>;

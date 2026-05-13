@@ -1,10 +1,13 @@
-import { getCategories } from "@/services/product.service";
+import { getAllCategories } from "@/services/category.service";
 
 export async function GET() {
   try {
-    const data = await getCategories();
+    const data = await getAllCategories();
     return Response.json({ success: true, data });
   } catch {
-    return Response.json({ success: false, error: "Failed to fetch categories" }, { status: 500 });
+    return Response.json(
+      { success: false, error: "Failed to fetch categories" },
+      { status: 500 }
+    );
   }
 }

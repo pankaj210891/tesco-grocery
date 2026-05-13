@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import type { HomepageSection } from "@/types";
 
-interface Slide {
-  id:           number;
+interface BannerSlide {
+  id:           string;
   headline:     string;
   subline:      string;
   cta:          string;
@@ -15,62 +16,67 @@ interface Slide {
   illustration: string;
 }
 
-const slides: Slide[] = [
-  {
-    id:           1,
-    headline:     "Fresh Food, Every Day",
-    subline:      "Locally sourced, quality guaranteed — delivered straight to your door.",
-    cta:          "Shop Fresh Food",
-    href:         "/categories/fresh-food",
-    bg:           "from-[#0F4C75] to-[#0A3352]",
-    illustration: "🥦",
-  },
-  {
-    id:           2,
-    headline:     "Up to 50% Off Selected Items",
-    subline:      "Huge savings across bakery, drinks, snacks and more. Limited time only.",
-    cta:          "View Deals",
-    href:         "/products?sortBy=price-asc",
-    bg:           "from-[#E65100] to-[#BF360C]",
-    illustration: "🛒",
-  },
-  {
-    id:           3,
-    headline:     "Free Delivery Over £40",
-    subline:      "Fill your basket and we'll bring it straight to you, free of charge.",
-    cta:          "Start Shopping",
-    href:         "/products",
-    bg:           "from-[#1B5E20] to-[#0A2E0D]",
-    illustration: "🚚",
-  },
-  {
-    id:           4,
-    headline:     "Electronics & Gaming",
-    subline:      "Latest tech, gaming gear and home entertainment at supermarket prices.",
-    cta:          "Explore Electronics",
-    href:         "/categories/electronics-gaming",
-    bg:           "from-[#4A148C] to-[#2A0A5E]",
-    illustration: "🎮",
-  },
-];
+function toBannerSlides(section: HomepageSection): BannerSlide[] {
+  return [...section.items]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => ({
+      id:           item._id,
+      headline:     item.title,
+      subline:      item.subtitle ?? "",
+      cta:          item.badge ?? "Shop Now",
+      href:         item.href,
+      bg:           item.color ?? "from-[#0F4C75] to-[#0A3352]",
+      illustration: item.emoji ?? "🛒",
+    }));
+}
 
 const INTERVAL_MS = 5_000;
 
-export default function HeroBanner() {
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
+function BannerSkeleton() {
+  return (
+    <div className="h-[260px] sm:h-[320px] lg:h-[380px] bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
+  );
+}
 
-  const next = useCallback(() => setActive((i) => (i + 1) % slides.length), []);
+export default function HeroBanner() {
+  const [slides, setSlides]   = useState<BannerSlide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [active,  setActive]  = useState(0);
+  const [paused,  setPaused]  = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res  = await fetch("/api/homepage/sections?type=hero-banner");
+        const json = await res.json() as { data: HomepageSection[] };
+        const section = json.data?.[0];
+        if (section) setSlides(toBannerSlides(section));
+      } catch {
+        // silently degrade — banner shows empty state
+      } finally {
+        setLoading(false);
+      }
+    }
+    void load();
+  }, []);
+
+  const next = useCallback(
+    () => setActive((i) => (i + 1) % Math.max(slides.length, 1)),
+    [slides.length]
+  );
   const prev = useCallback(
-    () => setActive((i) => (i - 1 + slides.length) % slides.length),
-    []
+    () => setActive((i) => (i - 1 + Math.max(slides.length, 1)) % Math.max(slides.length, 1)),
+    [slides.length]
   );
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || slides.length === 0) return;
     const id = setInterval(next, INTERVAL_MS);
     return () => clearInterval(id);
-  }, [paused, next]);
+  }, [paused, next, slides.length]);
+
+  if (loading) return <BannerSkeleton />;
+  if (slides.length === 0) return null;
 
   const slide = slides[active];
 

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { getCategoryMeta, CATEGORIES } from "@/lib/data/categories";
+import { getAllCategories, getCategoryBySlug } from "@/services/category.service";
 import { getProducts } from "@/services/product.service";
 import { cn } from "@/lib/utils/cn";
 import type { ProductFilters } from "@/types";
@@ -25,14 +25,19 @@ function str(v: string | string[] | undefined): string | undefined {
 // ── Static generation ─────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
-  return CATEGORIES.map((c) => ({ category: c.slug }));
+  try {
+    const categories = await getAllCategories();
+    return categories.map((c) => ({ category: c.slug }));
+  } catch {
+    return [];
+  }
 }
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category } = await params;
-  const meta = getCategoryMeta(category);
+  const meta = await getCategoryBySlug(category);
   if (!meta) return { title: "Category Not Found" };
 
   return {
@@ -47,7 +52,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { category } = await params;
   const sp           = await searchParams;
 
-  const meta = getCategoryMeta(category);
+  const meta = await getCategoryBySlug(category);
   if (!meta) notFound();
 
   const filters: ProductFilters = {
@@ -72,7 +77,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <li><ChevronRight className="h-3.5 w-3.5 text-gray-300" /></li>
           <li><Link href="/categories" className="hover:text-[#00539F] transition-colors">Categories</Link></li>
           <li><ChevronRight className="h-3.5 w-3.5 text-gray-300" /></li>
-          <li className="font-semibold text-gray-900">{meta.name}</li>
+          <li className="font-semibold text-gray-900 dark:text-gray-100">{meta.name}</li>
         </ol>
       </nav>
 
@@ -92,12 +97,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
       {/* Controls row */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        {/* Sub-filters (price range + in-stock) */}
         <Suspense fallback={null}>
           <CategoryFilters />
         </Suspense>
 
-        {/* Sort */}
         <Suspense fallback={<SortSkeleton />}>
           <SortControl />
         </Suspense>

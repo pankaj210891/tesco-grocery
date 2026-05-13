@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { formatPrice } from "@/lib/utils/format";
@@ -29,10 +29,7 @@ export default function CartItem({ item }: CartItemProps) {
 
   function handleRemove() {
     void removeItem(product._id, token);
-    toast.success(`${product.name} removed from cart`, {
-      icon: "🗑️",
-      duration: 2000,
-    });
+    toast.success(`${product.name} removed from cart`);
   }
 
   const lineTotal = product.price * quantity;

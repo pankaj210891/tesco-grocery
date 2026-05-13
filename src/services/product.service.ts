@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import { connectDB, isDBConfigured } from "@/lib/db/mongoose";
+import { connectDB } from "@/lib/db/mongoose";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
-import { mockAllProducts } from "@/lib/data/mock-products";
 import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
 import type { Product, ProductFilters, PaginatedProducts } from "@/types";
@@ -29,47 +28,9 @@ function toProduct(doc: ProductDoc): Product {
   };
 }
 
-// ── Mock fallbacks (used when DB is not configured) ───────────────────────────
-
-function mockGetProducts(filters: ProductFilters): PaginatedProducts {
-  const {
-    category, minPrice, maxPrice, inStock,
-    sortBy, search, page = 1, limit = PRODUCTS_PER_PAGE,
-  } = filters;
-
-  let results = [...mockAllProducts];
-
-  if (search) {
-    const term = search.toLowerCase();
-    results = results.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.brand.toLowerCase().includes(term) ||
-        p.category.toLowerCase().includes(term)
-    );
-  }
-  if (category)               results = results.filter((p) => slugify(p.category) === category);
-  if (inStock)                results = results.filter((p) => p.inStock);
-  if (minPrice !== undefined) results = results.filter((p) => p.price >= minPrice);
-  if (maxPrice !== undefined) results = results.filter((p) => p.price <= maxPrice);
-
-  switch (sortBy) {
-    case "price-asc":  results.sort((a, b) => a.price - b.price); break;
-    case "price-desc": results.sort((a, b) => b.price - a.price); break;
-    case "rating":     results.sort((a, b) => b.rating - a.rating); break;
-    case "newest":     results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
-  }
-
-  const total = results.length;
-  const skip  = (page - 1) * limit;
-  return { products: results.slice(skip, skip + limit), total, page, totalPages: Math.ceil(total / limit) };
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function getProducts(filters: ProductFilters = {}): Promise<PaginatedProducts> {
-  if (!isDBConfigured()) return mockGetProducts(filters);
-
   await connectDB();
 
   const {
@@ -117,30 +78,18 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  if (!isDBConfigured()) {
-    return mockAllProducts.find((p) => p.slug === slug) ?? null;
-  }
   await connectDB();
   const doc = await ProductModel.findOne({ slug }).lean<ProductDoc>();
   return doc ? toProduct(doc) : null;
 }
 
 export async function getAllProductSlugs(): Promise<string[]> {
-  if (!isDBConfigured()) return mockAllProducts.map((p) => p.slug);
   await connectDB();
   const docs = await ProductModel.find({}, { slug: 1 }).lean<{ slug: string }[]>();
   return docs.map((d) => d.slug);
 }
 
 export async function getCategories(): Promise<{ name: string; slug: string; count: number }[]> {
-  if (!isDBConfigured()) {
-    const map: Record<string, number> = {};
-    mockAllProducts.forEach((p) => { map[p.category] = (map[p.category] ?? 0) + 1; });
-    return Object.entries(map)
-      .map(([name, count]) => ({ name, slug: slugify(name), count }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }
-
   await connectDB();
   const rows = await ProductModel.aggregate<{ _id: string; count: number }>([
     { $group: { _id: "$category", count: { $sum: 1 } } },

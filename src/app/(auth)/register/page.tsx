@@ -7,15 +7,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
 import { useAuthStore } from "@/store/auth.store";
+import { usePendingAction } from "@/hooks/usePendingAction";
 import AuthFormField from "@/components/auth/AuthFormField";
 
 export default function RegisterPage() {
-  const router             = useRouter();
-  const setAuth            = useAuthStore((s) => s.setAuth);
-  const [showPw, setShowPw] = useState(false);
+  const router               = useRouter();
+  const setAuth              = useAuthStore((s) => s.setAuth);
+  const executePendingAction = usePendingAction();
+  const [showPw, setShowPw]   = useState(false);
   const [showCpw, setShowCpw] = useState(false);
 
   const {
@@ -29,6 +31,7 @@ export default function RegisterPage() {
       const { data: json } = await axios.post("/api/auth/register", data);
       setAuth(json.data.user, json.data.token);
       toast.success("Account created! Welcome to Prakash Supermarket.");
+      await executePendingAction(json.data.token);
       router.push("/");
     } catch (err) {
       const msg = axios.isAxiosError(err)

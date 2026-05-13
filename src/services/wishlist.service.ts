@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
-import { connectDB, isDBConfigured } from "@/lib/db/mongoose";
+import { connectDB } from "@/lib/db/mongoose";
 import WishlistModel from "@/lib/db/models/wishlist.model";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
-import { mockAllProducts } from "@/lib/data/mock-products";
 import type { Product } from "@/types";
 
-// ── Serialise a ProductDoc lean result to the shared Product type ─────────────
+// ── Serialiser ────────────────────────────────────────────────────────────────
 
 function toProduct(doc: ProductDoc): Product {
   return {
@@ -28,10 +27,6 @@ function toProduct(doc: ProductDoc): Product {
   };
 }
 
-function mockProductsByIds(ids: string[]): Product[] {
-  return mockAllProducts.filter((p) => ids.includes(p._id));
-}
-
 async function dbProductsByIds(ids: string[]): Promise<Product[]> {
   if (ids.length === 0) return [];
   const objectIds = ids
@@ -45,7 +40,6 @@ async function dbProductsByIds(ids: string[]): Promise<Product[]> {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function getWishlistProducts(userId: string): Promise<Product[]> {
-  if (!isDBConfigured()) return [];
   await connectDB();
   const doc = await WishlistModel.findOne({ userId }).lean();
   if (!doc) return [];
@@ -53,7 +47,6 @@ export async function getWishlistProducts(userId: string): Promise<Product[]> {
 }
 
 export async function addToWishlist(userId: string, productId: string): Promise<void> {
-  if (!isDBConfigured()) return;
   await connectDB();
   await WishlistModel.findOneAndUpdate(
     { userId },
@@ -63,7 +56,6 @@ export async function addToWishlist(userId: string, productId: string): Promise<
 }
 
 export async function removeFromWishlist(userId: string, productId: string): Promise<void> {
-  if (!isDBConfigured()) return;
   await connectDB();
   await WishlistModel.findOneAndUpdate(
     { userId },
@@ -71,20 +63,9 @@ export async function removeFromWishlist(userId: string, productId: string): Pro
   );
 }
 
-/**
- * Merge local productIds with whatever is already stored for this user.
- * Returns the full merged product list so the client can update its store.
- */
 export async function syncWishlist(userId: string, localProductIds: string[]): Promise<Product[]> {
-  if (!isDBConfigured()) {
-    return mockProductsByIds(localProductIds);
-  }
-
   await connectDB();
 
-  // Single atomic operation: adds any local IDs not already on the server,
-  // then returns the full merged document. Avoids the read-then-upsert race
-  // condition (E11000) when two devices sync concurrently.
   const doc = await WishlistModel.findOneAndUpdate(
     { userId },
     { $addToSet: { productIds: { $each: localProductIds } } },

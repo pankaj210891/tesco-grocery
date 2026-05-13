@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ShoppingCart, Minus, Plus, CheckCircle2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
+import { savePendingAction } from "@/lib/pending-action";
 import type { Product } from "@/types";
 
 interface ProductAddToCartProps {
@@ -18,18 +19,21 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
   const [qty, setQty] = useState(1);
   const { addItem, items } = useCartStore();
   const { token } = useAuthStore();
-  const router = useRouter();
+  const router    = useRouter();
+  const pathname  = usePathname();
 
   const cartItem = items.find((i) => i.product._id === product._id);
   const cartQty  = cartItem?.quantity ?? 0;
 
   function handleAdd() {
-    if (!token) { router.push("/login"); return; }
+    if (!token) {
+      savePendingAction({ type: "addToCart", product, quantity: qty });
+      toast.info("Sign in to add items to your cart");
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
     void addItem(product, qty, token);
-    toast.success(
-      <span><strong>{product.name}</strong> × {qty} added to cart</span>,
-      { duration: 2500 }
-    );
+    toast.success(`${product.name} × ${qty} added to cart`);
   }
 
   return (
@@ -87,7 +91,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
 
       {product.inStock && (
         <p className="text-xs text-gray-500 text-center">
-          Free delivery on orders over <strong>£40</strong>
+          Free delivery on orders over <strong>₹500</strong>
         </p>
       )}
     </div>

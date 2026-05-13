@@ -73,7 +73,7 @@ export default function AdminDashboard() {
         <StatsCard label="Orders"    value={stats.totalOrders}   icon={ShoppingBag} color="green"  sub={`${stats.pendingOrders} pending`} href="/admin/orders" />
         <StatsCard label="Users"     value={stats.totalUsers}    icon={Users}       color="purple" href="/admin/users" />
         <StatsCard label="Vendors"   value={stats.totalVendors}  icon={Store}       color="orange" href="/admin/vendors" />
-        <StatsCard label="Revenue"   value={`£${stats.totalRevenue.toFixed(2)}`} icon={TrendingUp} color="red" />
+        <StatsCard label="Revenue"   value={`₹${Math.round(stats.totalRevenue).toLocaleString("en-IN")}`} icon={TrendingUp} color="red" />
       </div>
 
       {/* Quick Navigation */}
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[order.status] ?? ""}`}>
                     {order.status}
                   </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">£{order.total.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">₹{order.total.toFixed(0)}</span>
                 </div>
               </div>
             ))}

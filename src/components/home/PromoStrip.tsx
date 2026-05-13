@@ -4,7 +4,7 @@ const perks = [
   {
     icon: Truck,
     title: "Free Delivery",
-    desc: "On orders over £40",
+    desc: "On orders over ₹500",
   },
   {
     icon: RotateCcw,

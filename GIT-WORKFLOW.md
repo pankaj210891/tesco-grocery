@@ -254,4 +254,15 @@ chore: configure mongodb environment variables
 - Suggest hotfix workflow only for production-critical issues
 - Maintain enterprise-level Git standards throughout the project
 
+Before moving to any new requirement or feature, kindly commit and push the current working code to the repository.
+
+Requirements:
+
+- Ensure the current implementation is fully tested and stable before committing.
+- Use meaningful commit messages describing the completed work.
+- Push all latest changes to the appropriate branch before starting the next task.
+- Avoid keeping uncommitted or local-only changes while switching requirements.
+- Confirm there are no build errors, lint issues, or broken functionality before push.
+- Keep the repository updated incrementally for easier tracking and rollback if needed.
+
 These Git rules are mandatory defaults for all future tasks in this project.

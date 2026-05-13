@@ -11,7 +11,7 @@ import CategoryTiles    from "./sections/CategoryTiles";
 import BrandGrid        from "./sections/BrandGrid";
 import ExploreCards     from "./sections/ExploreCards";
 
-const RENDERERS: Record<SectionType, React.ComponentType<{ section: HomepageSection }>> = {
+const RENDERERS: Partial<Record<SectionType, React.ComponentType<{ section: HomepageSection }>>> = {
   "product-carousel":  ProductCarousel,
   "offer-cards":       OfferCards,
   "brand-inspiration": BrandInspiration,
@@ -19,6 +19,7 @@ const RENDERERS: Record<SectionType, React.ComponentType<{ section: HomepageSect
   "category-tiles":    CategoryTiles,
   "brand-grid":        BrandGrid,
   "explore-cards":     ExploreCards,
+  // "hero-banner" is rendered by the dedicated HeroBanner component
 };
 
 function SectionSkeleton() {

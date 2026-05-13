@@ -15,7 +15,7 @@ import {
   Store,
   LayoutDashboard,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -163,24 +163,32 @@ export default function Navbar() {
             className="hidden md:flex flex-1 max-w-2xl"
             role="search"
           >
-            <div className="relative w-full">
+            <div className={cn(
+              "flex items-center w-full h-10 rounded-full overflow-hidden",
+              "bg-white border-2 border-transparent focus-within:border-[#F57C00]"
+            )}>
               <input
-                type="search"
+                type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products, brands and more…"
                 aria-label="Search products"
-                className={cn(
-                  "w-full h-10 pl-4 pr-12 rounded-full text-sm text-gray-900",
-                  "bg-white border-2 border-transparent",
-                  "focus:outline-none focus:border-[#F57C00]",
-                  "placeholder:text-gray-400"
-                )}
+                className="flex-1 min-w-0 h-full pl-4 pr-2 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 focus:outline-none"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setSearchQuery("")}
+                  className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
               <button
                 type="submit"
                 aria-label="Submit search"
-                className="absolute right-0 top-0 h-10 w-12 flex items-center justify-center rounded-r-full text-white transition-colors"
+                className="shrink-0 flex items-center justify-center w-12 h-full text-white transition-colors"
                 style={{ backgroundColor: ACCENT }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.backgroundColor = "#E65100")
@@ -406,24 +414,33 @@ export default function Navbar() {
           <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
             <div className="px-4 pt-4 pb-2">
               <form onSubmit={handleSearch} role="search">
-                <div className="relative">
+                <div className={cn(
+                  "flex items-center w-full h-10 rounded-full overflow-hidden",
+                  "border border-gray-300 dark:border-gray-700 focus-within:border-[#0F4C75]",
+                  "bg-white dark:bg-gray-800"
+                )}>
                   <input
-                    type="search"
+                    type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search products…"
                     aria-label="Search products"
-                    className={cn(
-                      "w-full h-10 pl-4 pr-12 rounded-full text-sm",
-                      "border border-gray-300 dark:border-gray-700",
-                      "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
-                      "focus:outline-none focus:border-[#0F4C75]"
-                    )}
+                    className="flex-1 min-w-0 h-full pl-4 pr-2 text-base bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => setSearchQuery("")}
+                      className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     type="submit"
                     aria-label="Submit search"
-                    className="absolute right-0 top-0 h-10 w-12 flex items-center justify-center rounded-r-full text-white"
+                    className="shrink-0 flex items-center justify-center w-12 h-full text-white"
                     style={{ backgroundColor: ACCENT }}
                   >
                     <Search className="h-4 w-4" />

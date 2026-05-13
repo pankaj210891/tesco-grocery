@@ -1,32 +1,42 @@
-import { connectDB } from "@/lib/db/mongoose";
-import ProductModel from "@/lib/db/models/product.model";
-import { mockAllProducts } from "@/lib/data/mock-products";
+/**
+ * POST /api/seed
+ *
+ * Quick product-only seed. Kept for backwards compatibility.
+ * For a full reseed of all collections use POST /api/seed/master.
+ */
 
-// POST /api/seed — seeds the DB from mock data. Development only.
+import { NextResponse } from "next/server";
+import { connectDB }    from "@/lib/db/mongoose";
+import ProductModel     from "@/lib/db/models/product.model";
+import { PRODUCT_SEEDS }from "@/lib/data/seeds/products.seed";
+import mongoose         from "mongoose";
+
 export async function POST() {
   if (process.env.NODE_ENV !== "development") {
-    return Response.json({ error: "Not allowed in production" }, { status: 403 });
+    return NextResponse.json({ error: "Not allowed in production" }, { status: 403 });
   }
 
   try {
     await connectDB();
 
-    await ProductModel.deleteMany({});
+    const deleted  = (await ProductModel.deleteMany({})).deletedCount ?? 0;
 
-    // Pick only DB-relevant fields; zero out rating/reviewCount — the review system owns those
-    const docs = mockAllProducts.map(({ name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags }) => ({
-      name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags,
-      rating:      0,
-      reviewCount: 0,
+    const docs = PRODUCT_SEEDS.map((p) => ({
+      ...p,
+      ...(p.vendorId
+        ? { vendorId: new mongoose.Types.ObjectId(p.vendorId) }
+        : { vendorId: null }),
     }));
-    const inserted = await ProductModel.insertMany(docs);
 
-    return Response.json({
+    const inserted = (await ProductModel.insertMany(docs)).length;
+
+    return NextResponse.json({
       success: true,
-      message: `Seeded ${inserted.length} products into the database.`,
+      message: `Seeded ${inserted} products (deleted ${deleted}).`,
+      tip:     "Run POST /api/seed/master to seed all collections.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

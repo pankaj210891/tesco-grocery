@@ -4,45 +4,18 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import type { Category } from "@/types";
 
-interface Category {
-  label: string;
-  href:  string;
-  emoji: string;
-  bg:    string;
+interface CategoryGridProps {
+  categories: Category[];
 }
 
 const SCROLL_PX = 320;
 
-const categories: Category[] = [
-  { label: "Clothing",         href: "/categories/clothing-accessories", emoji: "👗", bg: "bg-rose-100    dark:bg-rose-900"    },
-  { label: "Marketplace",      href: "/categories/marketplace",          emoji: "🏪", bg: "bg-violet-100  dark:bg-violet-900"  },
-  { label: "Fresh Food",       href: "/categories/fresh-food",           emoji: "🥦", bg: "bg-green-100   dark:bg-green-900"   },
-  { label: "Bakery",           href: "/categories/bakery",               emoji: "🍞", bg: "bg-amber-100   dark:bg-amber-900"   },
-  { label: "Frozen Food",      href: "/categories/frozen-food",          emoji: "🧊", bg: "bg-cyan-100    dark:bg-cyan-900"    },
-  { label: "Treats & Snacks",  href: "/categories/treats-snacks",        emoji: "🍿", bg: "bg-orange-100  dark:bg-orange-900"  },
-  { label: "Food Cupboard",    href: "/categories/food-cupboard",        emoji: "🥫", bg: "bg-yellow-100  dark:bg-yellow-900"  },
-  { label: "Drinks",           href: "/categories/drinks",               emoji: "🥤", bg: "bg-purple-100  dark:bg-purple-900"  },
-  { label: "Baby & Toddler",   href: "/categories/baby-toddler",         emoji: "👶", bg: "bg-pink-100    dark:bg-pink-900"    },
-  { label: "Health & Beauty",  href: "/categories/health-beauty",        emoji: "🧴", bg: "bg-fuchsia-100 dark:bg-fuchsia-900" },
-  { label: "Pets",             href: "/categories/pets",                 emoji: "🐾", bg: "bg-lime-100    dark:bg-lime-900"    },
-  { label: "Household",        href: "/categories/household",            emoji: "🧹", bg: "bg-gray-100    dark:bg-gray-700"    },
-  { label: "Home & Furniture", href: "/categories/home-furniture",       emoji: "🛋️", bg: "bg-stone-100   dark:bg-stone-800"   },
-  { label: "Electronics",      href: "/categories/electronics-gaming",   emoji: "🎮", bg: "bg-blue-100    dark:bg-blue-900"    },
-  { label: "Toys & Games",     href: "/categories/toys-games",           emoji: "🧸", bg: "bg-red-100     dark:bg-red-900"     },
-  { label: "Parties",          href: "/categories/parties-seasonal",     emoji: "🎉", bg: "bg-teal-100    dark:bg-teal-900"    },
-  { label: "Sports & Leisure", href: "/categories/sports-leisure",       emoji: "⚽", bg: "bg-indigo-100  dark:bg-indigo-900"  },
-  { label: "Hobbies",          href: "/categories/hobbies-stationery",   emoji: "✏️", bg: "bg-emerald-100 dark:bg-emerald-900" },
-  { label: "Garden & DIY",     href: "/categories/garden-diy-car",       emoji: "🌿", bg: "bg-green-100   dark:bg-green-900"   },
-  { label: "Kiosk",            href: "/categories/kiosk",                emoji: "🏧", bg: "bg-sky-100     dark:bg-sky-900"     },
-  { label: "Inspiration",      href: "/categories/inspiration-events",   emoji: "✨", bg: "bg-yellow-100  dark:bg-yellow-900"  },
-];
-
-// Shared shape/colour — NO display class so responsive variants aren't overridden
 const btnShape =
   "w-9 h-9 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md items-center justify-center transition-all duration-200";
 
-export default function CategoryGrid() {
+export default function CategoryGrid({ categories }: CategoryGridProps) {
   const trackRef  = useRef<HTMLDivElement>(null);
   const [canLeft,  setCanLeft]  = useState(false);
   const [canRight, setCanRight] = useState(true);
@@ -74,6 +47,8 @@ export default function CategoryGrid() {
     });
   }
 
+  if (categories.length === 0) return null;
+
   return (
     <section aria-labelledby="dept-heading">
 
@@ -96,7 +71,7 @@ export default function CategoryGrid() {
       {/* ── Carousel ───────────────────────────────────────────── */}
       <div className="relative">
 
-        {/* Left edge fade — sm+ only */}
+        {/* Left edge fade */}
         <div
           aria-hidden
           className={cn(
@@ -107,7 +82,7 @@ export default function CategoryGrid() {
           )}
         />
 
-        {/* Right edge fade — always */}
+        {/* Right edge fade */}
         <div
           aria-hidden
           className={cn(
@@ -118,12 +93,12 @@ export default function CategoryGrid() {
           )}
         />
 
-        {/* Left side chevron — sm+ only */}
+        {/* Left chevron */}
         <button
           onClick={() => nudge("left")}
           aria-label="Scroll departments left"
           className={cn(
-            "hidden sm:flex",                              // ← display controlled here only
+            "hidden sm:flex",
             "absolute left-1 top-1/2 -translate-y-1/2 z-10",
             btnShape,
             canLeft ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -139,8 +114,8 @@ export default function CategoryGrid() {
         >
           {categories.map((cat) => (
             <Link
-              key={cat.href}
-              href={cat.href}
+              key={cat.slug}
+              href={`/categories/${cat.slug}`}
               className="flex-shrink-0 flex flex-col items-center gap-2 w-[68px] sm:w-[76px] group"
             >
               <div
@@ -148,24 +123,25 @@ export default function CategoryGrid() {
                   "w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center",
                   "text-2xl sm:text-3xl leading-none select-none",
                   "transition-transform duration-150 group-hover:scale-110 group-focus-visible:scale-110",
-                  cat.bg
+                  cat.color,
+                  "dark:bg-gray-800"
                 )}
               >
                 {cat.emoji}
               </div>
               <span className="text-[10px] sm:text-[11px] font-semibold text-center leading-tight text-gray-700 dark:text-gray-300 line-clamp-2 w-full">
-                {cat.label}
+                {cat.name}
               </span>
             </Link>
           ))}
         </div>
 
-        {/* Right side chevron — sm+ only */}
+        {/* Right chevron */}
         <button
           onClick={() => nudge("right")}
           aria-label="Scroll departments right"
           className={cn(
-            "hidden sm:flex",                              // ← display controlled here only
+            "hidden sm:flex",
             "absolute right-1 top-1/2 -translate-y-1/2 z-10",
             btnShape,
             canRight ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -175,14 +151,14 @@ export default function CategoryGrid() {
         </button>
       </div>
 
-      {/* ── Mobile-only: bottom-right chevron row ──────────────── */}
+      {/* ── Mobile chevrons ─────────────────────────────────────── */}
       <div className="flex sm:hidden justify-end gap-2 mt-3">
         <button
           onClick={() => nudge("left")}
           disabled={!canLeft}
           aria-label="Scroll departments left"
           className={cn(
-            "flex",                                        // ← always flex on mobile
+            "flex",
             btnShape,
             canLeft ? "opacity-100" : "opacity-30 cursor-not-allowed"
           )}
@@ -194,7 +170,7 @@ export default function CategoryGrid() {
           disabled={!canRight}
           aria-label="Scroll departments right"
           className={cn(
-            "flex",                                        // ← always flex on mobile
+            "flex",
             btnShape,
             canRight ? "opacity-100" : "opacity-30 cursor-not-allowed"
           )}
