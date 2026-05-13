@@ -16,11 +16,11 @@ const FAQS = [
   { category: "orders", order: 1, question: "How do I track my order?", answer: "Once your order is confirmed, you'll receive a confirmation email with your order number. You can also view all orders and their current status on your 'Orders' page in your account." },
   { category: "orders", order: 2, question: "Can I cancel or modify my order?", answer: "Orders can be cancelled or modified within 30 minutes of placing them. After that, we begin processing them for dispatch. Contact our customer care team immediately if you need to make changes." },
   { category: "orders", order: 3, question: "What if an item in my order is out of stock?", answer: "We'll notify you by email if any items become unavailable. You can choose a substitute or receive a full refund for those items." },
-  { category: "orders", order: 4, question: "Is there a minimum order value?", answer: "There is no minimum order value for standard orders. However, free delivery applies to orders over £50. Orders under £50 attract a £3.99 delivery fee." },
+  { category: "orders", order: 4, question: "Is there a minimum order value?", answer: "There is no minimum order value for standard orders. However, free delivery applies to orders over ₹500. Orders under ₹500 attract a ₹49 delivery fee." },
 
   // Delivery
   { category: "delivery", order: 1, question: "What are your delivery options?", answer: "We offer standard delivery (2–3 working days) and next-day delivery. You can also select Click & Collect at selected stores to pick up your order at no extra charge." },
-  { category: "delivery", order: 2, question: "How much does delivery cost?", answer: "Standard delivery is £3.99 for orders under £50. Orders over £50 qualify for free standard delivery. Next-day delivery costs £5.99 regardless of order value." },
+  { category: "delivery", order: 2, question: "How much does delivery cost?", answer: "Standard delivery is ₹49 for orders under ₹500. Orders over ₹500 qualify for free standard delivery. Next-day delivery costs ₹49 regardless of order value." },
   { category: "delivery", order: 3, question: "Do you deliver on weekends?", answer: "Yes, we deliver 7 days a week including Sundays. Delivery slots on Sundays may be more limited, so we recommend booking in advance." },
   { category: "delivery", order: 4, question: "What is Click & Collect?", answer: "Click & Collect lets you order online and pick up from a Prakash Supermarket store at your convenience — completely free of charge. Available at all six of our London locations." },
 

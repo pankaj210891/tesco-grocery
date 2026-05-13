@@ -145,7 +145,7 @@ export function generateOrders(products: OrderProductRef[]): OrderSeed[] {
       items.reduce((s, it) => s + it.price * it.quantity, 0)
     );
 
-    const deliveryFee = subtotal >= 40 ? 0 : 3.99;
+    const deliveryFee = subtotal >= 500 ? 0 : 49;
 
     // ~40% chance of a promo code
     let discount  = 0;

@@ -4,10 +4,10 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 
 const PRICE_RANGES = [
-  { label: "Under £1",  minPrice: "0",  maxPrice: "1"  },
-  { label: "£1 – £2",  minPrice: "1",  maxPrice: "2"  },
-  { label: "£2 – £5",  minPrice: "2",  maxPrice: "5"  },
-  { label: "Over £5",  minPrice: "5",  maxPrice: ""   },
+  { label: "Under ₹100",    minPrice: "0",   maxPrice: "100" },
+  { label: "₹100 – ₹300",  minPrice: "100", maxPrice: "300" },
+  { label: "₹300 – ₹600",  minPrice: "300", maxPrice: "600" },
+  { label: "Over ₹600",    minPrice: "600", maxPrice: ""    },
 ];
 
 export default function CategoryFilters() {

@@ -112,10 +112,10 @@ const SECTIONS = [
     type:     "info-cards",
     order:    6,
     items: [
-      { title: "Free Next-Day Delivery",  description: "Free on all orders over £40. Fast, reliable, tracked.",  emoji: "🚚", color: "#EFF6FF", href: "/faq",            order: 1 },
+      { title: "Free Next-Day Delivery",  description: "Free on all orders over ₹500. Fast, reliable, tracked.",  emoji: "🚚", color: "#EFF6FF", href: "/faq",            order: 1 },
       { title: "Click & Collect",         description: "Order online and pick up from your nearest store.",        emoji: "🏪", color: "#F0FDF4", href: "/store-locator",  order: 2 },
       { title: "Price Match Promise",     description: "Find it cheaper elsewhere? We'll match the price.",        emoji: "🏷️", color: "#FFF7ED", href: "/faq",            order: 3 },
-      { title: "Loyalty Points",          description: "Earn 1 point per £1 spent — redeem on any order.",        emoji: "⭐", color: "#FEFCE8", href: "/account",        order: 4 },
+      { title: "Loyalty Points",          description: "Earn 1 point per ₹100 spent — redeem on any order.",       emoji: "⭐", color: "#FEFCE8", href: "/account",        order: 4 },
       { title: "Student Discount",        description: "Exclusive 10% off sitewide — just verify your status.",   emoji: "🎓", color: "#FDF4FF", href: "/faq",            order: 5 },
       { title: "Subscribe & Save",        description: "Set up auto-delivery and save 15% on every order.",       emoji: "♻️", color: "#F0F9FF", href: "/products",       order: 6 },
     ],
@@ -129,7 +129,7 @@ const SECTIONS = [
     type:     "category-tiles",
     order:    7,
     items: [
-      { title: "Meal Deals",         subtitle: "Lunch sorted from £3",           emoji: "🥪", color: "#EFF6FF", href: "/categories/food-cupboard",    order: 1 },
+      { title: "Meal Deals",         subtitle: "Lunch sorted from ₹99",          emoji: "🥪", color: "#EFF6FF", href: "/categories/food-cupboard",    order: 1 },
       { title: "Healthy Living",     subtitle: "Nutritious and delicious picks",  emoji: "🥗", color: "#F0FDF4", href: "/categories/fresh-food",        order: 2 },
       { title: "World Cuisine",      subtitle: "Flavours from around the globe",  emoji: "🌍", color: "#FFF7ED", href: "/categories/food-cupboard",    order: 3 },
       { title: "Plant-Based",        subtitle: "Vegan & vegetarian favourites",   emoji: "🌱", color: "#F0FDF4", href: "/categories/fresh-food",        order: 4 },
@@ -175,7 +175,7 @@ const SECTIONS = [
     items: [
       { title: "Summer BBQ Essentials", subtitle: "Everything for the perfect cookout",   emoji: "🍖", color: "#FFF7ED", href: "/categories/fresh-food",    order: 1 },
       { title: "New Season Arrivals",   subtitle: "Just landed in store this week",        emoji: "✨", color: "#F0F9FF", href: "/products?sortBy=newest",    order: 2 },
-      { title: "Budget Buys Under £1",  subtitle: "Great quality at an unbeatable price", emoji: "💰", color: "#F0FDF4", href: "/offers",                    order: 3 },
+      { title: "Budget Buys Under ₹99", subtitle: "Great quality at an unbeatable price", emoji: "💰", color: "#F0FDF4", href: "/offers",                    order: 3 },
       { title: "Recipe Kits",           subtitle: "Cook like a pro in 30 minutes",         emoji: "👨‍🍳", color: "#FDF4FF", href: "/categories/food-cupboard", order: 4 },
       { title: "Organic Range",         subtitle: "Better for you and the planet",         emoji: "🌿", color: "#F0FDF4", href: "/categories/fresh-food",    order: 5 },
       { title: "Kids' Lunchbox Picks",  subtitle: "Healthy and fun for little ones",       emoji: "🎒", color: "#FFF1F2", href: "/categories/treats-snacks", order: 6 },

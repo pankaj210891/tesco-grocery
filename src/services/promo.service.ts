@@ -36,7 +36,7 @@ export interface PromoApplyResult {
   label?: string;
   discountType?: "percentage" | "fixed" | "freeDelivery";
   discountValue?: number;
-  discountAmount: number; // server-calculated absolute saving in £
+  discountAmount: number; // server-calculated absolute saving in ₹
   minOrderValue?: number;
   error?: string;
 }
@@ -91,7 +91,7 @@ function eligibleSubtotal(offer: LeanOffer, items: CartItemInput[]): number {
 }
 
 /**
- * Calculates the absolute discount amount in £.
+ * Calculates the absolute discount amount in ₹.
  * For freeDelivery: returns the delivery fee that would have been charged.
  * For percentage/fixed on restricted items: applies to eligible subtotal only.
  */
@@ -170,7 +170,7 @@ export async function applyPromo(
     return {
       valid: false,
       discountAmount: 0,
-      error: `Minimum order of £${offer.minOrderValue.toFixed(2)} required for this code`,
+      error: `Minimum order of ₹${Math.round(offer.minOrderValue)} required for this code`,
     };
   }
 

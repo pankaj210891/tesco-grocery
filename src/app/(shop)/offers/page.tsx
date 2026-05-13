@@ -43,7 +43,7 @@ function OfferCard({ offer }: { offer: Offer }) {
 
   const discountLabel =
     offer.discountType === "percentage"   ? `${offer.discountValue}% OFF` :
-    offer.discountType === "fixed"        ? `£${offer.discountValue} OFF` :
+    offer.discountType === "fixed"        ? `₹${offer.discountValue} OFF` :
                                             "FREE DELIVERY";
 
   return (
@@ -75,7 +75,7 @@ function OfferCard({ offer }: { offer: Offer }) {
 
         {offer.minOrderValue > 0 && (
           <p className="text-[11px] font-semibold text-gray-500 mt-2">
-            Min. order £{offer.minOrderValue}
+            Min. order ₹{offer.minOrderValue}
           </p>
         )}
       </div>
