@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Package, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -21,7 +21,7 @@ const STATUS_STYLES: Record<Order["status"], string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+  return new Date(iso).toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
@@ -91,6 +91,8 @@ export default function OrderDetailPage({
   }
 
   if (!order) return null;
+
+  const isCOD = order.paymentMethod === "cod";
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
@@ -179,6 +181,14 @@ export default function OrderDetailPage({
                   {order.deliveryFee === 0 ? "Free" : formatPrice(order.deliveryFee)}
                 </span>
               </div>
+              {order.codCharge > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <Truck className="h-3.5 w-3.5" /> COD charge
+                  </span>
+                  <span className="font-semibold text-amber-600 dark:text-amber-400">{formatPrice(order.codCharge)}</span>
+                </div>
+              )}
               {order.discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-gray-400">{order.promoCode} discount</span>
@@ -193,6 +203,54 @@ export default function OrderDetailPage({
           </section>
 
         </div>
+
+        {/* Payment method & transaction info */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-4">
+            <Receipt className="h-4 w-4 text-[#00539F]" aria-hidden />
+            Transaction details
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide mb-1">Payment method</p>
+              <div className="flex items-center gap-2">
+                {isCOD
+                  ? <><Truck className="h-4 w-4 text-amber-500" /><span className="font-semibold text-gray-800 dark:text-gray-100">Cash on Delivery</span></>
+                  : <><CreditCard className="h-4 w-4 text-indigo-500" /><span className="font-semibold text-gray-800 dark:text-gray-100">Razorpay</span></>
+                }
+              </div>
+            </div>
+            <div>
+              <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide mb-1">Payment status</p>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${
+                order.paymentStatus === "paid"
+                  ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/40"
+                  : order.paymentStatus === "failed"
+                  ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/40"
+                  : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40"
+              }`}>
+                {order.paymentStatus}
+              </span>
+            </div>
+            {order.razorpayPaymentId && (
+              <div className="sm:col-span-2">
+                <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide mb-1">Payment ID</p>
+                <p className="font-mono text-xs bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 break-all">
+                  {order.razorpayPaymentId}
+                </p>
+              </div>
+            )}
+            {order.razorpayOrderId && (
+              <div className="sm:col-span-2">
+                <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide mb-1">Razorpay Order ID</p>
+                <p className="font-mono text-xs bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 break-all">
+                  {order.razorpayOrderId}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+
       </div>
     </div>
   );

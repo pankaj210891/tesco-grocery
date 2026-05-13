@@ -24,6 +24,7 @@ const OrderSchema = new Schema(
     },
     subtotal:    { type: Number, required: true },
     deliveryFee: { type: Number, required: true },
+    codCharge:   { type: Number, default: 0 },
     discount:    { type: Number, default: 0 },
     promoCode:   String,
     total:       { type: Number, required: true },
@@ -32,6 +33,20 @@ const OrderSchema = new Schema(
       enum:    ["pending", "processing", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
+    // ── Payment ───────────────────────────────────────────────────────────────
+    paymentMethod: {
+      type:    String,
+      enum:    ["razorpay", "cod"],
+      required: true,
+    },
+    paymentStatus: {
+      type:    String,
+      enum:    ["pending", "paid", "failed"],
+      default: "pending",
+    },
+    razorpayOrderId:   String,
+    razorpayPaymentId: String,
+    razorpaySignature: String,
   },
   { timestamps: true }
 );

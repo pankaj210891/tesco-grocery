@@ -10,12 +10,25 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const page   = Math.max(1, Number(searchParams.get("page") ?? 1));
-    const limit  = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const status = searchParams.get("status") ?? "";
+    const page     = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const limit    = Math.min(50, Number(searchParams.get("limit") ?? 20));
+    const status   = searchParams.get("status") ?? "";
+    const dateFrom = searchParams.get("dateFrom") ?? "";
+    const dateTo   = searchParams.get("dateTo")   ?? "";
 
     const filter: Record<string, unknown> = {};
     if (status && status !== "all") filter.status = status;
+
+    if (dateFrom || dateTo) {
+      const dateFilter: Record<string, Date> = {};
+      if (dateFrom) dateFilter.$gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.$lte = end;
+      }
+      filter.createdAt = dateFilter;
+    }
 
     const [orders, total] = await Promise.all([
       OrderModel.find(filter)
