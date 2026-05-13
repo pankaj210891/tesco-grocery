@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/db/mongoose";
 import OrderModel, { type OrderDoc } from "@/lib/db/models/order.model";
-import type { Order } from "@/types";
+import type { Order, PaymentMethodType, PaymentStatus } from "@/types";
 
 export interface OrderItem {
   productId: string;
@@ -21,14 +21,19 @@ export interface DeliveryInfo {
 }
 
 export interface CreateOrderInput {
-  userId?:     string;
-  items:       OrderItem[];
-  delivery:    DeliveryInfo;
-  subtotal:    number;
-  deliveryFee: number;
-  discount:    number;
-  promoCode?:  string;
-  total:       number;
+  userId?:            string;
+  items:              OrderItem[];
+  delivery:           DeliveryInfo;
+  subtotal:           number;
+  deliveryFee:        number;
+  discount:           number;
+  promoCode?:         string;
+  total:              number;
+  paymentMethod:      PaymentMethodType;
+  paymentStatus:      PaymentStatus;
+  razorpayOrderId?:   string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
 }
 
 export interface OrderResult {
@@ -70,7 +75,11 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     discount:    doc.discount ?? 0,
     promoCode:   doc.promoCode ?? undefined,
     total:       doc.total,
-    status:      doc.status as Order["status"],
+    status:        doc.status as Order["status"],
+    paymentMethod: doc.paymentMethod as PaymentMethodType,
+    paymentStatus: (doc.paymentStatus ?? "pending") as PaymentStatus,
+    razorpayOrderId:   doc.razorpayOrderId ?? undefined,
+    razorpayPaymentId: doc.razorpayPaymentId ?? undefined,
     createdAt:   doc.createdAt.toISOString(),
   };
 }

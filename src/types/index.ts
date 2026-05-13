@@ -145,6 +145,9 @@ export interface OrderLineItem {
   image:     string;
 }
 
+export type PaymentMethodType = "razorpay" | "cod";
+export type PaymentStatus    = "pending" | "paid" | "failed";
+
 export interface Order {
   _id:         string;
   orderNumber: string;
@@ -162,7 +165,11 @@ export interface Order {
   discount:    number;
   promoCode?:  string;
   total:       number;
-  status:      "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:         "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  paymentMethod:  PaymentMethodType;
+  paymentStatus:  PaymentStatus;
+  razorpayOrderId?:   string;
+  razorpayPaymentId?: string;
   createdAt:   string;
 }
 
