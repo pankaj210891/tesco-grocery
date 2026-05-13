@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Package, ChevronRight, LogOut, ShoppingBag, MapPin } from "lucide-react";
+import { User, Package, ChevronRight, LogOut, ShoppingBag, MapPin, Filter } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { formatPrice } from "@/lib/utils/format";
+import { useDateFilter } from "@/hooks/useDateFilter";
+import DateFilter from "@/components/ui/DateFilter";
 import type { Order } from "@/types";
 import AddressSection from "@/components/account/AddressSection";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
-  pending:    "bg-yellow-50  text-yellow-700  border-yellow-200",
-  processing: "bg-blue-50    text-blue-700    border-blue-200",
-  shipped:    "bg-purple-50  text-purple-700  border-purple-200",
-  delivered:  "bg-green-50   text-green-700   border-green-200",
-  cancelled:  "bg-red-50     text-red-700     border-red-200",
+  pending:    "bg-yellow-50  dark:bg-yellow-900/20 text-yellow-700  dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
+  processing: "bg-blue-50    dark:bg-blue-900/20   text-blue-700    dark:text-blue-400   border-blue-200   dark:border-blue-800/40",
+  shipped:    "bg-purple-50  dark:bg-purple-900/20 text-purple-700  dark:text-purple-400 border-purple-200 dark:border-purple-800/40",
+  delivered:  "bg-green-50   dark:bg-green-900/20  text-green-700   dark:text-green-400  border-green-200  dark:border-green-800/40",
+  cancelled:  "bg-red-50     dark:bg-red-900/20    text-red-700     dark:text-red-400    border-red-200    dark:border-red-800/40",
 };
 
 function StatusBadge({ status }: { status: Order["status"] }) {
@@ -46,9 +48,17 @@ export default function AccountPage() {
   const { user, token, logout } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [orders,  setOrders]  = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const [orders,    setOrders]    = useState<Order[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState("");
+
+  const dateFilter = useDateFilter("all");
+
+  // Client-side filtering on fetched orders
+  const filteredOrders = useMemo(
+    () => orders.filter((o) => dateFilter.isInRange(o.createdAt)),
+    [orders, dateFilter],
+  );
 
   useEffect(() => {
     if (!hydrated) return;
@@ -79,8 +89,8 @@ export default function AccountPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-48 mx-auto" />
-          <div className="h-4 bg-gray-200 rounded w-64 mx-auto" />
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mx-auto" />
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 mx-auto" />
         </div>
       </div>
     );
@@ -95,7 +105,7 @@ export default function AccountPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
       <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-6">My Account</h1>
 
-      {/* ── Tab bar ─────────────────────────────────────────── */}
+      {/* Tab bar */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-8 w-full sm:w-auto sm:inline-flex">
         {TABS.map(({ id, label, Icon }) => (
           <button
@@ -113,7 +123,7 @@ export default function AccountPage() {
         ))}
       </div>
 
-      {/* ── Overview tab ────────────────────────────────────── */}
+      {/* Overview tab */}
       {activeTab === "overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -154,25 +164,34 @@ export default function AccountPage() {
           {/* Order history */}
           <div className="lg:col-span-8">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-                <Package className="h-5 w-5 text-[#00539F]" aria-hidden />
-                Order history
-              </h2>
+              {/* Header with date filter */}
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white">
+                  <Package className="h-5 w-5 text-[#00539F]" aria-hidden />
+                  Order history
+                  {!loading && (
+                    <span className="text-sm font-normal text-gray-400 dark:text-gray-500">
+                      ({filteredOrders.length})
+                    </span>
+                  )}
+                </h2>
+                <DateFilter filter={dateFilter} align="right" />
+              </div>
 
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((n) => (
-                    <div key={n} className="animate-pulse h-20 bg-gray-100 rounded-xl" />
+                    <div key={n} className="animate-pulse h-20 bg-gray-100 dark:bg-gray-700/40 rounded-xl" />
                   ))}
                 </div>
               ) : error ? (
-                <p className="text-sm text-red-600">{error}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               ) : orders.length === 0 ? (
                 <div className="text-center py-10">
-                  <div className="inline-flex bg-gray-100 rounded-full p-4 mb-4">
-                    <ShoppingBag className="h-8 w-8 text-gray-400" aria-hidden />
+                  <div className="inline-flex bg-gray-100 dark:bg-gray-700 rounded-full p-4 mb-4">
+                    <ShoppingBag className="h-8 w-8 text-gray-400 dark:text-gray-500" aria-hidden />
                   </div>
-                  <p className="text-gray-500 text-sm mb-4">No orders yet.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">No orders yet.</p>
                   <Link
                     href="/products"
                     className="px-5 py-2 bg-[#00539F] text-white text-sm font-semibold rounded-xl hover:bg-[#003B7A] transition-colors"
@@ -180,9 +199,22 @@ export default function AccountPage() {
                     Start shopping
                   </Link>
                 </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="inline-flex bg-gray-100 dark:bg-gray-700 rounded-full p-4 mb-4">
+                    <Filter className="h-8 w-8 text-gray-400 dark:text-gray-500" aria-hidden />
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">No orders in this period.</p>
+                  <button
+                    onClick={dateFilter.reset}
+                    className="text-[#00539F] dark:text-blue-400 text-sm font-semibold hover:underline"
+                  >
+                    Clear filter
+                  </button>
+                </div>
               ) : (
                 <ul className="space-y-3">
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <li key={order._id}>
                       <Link
                         href={`/account/orders/${order.orderNumber}`}
@@ -190,7 +222,7 @@ export default function AccountPage() {
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-black text-[#00539F] tracking-wide">
+                            <span className="text-sm font-black text-[#00539F] dark:text-blue-400 tracking-wide">
                               {order.orderNumber}
                             </span>
                             <StatusBadge status={order.status} />
@@ -214,7 +246,7 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* ── Addresses tab ───────────────────────────────────── */}
+      {/* Addresses tab */}
       {activeTab === "addresses" && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <AddressSection />
