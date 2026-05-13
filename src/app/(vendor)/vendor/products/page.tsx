@@ -103,7 +103,7 @@ export default function VendorProductsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.category}</td>
-                  <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">£{p.price.toFixed(2)}</td>
+                  <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">₹{p.price.toFixed(0)}</td>
                   <td className="px-4 py-3">{p.badge ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${BADGE_COLORS[p.badge] ?? ""}`}>{p.badge}</span> : <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
                   <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${p.inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>{p.inStock ? "In Stock" : "Out"}</span></td>
                   <td className="px-4 py-3">
@@ -154,12 +154,12 @@ export default function VendorProductsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Price (£)</label>
-                  <input type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]" />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Price (₹)</label>
+                  <input type="number" step="1" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Original (£)</label>
-                  <input type="number" step="0.01" min="0" value={form.originalPrice} onChange={(e) => setForm((f) => ({ ...f, originalPrice: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]" />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Original (₹)</label>
+                  <input type="number" step="1" min="0" value={form.originalPrice} onChange={(e) => setForm((f) => ({ ...f, originalPrice: e.target.value }))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]" />
                 </div>
               </div>
               <div>

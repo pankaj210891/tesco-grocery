@@ -58,7 +58,7 @@ export default function VendorOrdersPage() {
                     <p className="text-xs text-gray-400">{order.delivery.city}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{order.items.length}</td>
-                  <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">£{order.total.toFixed(2)}</td>
+                  <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">₹{order.total.toFixed(0)}</td>
                   <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString("en-GB")}</td>
                   <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[order.status] ?? ""}`}>{order.status}</span></td>
                 </tr>

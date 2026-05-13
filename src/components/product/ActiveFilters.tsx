@@ -22,8 +22,8 @@ export default function ActiveFilters() {
   if (minPrice || maxPrice) {
     const label =
       maxPrice
-        ? `£${minPrice} – £${maxPrice}`
-        : `Over £${minPrice}`;
+        ? `₹${minPrice} – ₹${maxPrice}`
+        : `Over ₹${minPrice}`;
     chips.push({ label, key: "minPrice", extra: "maxPrice" });
   }
   if (inStock === "true") chips.push({ label: "In Stock", key: "inStock" });

@@ -115,7 +115,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <Truck className="h-4 w-4 text-[#00539F] shrink-0" />
-              Free delivery on orders over £40
+              Free delivery on orders over ₹500
             </li>
           </ul>
 

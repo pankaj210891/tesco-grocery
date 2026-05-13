@@ -91,7 +91,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
 
       {product.inStock && (
         <p className="text-xs text-gray-500 text-center">
-          Free delivery on orders over <strong>£40</strong>
+          Free delivery on orders over <strong>₹500</strong>
         </p>
       )}
     </div>

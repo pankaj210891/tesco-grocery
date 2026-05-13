@@ -7,6 +7,10 @@ import { VENDOR_IDS, VENDOR_NAMES, type VendorKey } from "./ids";
 import { productImages, toSlug } from "./utils";
 import { CATEGORY_NAME_MAP } from "@/constants";
 
+// All raw prices are in GBP. Multiply by this rate to store as INR.
+const GBP_TO_INR = 106;
+function toINR(gbp: number): number { return Math.round(gbp * GBP_TO_INR); }
+
 export interface ProductSeed {
   name: string;
   slug: string;
@@ -47,8 +51,8 @@ function expand(row: RawRow): ProductSeed {
     name:          row.n,
     slug:          toSlug(row.n),
     description:   row.d,
-    price:         row.p,
-    ...(row.o ? { originalPrice: row.o } : {}),
+    price:         toINR(row.p),
+    ...(row.o ? { originalPrice: toINR(row.o) } : {}),
     images:        productImages(row.n, row.c),
     category:      CATEGORY_NAME_MAP[row.c] ?? row.c,
     brand:         row.b,

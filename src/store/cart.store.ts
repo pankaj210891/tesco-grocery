@@ -6,8 +6,8 @@ import type { CartItem, Product } from "@/types";
 export interface PromoInfo {
   label:          string;
   discountType:   "percentage" | "fixed" | "freeDelivery";
-  discountValue:  number;  // e.g. 20 for 20%, 10 for £10, 0 for freeDelivery
-  discountAmount: number;  // backend-calculated absolute saving in £
+  discountValue:  number;  // e.g. 20 for 20%, 799 for ₹799, 0 for freeDelivery
+  discountAmount: number;  // backend-calculated absolute saving in ₹
   minOrderValue:  number;
 }
 
