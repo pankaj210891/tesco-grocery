@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { MapPin, Plus, Pencil, Trash2, Star } from "lucide-react";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import type { Address } from "@/types";
 import type { AddressFormData } from "@/lib/validations/address";

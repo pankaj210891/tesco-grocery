@@ -7,11 +7,10 @@ import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingCart, CreditCard, MapPin } from "lucide-react";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
-import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
 import { cn } from "@/lib/utils/cn";
 import { detectCardType, formatExpiry } from "@/lib/utils/card";
 import { CARD_LABELS } from "@/lib/utils/card";
@@ -54,7 +53,7 @@ const inputCls = (hasError?: boolean) =>
 
 export default function CheckoutPageContent() {
   const router    = useRouter();
-  const { items, totalPrice, promoCode, promoInfo, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
+  const { items, totalPrice, promoCode, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
   const { user, token, hasHydrated } = useAuthStore();
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
@@ -86,7 +85,8 @@ export default function CheckoutPageContent() {
     },
   });
 
-  const expiryValue = useWatch({ control, name: "expiry" }) ?? "";
+  const expiryValue   = useWatch({ control, name: "expiry"    }) ?? "";
+  const postcodeValue = useWatch({ control, name: "postcode"  }) ?? "";
 
   useEffect(() => {
     if (!token || !user) return;
@@ -202,6 +202,7 @@ export default function CheckoutPageContent() {
         price:     i.product.price,
         quantity:  i.quantity,
         image:     i.product.images[0] ?? "",
+        category:  i.product.category,
       }));
 
       const deliveryFields = selectedAddress
@@ -222,12 +223,7 @@ export default function CheckoutPageContent() {
             postcode: data.postcode,
           };
 
-      let paymentFields: {
-        cardType: CardType;
-        lastFour: string;
-        cardName: string;
-      };
-
+      let paymentFields: { cardType: CardType; lastFour: string; cardName: string };
       if (selectedPayment) {
         paymentFields = {
           cardType: selectedPayment.cardType,
@@ -243,29 +239,23 @@ export default function CheckoutPageContent() {
         };
       }
 
+      // Send cart items so the server can re-validate the promo and compute totals
       const { data: json } = await axios.post("/api/orders", {
         form:      { ...deliveryFields, ...paymentFields, cardNumber: data.cardNumber, expiry: data.expiry, cvv: data.cvv },
         items:     orderItems,
         userId:    user?._id,
-        promoCode,
+        promoCode: promoCode ?? undefined,
+        postcode:  deliveryFields.postcode,
       });
 
       if (token) void clearCart(token);
-      const { orderNumber } = json.data as { orderNumber: string };
-      const deliveryFee = totalPrice >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
-      const effectiveDelivery = promoInfo?.discountType === "freeDelivery" ? 0 : deliveryFee;
-      const discount = promoInfo
-        ? promoInfo.discountType === "percentage"
-          ? totalPrice * (promoInfo.discountValue / 100)
-          : promoInfo.discountType === "fixed"
-          ? Math.min(promoInfo.discountValue, totalPrice)
-          : deliveryFee
-        : 0;
-      const finalTotal = totalPrice + effectiveDelivery - (promoInfo?.discountType === "freeDelivery" ? 0 : discount);
+
+      const { orderNumber, total: serverTotal } = json.data as { orderNumber: string; total: number };
+
       const params = new URLSearchParams({
         order: orderNumber,
         email: data.email,
-        total: finalTotal.toFixed(2),
+        total: serverTotal.toFixed(2),
       });
       router.push(`/checkout/confirmation?${params.toString()}`);
     } catch (err) {
@@ -490,6 +480,7 @@ export default function CheckoutPageContent() {
               <div className="border-t border-gray-100 dark:border-gray-700 pt-5">
                 <CheckoutPricingSummary
                   subtotal={totalPrice}
+                  postcode={postcodeValue}
                   isSubmitting={isSubmitting}
                 />
               </div>

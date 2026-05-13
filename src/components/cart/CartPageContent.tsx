@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Trash2, ShoppingCart } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import CartItem from "@/components/cart/CartItem";
@@ -51,7 +51,7 @@ export default function CartPageContent() {
 
   function handleClearCart() {
     void clearCart(token!);
-    toast.success("Cart cleared", { icon: "🗑️" });
+    toast.success("Cart cleared");
   }
 
   return (

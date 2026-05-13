@@ -7,15 +7,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
 import { useAuthStore } from "@/store/auth.store";
+import { usePendingAction } from "@/hooks/usePendingAction";
 import AuthFormField from "@/components/auth/AuthFormField";
 
 export default function LoginForm() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
-  const setAuth      = useAuthStore((s) => s.setAuth);
+  const router              = useRouter();
+  const searchParams        = useSearchParams();
+  const setAuth             = useAuthStore((s) => s.setAuth);
+  const executePendingAction = usePendingAction();
   const [showPw, setShowPw] = useState(false);
 
   const redirect = searchParams.get("redirect") ?? "/";
@@ -31,6 +33,7 @@ export default function LoginForm() {
       const { data: json } = await axios.post("/api/auth/login", data);
       setAuth(json.data.user, json.data.token);
       toast.success(`Welcome back, ${json.data.user.name.split(" ")[0]}!`);
+      await executePendingAction(json.data.token);
       router.push(redirect);
     } catch (err) {
       const msg = axios.isAxiosError(err)
