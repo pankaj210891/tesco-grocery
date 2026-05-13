@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Package, ChevronRight, LogOut, ShoppingBag, MapPin, CreditCard } from "lucide-react";
+import { User, Package, ChevronRight, LogOut, ShoppingBag, MapPin } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { formatPrice } from "@/lib/utils/format";
 import type { Order } from "@/types";
 import AddressSection from "@/components/account/AddressSection";
-import PaymentSection from "@/components/account/PaymentSection";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
   pending:    "bg-yellow-50  text-yellow-700  border-yellow-200",
@@ -29,17 +28,16 @@ function StatusBadge({ status }: { status: Order["status"] }) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+  return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric", month: "short", year: "numeric",
   });
 }
 
-type Tab = "overview" | "addresses" | "payments";
+type Tab = "overview" | "addresses";
 
 const TABS: { id: Tab; label: string; Icon: React.FC<{ className?: string }> }[] = [
-  { id: "overview",   label: "Overview",        Icon: User },
-  { id: "addresses",  label: "Addresses",        Icon: MapPin },
-  { id: "payments",   label: "Payment Methods",  Icon: CreditCard },
+  { id: "overview",  label: "Overview",   Icon: User },
+  { id: "addresses", label: "Addresses",  Icon: MapPin },
 ];
 
 export default function AccountPage() {
@@ -220,13 +218,6 @@ export default function AccountPage() {
       {activeTab === "addresses" && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <AddressSection />
-        </div>
-      )}
-
-      {/* ── Payments tab ────────────────────────────────────── */}
-      {activeTab === "payments" && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-          <PaymentSection />
         </div>
       )}
     </div>

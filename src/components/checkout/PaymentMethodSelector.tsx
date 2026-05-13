@@ -27,8 +27,9 @@ const OPTIONS: {
   {
     id:          "cod",
     label:       "Cash on Delivery",
-    description: "Pay in cash when your order arrives at your door",
+    description: "Pay in cash when your order arrives. ₹49 COD charge applies.",
     icon:        <Truck className="h-5 w-5" />,
+    badge:       "₹49 fee",
   },
 ];
 

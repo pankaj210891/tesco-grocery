@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     const { delivery, items, promoCode, userId } = parsed.data;
 
-    const validated = await validateCheckoutOrder({ items, delivery, promoCode, userId });
+    const validated = await validateCheckoutOrder({ items, delivery, promoCode, userId, paymentMethod: "razorpay" });
 
     // Razorpay requires amount in smallest currency unit (paise for INR)
     const amountInPaise = Math.round(validated.total * 100);

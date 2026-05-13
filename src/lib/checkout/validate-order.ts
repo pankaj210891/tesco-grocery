@@ -1,8 +1,9 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { applyPromo, recordPromoUsage } from "@/services/promo.service";
 import Offer from "@/lib/db/models/offer.model";
-import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST, COD_CHARGE } from "@/lib/constants/promos";
 import type { OrderItem } from "@/services/order.service";
+import type { PaymentMethodType } from "@/types";
 
 export interface CheckoutItem extends OrderItem {
   category?: string;
@@ -20,6 +21,7 @@ export interface ValidatedOrder {
   };
   subtotal:        number;
   deliveryFee:     number;
+  codCharge:       number;
   discount:        number;
   promoCode?:      string;
   promoDocId?:     string;
@@ -27,15 +29,17 @@ export interface ValidatedOrder {
 }
 
 export async function validateCheckoutOrder(params: {
-  items:      CheckoutItem[];
-  delivery:   ValidatedOrder["delivery"];
-  promoCode?: string;
-  userId?:    string;
+  items:          CheckoutItem[];
+  delivery:       ValidatedOrder["delivery"];
+  promoCode?:     string;
+  userId?:        string;
+  paymentMethod?: PaymentMethodType;
 }): Promise<ValidatedOrder> {
-  const { items, delivery, promoCode: rawPromo, userId } = params;
+  const { items, delivery, promoCode: rawPromo, userId, paymentMethod } = params;
 
   const subtotal    = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const rawDelivery = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
+  const codCharge   = paymentMethod === "cod" ? COD_CHARGE : 0;
 
   let discount          = 0;
   let validatedCode: string | undefined;
@@ -74,7 +78,7 @@ export async function validateCheckoutOrder(params: {
     }
   }
 
-  const total = Math.max(0, subtotal + effectiveDelivery - discount);
+  const total = Math.max(0, subtotal + effectiveDelivery + codCharge - discount);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cleanItems = items.map(({ category: _cat, ...rest }) => rest);
 
@@ -83,6 +87,7 @@ export async function validateCheckoutOrder(params: {
     delivery,
     subtotal,
     deliveryFee: effectiveDelivery,
+    codCharge,
     discount,
     promoCode:   validatedCode,
     promoDocId,

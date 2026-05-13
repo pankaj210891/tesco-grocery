@@ -162,6 +162,7 @@ export interface Order {
   };
   subtotal:    number;
   deliveryFee: number;
+  codCharge:   number;
   discount:    number;
   promoCode?:  string;
   total:       number;

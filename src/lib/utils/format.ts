@@ -1,5 +1,10 @@
 export function formatPrice(price: number): string {
-  return `£${price.toFixed(2)}`;
+  return new Intl.NumberFormat("en-IN", {
+    style:                 "currency",
+    currency:              "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(price);
 }
 
 export function slugify(str: string): string {

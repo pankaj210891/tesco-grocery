@@ -5,7 +5,7 @@ import { Tag, X, Loader2, CreditCard, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
-import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST, COD_CHARGE } from "@/lib/constants/promos";
 import { useCartStore } from "@/store/cart.store";
 import type { Offer, PaymentMethodType } from "@/types";
 
@@ -51,6 +51,7 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, payment
 
   const deliveryCost      = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
   const effectiveDelivery = promoInfo?.discountType === "freeDelivery" ? 0 : deliveryCost;
+  const codCharge         = paymentMethod === "cod" ? COD_CHARGE : 0;
 
   const discount = promoInfo
     ? promoInfo.discountType === "percentage"
@@ -60,7 +61,7 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, payment
       : deliveryCost
     : 0;
 
-  const total = subtotal + effectiveDelivery - (promoInfo?.discountType === "freeDelivery" ? 0 : discount);
+  const total = Math.max(0, subtotal + effectiveDelivery + codCharge - (promoInfo?.discountType === "freeDelivery" ? 0 : discount));
 
   async function validateAndApply(code: string) {
     if (!code.trim()) return;
@@ -171,6 +172,13 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, payment
           value={effectiveDelivery === 0 ? "Free" : formatPrice(effectiveDelivery)}
           className={effectiveDelivery === 0 ? "text-green-600" : ""}
         />
+        {codCharge > 0 && (
+          <Row
+            label="COD charge"
+            value={formatPrice(codCharge)}
+            className="text-amber-600 dark:text-amber-400"
+          />
+        )}
         {promoInfo && discount > 0 && (
           <Row
             label={`${promoCode} discount`}
@@ -179,7 +187,7 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, payment
           />
         )}
         {promoInfo?.discountType === "freeDelivery" && (
-          <Row label={`${promoCode} — free delivery`} value="–£3.99" className="text-green-600" />
+          <Row label={`${promoCode} — free delivery`} value={`–${formatPrice(deliveryCost)}`} className="text-green-600" />
         )}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
           <span className="font-black text-gray-900 dark:text-white">Total</span>
@@ -216,7 +224,7 @@ export default function CheckoutPricingSummary({ subtotal, isSubmitting, payment
       )}
       {paymentMethod === "cod" && (
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-          Pay in cash when your order arrives.
+          Pay in cash when your order arrives. ₹{COD_CHARGE} COD charge applies.
         </p>
       )}
       {!paymentMethod && (

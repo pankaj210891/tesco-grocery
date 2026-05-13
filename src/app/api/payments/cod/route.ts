@@ -42,7 +42,13 @@ export async function POST(req: Request) {
 
     const { delivery, items, promoCode, userId } = parsed.data;
 
-    const validated = await validateCheckoutOrder({ items, delivery, promoCode, userId });
+    const validated = await validateCheckoutOrder({
+      items,
+      delivery,
+      promoCode,
+      userId,
+      paymentMethod: "cod",
+    });
 
     const result = await createOrder({
       userId,
@@ -50,6 +56,7 @@ export async function POST(req: Request) {
       delivery:      validated.delivery,
       subtotal:      validated.subtotal,
       deliveryFee:   validated.deliveryFee,
+      codCharge:     validated.codCharge,
       discount:      validated.discount,
       promoCode:     validated.promoCode,
       total:         validated.total,

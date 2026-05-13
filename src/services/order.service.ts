@@ -26,6 +26,7 @@ export interface CreateOrderInput {
   delivery:           DeliveryInfo;
   subtotal:           number;
   deliveryFee:        number;
+  codCharge?:         number;
   discount:           number;
   promoCode?:         string;
   total:              number;
@@ -72,6 +73,7 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     },
     subtotal:    doc.subtotal,
     deliveryFee: doc.deliveryFee,
+    codCharge:   (doc as unknown as { codCharge?: number }).codCharge ?? 0,
     discount:    doc.discount ?? 0,
     promoCode:   doc.promoCode ?? undefined,
     total:       doc.total,

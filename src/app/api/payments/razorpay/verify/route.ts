@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     }
 
     // ── Re-validate totals server-side ────────────────────────────────────────
-    const validated = await validateCheckoutOrder({ items, delivery, promoCode, userId });
+    const validated = await validateCheckoutOrder({ items, delivery, promoCode, userId, paymentMethod: "razorpay" });
 
     // ── Persist order ─────────────────────────────────────────────────────────
     const result = await createOrder({
@@ -82,6 +82,7 @@ export async function POST(req: Request) {
       delivery:          validated.delivery,
       subtotal:          validated.subtotal,
       deliveryFee:       validated.deliveryFee,
+      codCharge:         validated.codCharge,
       discount:          validated.discount,
       promoCode:         validated.promoCode,
       total:             validated.total,
