@@ -295,8 +295,8 @@ export default function AccountPage() {
 
           {/* ── Orders ── */}
           {activeTab === "orders" && (
-            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 relative z-10">
                 <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                   <Package className="h-4 w-4 text-[#FCA311]" />
                   Order History
@@ -307,7 +307,7 @@ export default function AccountPage() {
                 <DateFilter filter={dateFilter} align="right" />
               </div>
 
-              <div className="p-5">
+              <div className="p-5 min-h-[320px]">
                 {loading || filterLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3].map((n) => <div key={n} className="h-16 animate-pulse bg-gray-100 dark:bg-gray-700/40 rounded-xl" />)}
@@ -347,7 +347,7 @@ export default function AccountPage() {
 
           {/* ── Addresses ── */}
           {activeTab === "addresses" && (
-            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
                 <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-[#FCA311]" />

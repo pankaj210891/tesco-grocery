@@ -232,7 +232,7 @@ export default function Navbar() {
                 </button>
 
                 {accountOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-50">
+                  <div className="absolute right-0 top-full mt-2 min-w-[14rem] w-max max-w-xs bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ backgroundColor: BRAND }}>
@@ -240,7 +240,7 @@ export default function Navbar() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 break-all">{user.email}</p>
                         </div>
                       </div>
                       {user.role !== "customer" && (

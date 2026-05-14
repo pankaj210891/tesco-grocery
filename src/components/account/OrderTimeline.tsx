@@ -82,8 +82,8 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
 
           return (
             <React.Fragment key={step.key}>
-              {/* Step column — fixed 80px, content centered */}
-              <div className="flex flex-col items-center" style={{ width: 80, flexShrink: 0 }}>
+              {/* Step column — fixed 100px, content centered */}
+              <div className="flex flex-col items-center" style={{ width: 100, flexShrink: 0 }}>
                 {/* Node */}
                 <div className="relative flex items-center justify-center">
                   {isCurrent && (
@@ -111,7 +111,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                 <div className="mt-3 w-full text-center">
                   <p
                     className={cn(
-                      "text-xs font-bold transition-colors leading-tight flex items-center justify-center gap-1",
+                      "text-xs font-bold transition-colors leading-tight flex items-center justify-center gap-1 whitespace-nowrap",
                       isDone     && "text-green-600 dark:text-green-400",
                       isCurrent  && "text-[#FCA311] dark:text-amber-400",
                       isUpcoming && "text-gray-400 dark:text-gray-600",
