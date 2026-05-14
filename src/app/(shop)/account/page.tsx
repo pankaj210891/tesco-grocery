@@ -54,26 +54,35 @@ export default function AccountPage() {
   const hydrated = useHydrated();
   const { user, token, logout } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [orders,    setOrders]    = useState<Order[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState("");
+  const [activeTab,            setActiveTab]            = useState<Tab>("overview");
+  const [allOrders,            setAllOrders]            = useState<Order[]>([]);
+  const [serverFilteredOrders, setServerFilteredOrders] = useState<Order[]>([]);
+  const [fetchedFilterKey,     setFetchedFilterKey]     = useState("");
+  const [loading,              setLoading]              = useState(true);
+  const [error,                setError]                = useState("");
 
   const dateFilter = useDateFilter("all");
 
-  const filteredOrders = useMemo(
-    () => orders.filter((o) => dateFilter.isInRange(o.createdAt)),
-    [orders, dateFilter],
-  );
+  // Use YYYY-MM-DD strings so the backend builds clean 00:00:00–23:59:59 UTC day boundaries
+  const fromParam = dateFilter.range.from ? dateFilter.range.from.toISOString().slice(0, 10) : "";
+  const toParam   = dateFilter.range.to   ? dateFilter.range.to.toISOString().slice(0, 10)   : "";
 
-  // Quick stats from all orders (not filtered)
+  // When a filter is active and the fetch hasn't completed for the current params, show skeleton
+  const currentFilterKey = `${fromParam}|${toParam}`;
+  const filterLoading    = !!(fromParam || toParam) && fetchedFilterKey !== currentFilterKey;
+
+  // Derive display list: server-filtered when a date range is active, otherwise all orders
+  const displayOrders = fromParam || toParam ? serverFilteredOrders : allOrders;
+
+  // Quick stats always from ALL orders (never affected by date filter)
   const stats = useMemo(() => {
-    const delivered  = orders.filter((o) => o.status === "delivered").length;
-    const pending    = orders.filter((o) => o.status === "pending" || o.status === "processing").length;
-    const totalSpent = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+    const delivered  = allOrders.filter((o) => o.status === "delivered").length;
+    const pending    = allOrders.filter((o) => o.status === "pending" || o.status === "processing").length;
+    const totalSpent = allOrders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
     return { delivered, pending, totalSpent };
-  }, [orders]);
+  }, [allOrders]);
 
+  // Initial load: fetch all orders (unfiltered) for stats
   useEffect(() => {
     if (!hydrated) return;
     if (!user) { router.replace("/login?redirect=/account"); return; }
@@ -84,7 +93,7 @@ export default function AccountPage() {
         const { data: json } = await axios.get("/api/account/orders", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOrders(json.data ?? []);
+        setAllOrders(json.data ?? []);
       } catch (err) {
         const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
         setError(msg ?? "Failed to load orders.");
@@ -94,6 +103,32 @@ export default function AccountPage() {
     }
     void load();
   }, [hydrated, user, router, token]);
+
+  // Re-fetch filtered order list from backend whenever date range changes
+  useEffect(() => {
+    if (loading || !token || (!fromParam && !toParam)) return;
+
+    const params = new URLSearchParams();
+    if (fromParam) params.set("from", fromParam);
+    if (toParam)   params.set("to",   toParam);
+    const key = currentFilterKey;
+
+    async function fetchFiltered() {
+      try {
+        const { data: json } = await axios.get(
+          `/api/account/orders?${params.toString()}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        setServerFilteredOrders(json.data ?? []);
+      } catch {
+        // leave previous results; key still updates so skeleton clears
+      } finally {
+        setFetchedFilterKey(key);
+      }
+    }
+    void fetchFiltered();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromParam, toParam]);
 
   if (!hydrated || !user) {
     return (
@@ -170,7 +205,7 @@ export default function AccountPage() {
                 <div className="space-y-2 text-sm border-t border-gray-100 dark:border-gray-700 pt-4 flex-1">
                   {[
                     { label: "Member since",  value: formatDate(user.createdAt) },
-                    { label: "Total orders",  value: orders.length.toString() },
+                    { label: "Total orders",  value: allOrders.length.toString() },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex justify-between py-1.5 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
                       <span className="text-gray-500 dark:text-gray-400 text-xs">{label}</span>
@@ -194,7 +229,7 @@ export default function AccountPage() {
               {[
                 {
                   label: "Total Orders",
-                  value: orders.length,
+                  value: allOrders.length,
                   Icon:  Package,
                   color: "text-[#00539F] dark:text-blue-400",
                   bg:    "bg-blue-50 dark:bg-blue-900/20",
@@ -249,16 +284,16 @@ export default function AccountPage() {
               <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white text-lg">
                 <Package className="h-5 w-5 text-[#00539F]" />
                 Order History
-                {!loading && (
+                {!loading && !filterLoading && (
                   <span className="text-sm font-normal text-gray-400 dark:text-gray-500">
-                    ({filteredOrders.length})
+                    ({displayOrders.length})
                   </span>
                 )}
               </h2>
               <DateFilter filter={dateFilter} align="right" />
             </div>
 
-            {loading ? (
+            {loading || filterLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((n) => (
                   <div key={n} className="animate-pulse h-20 bg-gray-100 dark:bg-gray-700/40 rounded-xl" />
@@ -266,7 +301,7 @@ export default function AccountPage() {
               </div>
             ) : error ? (
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            ) : orders.length === 0 ? (
+            ) : allOrders.length === 0 ? (
               <div className="text-center py-14">
                 <div className="inline-flex bg-gray-100 dark:bg-gray-700 rounded-full p-5 mb-4">
                   <ShoppingBag className="h-9 w-9 text-gray-400 dark:text-gray-500" />
@@ -277,7 +312,7 @@ export default function AccountPage() {
                   Start shopping
                 </Link>
               </div>
-            ) : filteredOrders.length === 0 ? (
+            ) : displayOrders.length === 0 ? (
               <div className="text-center py-14">
                 <div className="inline-flex bg-gray-100 dark:bg-gray-700 rounded-full p-5 mb-4">
                   <Filter className="h-9 w-9 text-gray-400 dark:text-gray-500" />
@@ -290,7 +325,7 @@ export default function AccountPage() {
               </div>
             ) : (
               <ul className="space-y-2.5">
-                {filteredOrders.map((order) => (
+                {displayOrders.map((order) => (
                   <li key={order._id}>
                     <Link
                       href={`/account/orders/${order.orderNumber}`}
