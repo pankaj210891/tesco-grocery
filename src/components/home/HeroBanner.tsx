@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import NavArrow from "@/components/ui/NavArrow";
 import { cn } from "@/lib/utils/cn";
 import type { HomepageSection } from "@/types";
 
@@ -189,20 +190,8 @@ export default function HeroBanner() {
         </div>
 
         {/* Prev / Next */}
-        <button
-          onClick={prev}
-          aria-label="Previous slide"
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 dark:bg-gray-900/90 shadow-md flex items-center justify-center hover:bg-white active:scale-90 transition-all border border-gray-100"
-        >
-          <ChevronLeft className="h-4 w-4 text-gray-700" />
-        </button>
-        <button
-          onClick={next}
-          aria-label="Next slide"
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 dark:bg-gray-900/90 shadow-md flex items-center justify-center hover:bg-white active:scale-90 transition-all border border-gray-100"
-        >
-          <ChevronRight className="h-4 w-4 text-gray-700" />
-        </button>
+        <NavArrow direction="prev" onClick={prev} variant="amber" size="lg" label="Previous slide" className="absolute left-3 top-1/2 -translate-y-1/2 z-20" />
+        <NavArrow direction="next" onClick={next} variant="amber" size="lg" label="Next slide" className="absolute right-3 top-1/2 -translate-y-1/2 z-20" />
 
         {/* Dots */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5" role="tablist" aria-label="Slide indicators">

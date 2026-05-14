@@ -54,7 +54,7 @@ export default function AddressSelectModal({
                   onClick={() => { onSelect(addr); onClose(); }}
                   className={`w-full text-left p-4 rounded-xl border transition-colors ${
                     isSelected
-                      ? "border-[#FCA311] bg-blue-50 dark:bg-blue-900/20"
+                      ? "border-[#FCA311] bg-amber-50 dark:bg-amber-900/20"
                       : "border-gray-100 dark:border-gray-700 hover:border-[#FCA311]/40 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Star, Plus, Minus, ShoppingCart, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
+import NavArrow from "@/components/ui/NavArrow";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
@@ -16,18 +17,18 @@ import type { Product } from "@/types";
 const AMBER = "#FCA311";
 const AMBER_DARK = "#E8920A";
 
-const BADGE_MAP: Record<string, string> = {
-  NEW:       "bg-blue-500",
-  HOT:       "bg-red-500",
-  LIMITED:   "bg-orange-500",
-  ORGANIC:   "bg-green-600",
-  EXCLUSIVE: "bg-purple-600",
+const BADGE_MAP: Record<string, { bg: string; text: string }> = {
+  NEW:       { bg: "bg-blue-500",    text: "text-white" },
+  HOT:       { bg: "bg-red-500",     text: "text-white" },
+  LIMITED:   { bg: "bg-orange-500",  text: "text-white" },
+  ORGANIC:   { bg: "bg-green-600",   text: "text-white" },
+  EXCLUSIVE: { bg: "bg-purple-600",  text: "text-white" },
 };
 
 function StarRating({ rating, count }: { rating: number; count: number }) {
   return (
-    <div className="flex items-center gap-1">
-      <div className="flex" aria-label={`Rating: ${rating} out of 5`}>
+    <div className="flex items-center gap-1.5">
+      <div className="flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Star
             key={i}
@@ -35,17 +36,21 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
               "h-3 w-3",
               i < Math.floor(rating)
                 ? "fill-[#FCA311] text-[#FCA311]"
-                : "fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600",
+                : i < rating
+                  ? "fill-[#FCA311]/50 text-[#FCA311]/50"
+                  : "fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600",
             )}
           />
         ))}
       </div>
-      <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">({count})</span>
+      <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums leading-none">
+        {count > 0 ? `(${count})` : "No reviews"}
+      </span>
     </div>
   );
 }
 
-const CARD_SLIDE_MS = 4000;
+const SLIDE_MS = 4000;
 
 function CardCarousel({ images, alt, href }: { images: string[]; alt: string; href: string }) {
   const [idx,     setIdx]     = useState(0);
@@ -61,7 +66,7 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
 
   useEffect(() => {
     if (count <= 1 || hovered) return;
-    const t = setTimeout(() => setIdx((i) => (i + 1) % count), CARD_SLIDE_MS);
+    const t = setTimeout(() => setIdx((i) => (i + 1) % count), SLIDE_MS);
     return () => clearTimeout(t);
   }, [idx, hovered, count]);
 
@@ -78,7 +83,8 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
   return (
     <Link
       href={href}
-      className="block relative h-44 overflow-hidden bg-gray-50 dark:bg-gray-700/30"
+      className="block relative overflow-hidden bg-gray-50 dark:bg-gray-800/60"
+      style={{ aspectRatio: "1 / 1" }}
       tabIndex={-1}
       aria-hidden
       onMouseEnter={() => setHovered(true)}
@@ -92,32 +98,22 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
         alt={alt}
         fill
         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+        className="object-contain p-5 transition-transform duration-500 group-hover:scale-[1.06]"
       />
 
+      {/* Nav arrows */}
       {count > 1 && (
         <>
-          <button
-            onClick={(e) => go(-1, e)}
-            aria-label="Previous image"
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-gray-900/90 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <ChevronLeft className="h-3.5 w-3.5 text-gray-700 dark:text-gray-200" />
-          </button>
-          <button
-            onClick={(e) => go(1, e)}
-            aria-label="Next image"
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-gray-900/90 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <ChevronRight className="h-3.5 w-3.5 text-gray-700 dark:text-gray-200" />
-          </button>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+          <NavArrow direction="prev" onClick={() => go(-1)} variant="overlay" size="sm" label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 dark:bg-gray-700 hover:scale-110" />
+          <NavArrow direction="next" onClick={() => go(1)} variant="overlay" size="sm" label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 dark:bg-gray-700 hover:scale-110" />
+          {/* Dots */}
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
             {images.map((_, i) => (
               <span
                 key={i}
                 className={cn(
                   "rounded-full transition-all duration-300",
-                  i === idx ? "w-3 h-1 bg-[#FCA311]" : "w-1 h-1 bg-white/70",
+                  i === idx ? "w-4 h-1.5 bg-[#FCA311]" : "w-1.5 h-1.5 bg-white/60 dark:bg-gray-400/60",
                 )}
               />
             ))}
@@ -157,66 +153,79 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     action(token);
   }
 
+  const badge = product.badge ? BADGE_MAP[product.badge] : null;
+
   return (
     <article
       className={cn(
-        "group relative bg-white dark:bg-gray-800 rounded-2xl",
-        "border border-gray-100 dark:border-gray-700/70",
-        "shadow-sm hover:shadow-lg hover:-translate-y-0.5",
-        "transition-all duration-300 flex flex-col overflow-hidden",
+        "group relative bg-white dark:bg-gray-800/80 flex flex-col",
+        "rounded-xl border border-gray-200 dark:border-gray-700/60",
+        "hover:border-[#FCA311]/50 dark:hover:border-[#FCA311]/40",
+        "hover:shadow-[0_4px_20px_rgba(252,163,17,0.12)] dark:hover:shadow-[0_4px_20px_rgba(252,163,17,0.08)]",
+        "transition-all duration-300 overflow-hidden",
         className,
       )}
     >
-      {/* Sale / badge row — top left */}
+      {/* ── Badges ── */}
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1">
         {discount && (
-          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#25A244] text-white uppercase tracking-wide">
-            Sale
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#25A244] text-white tracking-wide">
+            -{discount}%
           </span>
         )}
-        {product.badge && (
-          <span className={cn("text-[10px] font-black px-2 py-0.5 rounded text-white uppercase tracking-wide", BADGE_MAP[product.badge] ?? "bg-gray-500")}>
+        {badge && (
+          <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide", badge.bg, badge.text)}>
             {product.badge}
           </span>
         )}
         {!product.inStock && (
-          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-gray-400 text-white uppercase">
-            Out of Stock
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-gray-500 text-white">
+            Out of stock
           </span>
         )}
       </div>
 
-      {/* Wishlist — top right */}
-      <WishlistButton product={product} className="absolute top-2.5 right-2.5 z-10" />
+      {/* ── Wishlist ── */}
+      <div className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <WishlistButton
+          product={product}
+          className="w-8 h-8 bg-white dark:bg-gray-700 shadow-md hover:scale-110"
+        />
+      </div>
 
-      {/* Image */}
+      {/* ── Image ── */}
       <CardCarousel
         images={product.images.length > 0 ? product.images : ["/images/placeholder-product.png"]}
         alt={product.name}
         href={`/products/${product.slug}`}
       />
 
-      {/* Body */}
-      <div className="flex flex-col flex-1 p-3.5 gap-1.5">
+      {/* ── Body ── */}
+      <div className="flex flex-col flex-1 p-3.5 pt-3 gap-2">
 
+        {/* Category */}
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
           {product.category}
         </p>
 
+        {/* Name */}
         <Link
           href={`/products/${product.slug}`}
-          className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 hover:text-[#FCA311] transition-colors leading-snug"
+          className="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors leading-snug"
         >
           {product.name}
         </Link>
 
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.brand}</p>
+        {/* Brand + Rating */}
+        <div className="flex items-center justify-between gap-1">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.brand}</p>
+        </div>
 
         <StarRating rating={product.rating} count={product.reviewCount} />
 
         {/* Price */}
-        <div className="flex items-baseline gap-2 mt-auto pt-1.5">
-          <span className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+        <div className="flex items-baseline gap-2 mt-auto pt-1">
+          <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
             ₹{product.price.toFixed(0)}
           </span>
           {product.originalPrice && product.originalPrice > product.price && (
@@ -225,58 +234,58 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             </span>
           )}
           {discount && (
-            <span className="ml-auto text-[10px] font-bold text-[#25A244] dark:text-green-400">
+            <span className="ml-auto text-[10px] font-bold text-[#25A244] dark:text-green-400 shrink-0">
               {discount}% off
             </span>
           )}
         </div>
 
         {product.unit && (
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 -mt-0.5">{product.unit}</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 -mt-1">{product.unit}</p>
         )}
 
-        {/* Cart control */}
+        {/* ── Cart control ── */}
         {product.inStock ? (
           qty === 0 ? (
             <button
               onClick={() => requireAuth(1, (t) => void addItem(product, 1, t))}
-              className="mt-2 w-full h-10 flex items-center justify-center gap-2 text-white text-sm font-bold rounded-xl transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md"
+              className="mt-1.5 w-full h-9 flex items-center justify-center gap-2 text-white text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.97]"
               style={{ backgroundColor: AMBER }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER; }}
               aria-label={`Add ${product.name} to cart`}
             >
-              <ShoppingCart className="h-4 w-4" aria-hidden />
+              <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
               Add to Cart
             </button>
           ) : (
-            <div className="mt-2 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-1.5">
+            <div className="mt-1.5 flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1 border border-gray-200 dark:border-gray-600/50">
               <button
                 onClick={() => requireAuth(qty - 1, (t) => void updateQuantity(product._id, qty - 1, t))}
-                className="h-8 w-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 shadow-sm hover:border-[#FCA311] active:scale-90 transition-all"
+                className="h-7 w-7 flex items-center justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:border-[#FCA311] active:scale-90 transition-all shadow-sm"
                 aria-label="Decrease quantity"
               >
-                <Minus className="h-3.5 w-3.5 text-gray-700 dark:text-gray-300" />
+                <Minus className="h-3 w-3 text-gray-600 dark:text-gray-300" />
               </button>
-              <span className="text-sm font-black text-gray-900 dark:text-white tabular-nums w-6 text-center">
+              <span className="text-sm font-black text-gray-900 dark:text-white tabular-nums">
                 {qty}
               </span>
               <button
                 onClick={() => requireAuth(qty + 1, (t) => void updateQuantity(product._id, qty + 1, t))}
-                className="h-8 w-8 flex items-center justify-center rounded-lg text-white shadow-sm active:scale-90 transition-all"
+                className="h-7 w-7 flex items-center justify-center rounded-md text-white active:scale-90 transition-all shadow-sm"
                 style={{ backgroundColor: AMBER }}
                 aria-label="Increase quantity"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3 w-3" />
               </button>
             </div>
           )
         ) : (
           <button
             disabled
-            className="mt-2 w-full h-10 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-semibold rounded-xl cursor-not-allowed"
+            className="mt-1.5 w-full h-9 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
           >
-            <Zap className="h-4 w-4" aria-hidden />
+            <Zap className="h-3.5 w-3.5" aria-hidden />
             Out of Stock
           </button>
         )}

@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { formatPrice } from "@/lib/utils/format";
-import { cn } from "@/lib/utils/cn";
 import type { CartItem as CartItemType } from "@/types";
 
 interface CartItemProps {
   item: CartItemType;
 }
+
+const AMBER = "#FCA311";
+const AMBER_DARK = "#E8920A";
 
 export default function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeItem } = useCartStore();
@@ -33,13 +35,18 @@ export default function CartItem({ item }: CartItemProps) {
   }
 
   const lineTotal = product.price * quantity;
+  const discount =
+    product.originalPrice && product.originalPrice > product.price
+      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+      : null;
 
   return (
-    <article className="flex gap-3 sm:gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
-      {/* Image */}
+    <article className="group flex gap-4 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+      {/* ── Product Image ── */}
       <Link
         href={`/products/${product.slug}`}
-        className="shrink-0 relative h-20 w-20 sm:h-24 sm:w-24 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 hover:opacity-90 transition-opacity"
+        className="shrink-0 relative rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600/50 hover:opacity-90 transition-opacity"
+        style={{ width: 96, height: 96 }}
         tabIndex={-1}
         aria-hidden
       >
@@ -50,56 +57,64 @@ export default function CartItem({ item }: CartItemProps) {
           sizes="96px"
           className="object-contain p-2"
         />
+        {discount && (
+          <span className="absolute top-1 left-1 text-[9px] font-black px-1.5 py-0.5 bg-[#25A244] text-white rounded-md leading-none">
+            -{discount}%
+          </span>
+        )}
       </Link>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
+      {/* ── Content ── */}
+      <div className="flex-1 min-w-0 flex flex-col gap-2">
+        {/* Top row: name + remove */}
         <div className="flex items-start justify-between gap-2">
-          {/* Name + meta */}
           <div className="min-w-0">
             <Link
               href={`/products/${product.slug}`}
-              className="font-semibold text-sm text-gray-900 dark:text-white hover:text-[#FCA311] dark:hover:text-blue-400 transition-colors line-clamp-2 leading-snug"
+              className="text-sm font-semibold text-gray-900 dark:text-white hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors line-clamp-2 leading-snug"
             >
               {product.name}
             </Link>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{product.brand}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">{product.unit}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              {product.brand && (
+                <p className="text-xs text-gray-400 dark:text-gray-500">{product.brand}</p>
+              )}
+              {product.unit && (
+                <p className="text-xs text-gray-400 dark:text-gray-500">· {product.unit}</p>
+              )}
+            </div>
           </div>
-
-          {/* Remove */}
           <button
             onClick={handleRemove}
-            aria-label={`Remove ${product.name} from cart`}
-            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            aria-label={`Remove ${product.name}`}
+            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Bottom row: qty controls + price */}
-        <div className="flex items-center justify-between mt-3 gap-2">
-          {/* Qty stepper */}
-          <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+        {/* Bottom row: qty + price */}
+        <div className="flex items-center justify-between gap-3 mt-auto">
+          {/* Quantity stepper */}
+          <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden h-8">
             <button
               onClick={() => handleQtyChange(quantity - 1)}
               aria-label="Decrease quantity"
-              className={cn(
-                "px-2.5 py-1.5 transition-colors",
-                quantity <= 1
-                  ? "text-gray-300 dark:text-gray-600 cursor-default"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              )}
+              className="w-8 h-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-r border-gray-200 dark:border-gray-600 disabled:opacity-40"
+              disabled={quantity <= 1}
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="px-3 py-1.5 text-sm font-bold tabular-nums min-w-[2.5rem] text-center border-x border-gray-200 dark:border-gray-600 dark:text-white dark:bg-gray-800">
+            <span className="w-10 h-full flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white tabular-nums bg-white dark:bg-gray-800 select-none">
               {quantity}
             </span>
             <button
               onClick={() => handleQtyChange(quantity + 1)}
               aria-label="Increase quantity"
-              className="px-2.5 py-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="w-8 h-full flex items-center justify-center transition-colors border-l border-gray-200 dark:border-gray-600 text-white"
+              style={{ backgroundColor: AMBER }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER; }}
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -107,7 +122,7 @@ export default function CartItem({ item }: CartItemProps) {
 
           {/* Price */}
           <div className="text-right">
-            <p className="font-black text-gray-900 dark:text-white text-base">
+            <p className="font-black text-gray-900 dark:text-white text-base tracking-tight">
               {formatPrice(lineTotal)}
             </p>
             {quantity > 1 && (

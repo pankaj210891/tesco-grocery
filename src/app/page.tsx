@@ -22,19 +22,29 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-950">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero — full bleed container with padding */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-          <HeroBanner />
+        {/* Hero — full-width padded container */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-6">
+            <HeroBanner />
+          </div>
         </div>
 
+        {/* Promo strip */}
         <PromoStrip />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-          <CategoryGrid categories={categories} />
+        {/* ── Categories ── */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <CategoryGrid categories={categories} />
+          </div>
+        </div>
+
+        {/* ── Featured Products + CMS sections ── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-14">
           <FeaturedProducts products={featuredProducts} />
           <HomepageSections />
         </div>
