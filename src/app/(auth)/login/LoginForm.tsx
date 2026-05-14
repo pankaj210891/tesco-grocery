@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,9 +73,9 @@ export default function LoginForm() {
               <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Password
               </label>
-              <span className="text-xs text-[#FCA311] hover:underline cursor-pointer">
+              <Link href="/forgot-password" className="text-xs text-[#FCA311] hover:underline font-medium">
                 Forgot password?
-              </span>
+              </Link>
             </div>
             <div className="relative">
               <input
