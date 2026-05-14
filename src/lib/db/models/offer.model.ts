@@ -13,6 +13,7 @@ const OfferSchema = new Schema(
       enum:     ["percentage", "fixed", "freeDelivery"],
     },
     discountValue: { type: Number, default: 0 },
+    maxCap:        { type: Number, default: null },  // max discount cap for percentage type; null = no cap
     minOrderValue: { type: Number, default: 0 },
     expiresAt:     { type: Date, required: true },
     isActive:      { type: Boolean, default: true },
@@ -51,6 +52,7 @@ export interface IOffer extends Document {
   code?:              string;
   discountType:       DiscountType;
   discountValue:      number;
+  maxCap:             number | null;
   minOrderValue:      number;
   expiresAt:          Date;
   isActive:           boolean;
