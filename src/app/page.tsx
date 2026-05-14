@@ -22,11 +22,15 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-950">
       <Navbar />
 
       <main className="flex-1">
-        <HeroBanner />
+        {/* Hero — full bleed container with padding */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+          <HeroBanner />
+        </div>
+
         <PromoStrip />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">

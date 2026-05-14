@@ -15,7 +15,7 @@ import { use } from "react";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
   pending:    "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
-  processing: "bg-blue-50   dark:bg-blue-900/20    text-blue-700   dark:text-blue-400    border-blue-200   dark:border-blue-800/40",
+  processing: "bg-amber-50  dark:bg-amber-900/20   text-amber-700  dark:text-amber-400   border-amber-200  dark:border-amber-800/40",
   shipped:    "bg-purple-50 dark:bg-purple-900/20  text-purple-700 dark:text-purple-400  border-purple-200 dark:border-purple-800/40",
   delivered:  "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
   cancelled:  "bg-red-50    dark:bg-red-900/20     text-red-700    dark:text-red-400     border-red-200    dark:border-red-800/40",
@@ -84,7 +84,7 @@ export default function OrderDetailPage({
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
         <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-        <Link href="/account" className="text-[#00539F] dark:text-blue-400 text-sm font-semibold hover:underline">
+        <Link href="/account" className="text-[#FCA311] dark:text-amber-400 text-sm font-semibold hover:underline">
           Back to account
         </Link>
       </div>
@@ -122,7 +122,7 @@ export default function OrderDetailPage({
         {/* Order tracking timeline */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-            <Truck className="h-4 w-4 text-[#00539F]" aria-hidden />
+            <Truck className="h-4 w-4 text-[#FCA311]" aria-hidden />
             Order Tracking
           </h2>
           <OrderTimeline status={order.status} />
@@ -131,7 +131,7 @@ export default function OrderDetailPage({
         {/* Items */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-4">
-            <Package className="h-4 w-4 text-[#00539F]" aria-hidden />
+            <Package className="h-4 w-4 text-[#FCA311]" aria-hidden />
             Items ({order.items.reduce((s, i) => s + i.quantity, 0)})
           </h2>
           <ul className="space-y-3">
@@ -162,7 +162,7 @@ export default function OrderDetailPage({
           {/* Delivery */}
           <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
             <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-3">
-              <MapPin className="h-4 w-4 text-[#00539F]" aria-hidden />
+              <MapPin className="h-4 w-4 text-[#FCA311]" aria-hidden />
               Delivery address
             </h2>
             <address className="not-italic text-sm text-gray-600 dark:text-gray-300 space-y-0.5">
@@ -177,7 +177,7 @@ export default function OrderDetailPage({
           {/* Pricing */}
           <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
             <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-3">
-              <CreditCard className="h-4 w-4 text-[#00539F]" aria-hidden />
+              <CreditCard className="h-4 w-4 text-[#FCA311]" aria-hidden />
               Payment summary
             </h2>
             <div className="space-y-2 text-sm">
@@ -217,7 +217,7 @@ export default function OrderDetailPage({
         {/* Payment method & transaction info */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-4">
-            <Receipt className="h-4 w-4 text-[#00539F]" aria-hidden />
+            <Receipt className="h-4 w-4 text-[#FCA311]" aria-hidden />
             Transaction details
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">

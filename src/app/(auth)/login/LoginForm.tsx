@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Store } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
@@ -48,8 +48,8 @@ export default function LoginForm() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
         {/* Heading */}
         <div className="mb-7 text-center">
-          <div className="w-12 h-12 bg-[#0F4C75] rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-black text-xl">P</span>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#FCA311" }}>
+            <Store className="h-6 w-6 text-white" aria-hidden />
           </div>
           <h1 className="text-2xl font-black text-gray-900 dark:text-white">Sign in</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Welcome back to Prakash Supermarket</p>
@@ -72,7 +72,7 @@ export default function LoginForm() {
               <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Password
               </label>
-              <span className="text-xs text-[#0F4C75] hover:underline cursor-pointer">
+              <span className="text-xs text-[#FCA311] hover:underline cursor-pointer">
                 Forgot password?
               </span>
             </div>
@@ -87,7 +87,7 @@ export default function LoginForm() {
                   "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800",
                   errors.password
                     ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-300 dark:border-gray-600 focus:border-[#0F4C75] focus:ring-2 focus:ring-blue-100",
+                    : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15",
                 ].join(" ")}
                 {...register("password")}
               />
@@ -108,7 +108,8 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-[#0F4C75] hover:bg-[#0A3352] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-2"
+            className="w-full py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 mt-2 hover:brightness-105 active:scale-95"
+            style={{ backgroundColor: "#FCA311" }}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Signing in…" : "Sign in"}
@@ -117,7 +118,7 @@ export default function LoginForm() {
 
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-[#0F4C75] font-semibold hover:underline">
+          <Link href="/register" className="text-[#FCA311] font-semibold hover:underline">
             Create one
           </Link>
         </p>

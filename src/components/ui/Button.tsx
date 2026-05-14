@@ -15,11 +15,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-tesco-blue text-white hover:bg-[#003B7A] focus-visible:ring-[#00539F]",
+    "bg-[#FCA311] text-white hover:bg-[#E8920A] focus-visible:ring-[#FCA311] active:scale-95",
   secondary:
-    "bg-tesco-red text-white hover:bg-[#C01525] focus-visible:ring-[#EE1C2E]",
+    "bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 focus-visible:ring-gray-700",
   outline:
-    "border border-tesco-blue text-tesco-blue bg-transparent hover:bg-blue-50 focus-visible:ring-[#00539F]",
+    "border-2 border-[#FCA311] text-[#FCA311] bg-transparent hover:bg-[#FCA311] hover:text-white focus-visible:ring-[#FCA311]",
   ghost:
     "bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:ring-gray-400",
   danger:

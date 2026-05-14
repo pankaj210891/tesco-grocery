@@ -8,15 +8,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-[#0F4C75] rounded-lg px-2 py-1 flex items-center gap-1.5">
-              <Store className="h-4 w-4 text-[#F57C00]" aria-hidden />
-              <span className="text-white font-black text-sm tracking-tight leading-none">
-                Prakash
-              </span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "#FCA311" }}>
+              <Store className="h-4 w-4 text-white" aria-hidden />
             </div>
-            <span className="font-semibold text-gray-600 dark:text-gray-300 text-sm hidden sm:inline">
-              Supermarket
-            </span>
+            <div className="leading-none">
+              <span className="font-black text-lg tracking-tight text-gray-900 dark:text-white">Prakash</span>
+              <span className="text-gray-500 dark:text-gray-400 text-xs font-medium block">Supermarket</span>
+            </div>
           </Link>
         </div>
       </header>

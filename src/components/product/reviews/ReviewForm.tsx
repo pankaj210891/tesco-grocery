@@ -89,7 +89,7 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
           onChange={(e) => setTitle(e.target.value)}
           maxLength={120}
           placeholder="Sum up your experience"
-          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:border-[#0F4C75] focus:ring-1 focus:ring-[#0F4C75]"
+          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311]"
         />
       </div>
 
@@ -103,7 +103,7 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
           maxLength={2000}
           rows={4}
           placeholder="What did you think? Quality, taste, value for money…"
-          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:border-[#0F4C75] focus:ring-1 focus:ring-[#0F4C75] resize-none"
+          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] resize-none"
         />
         <p className="text-[11px] text-gray-400 text-right mt-0.5">{body.length}/2000</p>
       </div>
@@ -113,7 +113,7 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
       <button
         type="submit"
         disabled={submitting}
-        className="w-full py-2.5 rounded-xl bg-[#0F4C75] text-white text-sm font-semibold hover:bg-[#0A3352] transition-colors disabled:opacity-50"
+        className="w-full py-2.5 rounded-xl bg-[#FCA311] text-white text-sm font-semibold hover:bg-[#E8920A] transition-colors disabled:opacity-50"
       >
         {submitting ? "Submitting…" : "Submit Review"}
       </button>

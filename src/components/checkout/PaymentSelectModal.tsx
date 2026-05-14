@@ -34,7 +34,7 @@ export default function PaymentSelectModal({
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
           <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white">
-            <CreditCard className="h-4 w-4 text-[#00539F]" aria-hidden />
+            <CreditCard className="h-4 w-4 text-[#FCA311]" aria-hidden />
             Choose card
           </h2>
           <button
@@ -55,8 +55,8 @@ export default function PaymentSelectModal({
                   onClick={() => { onSelect(pm); onClose(); }}
                   className={`w-full text-left p-4 rounded-xl border transition-colors ${
                     isSelected
-                      ? "border-[#00539F] bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-100 dark:border-gray-700 hover:border-[#00539F]/40 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "border-[#FCA311] bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-100 dark:border-gray-700 hover:border-[#FCA311]/40 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -70,7 +70,7 @@ export default function PaymentSelectModal({
                       </p>
                     </div>
                     {isSelected && (
-                      <Check className="h-4 w-4 text-[#00539F] shrink-0" aria-hidden />
+                      <Check className="h-4 w-4 text-[#FCA311] shrink-0" aria-hidden />
                     )}
                   </div>
                 </button>

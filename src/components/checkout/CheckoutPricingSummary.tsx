@@ -205,7 +205,7 @@ export default function CheckoutPricingSummary({
                 placeholder="Enter promo code"
                 aria-label="Promo code"
                 disabled={applying}
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-base md:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] disabled:opacity-50"
+                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-base md:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] disabled:opacity-50"
               />
               <button
                 type="submit"
@@ -222,7 +222,7 @@ export default function CheckoutPricingSummary({
                 <button
                   type="button"
                   onClick={() => setShowOffers((v) => !v)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#00539F] dark:text-blue-400 hover:underline"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
                 >
                   <Sparkles className="h-3 w-3" />
                   {eligiblePromos.length} offer{eligiblePromos.length !== 1 ? "s" : ""} available for your cart
@@ -275,7 +275,7 @@ export default function CheckoutPricingSummary({
         type="submit"
         form="checkout-form"
         disabled={isSubmitting}
-        className="w-full py-3 bg-[#00539F] hover:bg-[#003B7A] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 bg-[#FCA311] hover:bg-[#E8920A] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
       >
         {isSubmitting ? (
           <>
@@ -339,7 +339,7 @@ function EligiblePromoCard({
         type="button"
         onClick={onApply}
         disabled={applying}
-        className="shrink-0 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-[#00539F] text-white hover:bg-[#003B7A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="shrink-0 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-[#FCA311] text-white hover:bg-[#E8920A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Apply
       </button>

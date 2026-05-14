@@ -41,7 +41,7 @@ export default function NoResults({ query }: NoResultsProps) {
       <ul className="text-left space-y-1.5 mb-8 w-full max-w-xs">
         {TIPS.map((tip) => (
           <li key={tip} className="flex items-start gap-2 text-sm text-gray-600">
-            <span className="text-[#00539F] font-bold mt-0.5 shrink-0">·</span>
+            <span className="text-[#FCA311] font-bold mt-0.5 shrink-0">·</span>
             {tip}
           </li>
         ))}
@@ -57,7 +57,7 @@ export default function NoResults({ query }: NoResultsProps) {
             <Link
               key={cat}
               href={`/categories/${slugify(cat)}`}
-              className="px-4 py-1.5 border border-gray-200 rounded-full text-sm text-gray-700 hover:border-[#00539F] hover:text-[#00539F] transition-colors"
+              className="px-4 py-1.5 border border-gray-200 rounded-full text-sm text-gray-700 hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
             >
               {cat}
             </Link>
@@ -67,7 +67,7 @@ export default function NoResults({ query }: NoResultsProps) {
 
       <Link
         href="/products"
-        className="mt-8 px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors"
+        className="mt-8 px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors"
       >
         Browse All Products
       </Link>

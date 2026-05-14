@@ -87,7 +87,7 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
     <div className="space-y-8">
       {/* Heading */}
       <div className="flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 text-[#0F4C75] dark:text-blue-400" />
+        <MessageSquare className="h-5 w-5 text-[#FCA311] dark:text-amber-400" />
         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
           Customer Reviews
           {summary && summary.total > 0 && (
@@ -115,7 +115,7 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
           </p>
           <a
             href="/login"
-            className="inline-block px-4 py-2 rounded-lg bg-[#0F4C75] text-white text-sm font-semibold hover:bg-[#0A3352] transition-colors"
+            className="inline-block px-4 py-2 rounded-lg bg-[#FCA311] text-white text-sm font-semibold hover:bg-[#E8920A] transition-colors"
           >
             Sign in
           </a>
@@ -160,7 +160,7 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
           {data && page < data.totalPages && !loading && (
             <button
               onClick={() => setPage((p) => p + 1)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-[#0F4C75] hover:text-[#0F4C75] dark:hover:text-blue-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-[#FCA311] hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors"
             >
               Load more reviews <ChevronDown className="h-4 w-4" />
             </button>

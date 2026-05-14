@@ -19,7 +19,7 @@ export default function SearchHeader({ query, resultCount }: SearchHeaderProps) 
     <div className="mb-6">
       <h1 className="text-2xl font-black text-gray-900">
         Results for{" "}
-        <span className="text-[#00539F]">&ldquo;{query}&rdquo;</span>
+        <span className="text-[#FCA311]">&ldquo;{query}&rdquo;</span>
       </h1>
       <p className="text-sm text-gray-500 mt-1">
         {resultCount === 0

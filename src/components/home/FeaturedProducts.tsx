@@ -14,13 +14,14 @@ export default function FeaturedProducts({ products }: FeaturedProductsProps) {
       <div className="flex items-center justify-between mb-4">
         <h2
           id="featured-heading"
-          className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100"
+          className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white"
         >
           Featured Products
         </h2>
         <Link
           href="/products"
-          className="text-sm font-semibold text-[#00539F] dark:text-blue-400 hover:underline"
+          className="text-sm font-semibold hover:underline transition-colors"
+          style={{ color: "#FCA311" }}
         >
           View all →
         </Link>

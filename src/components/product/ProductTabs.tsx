@@ -37,7 +37,7 @@ export default function ProductTabs({ product }: { product: Product }) {
             className={cn(
               "px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px",
               active === tab.key
-                ? "border-[#0F4C75] text-[#0F4C75] dark:text-blue-400 dark:border-blue-400"
+                ? "border-[#FCA311] text-[#FCA311] dark:text-amber-400 dark:border-blue-400"
                 : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             )}
           >
@@ -115,7 +115,7 @@ export default function ProductTabs({ product }: { product: Product }) {
               <li>Free delivery on orders over ₹500</li>
               <li>Next-day delivery available for ₹49</li>
               <li>Click & Collect free at all Prakash stores</li>
-              <li>Returns accepted within 14 days — see <a href="/help" className="text-[#0F4C75] dark:text-blue-400 hover:underline">Help Centre</a> for details</li>
+              <li>Returns accepted within 14 days — see <a href="/help" className="text-[#FCA311] dark:text-amber-400 hover:underline">Help Centre</a> for details</li>
             </ul>
           </section>
         </div>

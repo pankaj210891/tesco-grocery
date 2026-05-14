@@ -6,7 +6,7 @@ function CategoryTile({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-[#0F4C75]/30 hover:shadow-md transition-all duration-150 group"
+      className="flex items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-[#FCA311]/30 hover:shadow-md transition-all duration-150 group"
       style={{ backgroundColor: item.color ?? "#F9FAFB" }}
     >
       <span

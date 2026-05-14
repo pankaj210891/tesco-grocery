@@ -68,7 +68,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
         {hasActive && (
           <button
             onClick={clearAll}
-            className="text-xs font-semibold text-[#00539F] hover:underline"
+            className="text-xs font-semibold text-[#FCA311] hover:underline"
           >
             Clear all
           </button>
@@ -87,7 +87,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
               className={cn(
                 "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors",
                 !activeCategory
-                  ? "bg-blue-50 text-[#00539F] font-semibold"
+                  ? "bg-blue-50 text-[#FCA311] font-semibold"
                   : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               )}
             >
@@ -106,7 +106,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
                   className={cn(
                     "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors",
                     isActive
-                      ? "bg-blue-50 text-[#00539F] font-semibold"
+                      ? "bg-blue-50 text-[#FCA311] font-semibold"
                       : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   )}
                 >
@@ -139,7 +139,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
                   className={cn(
                     "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors",
                     isActive
-                      ? "bg-blue-50 text-[#00539F] font-semibold"
+                      ? "bg-blue-50 text-[#FCA311] font-semibold"
                       : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   )}
                 >
@@ -163,7 +163,7 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
             onChange={() =>
               navigate({ inStock: inStock ? null : "true" })
             }
-            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-[#00539F] focus:ring-[#00539F] cursor-pointer dark:bg-gray-700"
+            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-[#FCA311] focus:ring-[#FCA311] cursor-pointer dark:bg-gray-700"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300 select-none">
             In Stock Only

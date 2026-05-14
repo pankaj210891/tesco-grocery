@@ -181,14 +181,14 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
 
       {/* Free-delivery progress bar */}
       <div className="space-y-1.5">
-        <p className={cn("text-xs font-medium", needed === 0 ? "text-green-600" : "text-[#00539F]")}>
+        <p className={cn("text-xs font-medium", needed === 0 ? "text-green-600" : "text-[#FCA311]")}>
           {needed === 0
             ? "You qualify for free delivery! 🎉"
             : `Add ${formatPrice(needed)} more for free delivery`}
         </p>
         <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#00539F] rounded-full transition-all duration-700"
+            className="h-full bg-[#FCA311] rounded-full transition-all duration-700"
             style={{ width: `${progress}%` }}
             role="progressbar"
             aria-valuenow={Math.round(progress)}
@@ -240,7 +240,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
                 placeholder="Enter promo code"
                 aria-label="Promo code"
                 disabled={applying}
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-base md:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] disabled:opacity-50"
+                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-base md:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] disabled:opacity-50"
               />
               <button
                 type="submit"
@@ -258,7 +258,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
                 <button
                   type="button"
                   onClick={() => setShowOffers((v) => !v)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#00539F] dark:text-blue-400 hover:underline"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
                 >
                   <Sparkles className="h-3 w-3" />
                   {eligiblePromos.length} offer{eligiblePromos.length !== 1 ? "s" : ""} available for your cart
@@ -286,13 +286,13 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
       {/* Checkout CTA */}
       <Link
         href="/checkout"
-        className="block w-full text-center py-3.5 rounded-xl font-bold text-base bg-[#00539F] text-white hover:bg-[#003B7A] transition-all active:scale-[0.98] shadow-sm"
+        className="block w-full text-center py-3.5 rounded-xl font-bold text-base bg-[#FCA311] text-white hover:bg-[#E8920A] transition-all active:scale-[0.98] shadow-sm"
       >
         Proceed to Checkout →
       </Link>
       <Link
         href="/products"
-        className="block text-center text-sm text-[#00539F] hover:underline font-medium"
+        className="block text-center text-sm text-[#FCA311] hover:underline font-medium"
       >
         ← Continue Shopping
       </Link>
@@ -351,7 +351,7 @@ function EligiblePromoCard({
         type="button"
         onClick={onApply}
         disabled={applying}
-        className="shrink-0 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-[#00539F] text-white hover:bg-[#003B7A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="shrink-0 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-[#FCA311] text-white hover:bg-[#E8920A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Apply
       </button>

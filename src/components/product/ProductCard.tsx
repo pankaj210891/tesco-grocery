@@ -13,22 +13,16 @@ import { savePendingAction } from "@/lib/pending-action";
 import WishlistButton from "./WishlistButton";
 import type { Product } from "@/types";
 
-const BADGE_STYLES: Record<string, { bg: string; text: string }> = {
-  NEW:      { bg: "bg-blue-500",    text: "text-white" },
-  HOT:      { bg: "bg-red-500",     text: "text-white" },
-  LIMITED:  { bg: "bg-orange-500",  text: "text-white" },
-  ORGANIC:  { bg: "bg-green-600",   text: "text-white" },
-  EXCLUSIVE:{ bg: "bg-purple-600",  text: "text-white" },
-};
+const AMBER = "#FCA311";
+const AMBER_DARK = "#E8920A";
 
-function CustomBadge({ badge }: { badge: string }) {
-  const style = BADGE_STYLES[badge] ?? { bg: "bg-gray-500", text: "text-white" };
-  return (
-    <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full tracking-wide", style.bg, style.text)}>
-      {badge}
-    </span>
-  );
-}
+const BADGE_MAP: Record<string, string> = {
+  NEW:       "bg-blue-500",
+  HOT:       "bg-red-500",
+  LIMITED:   "bg-orange-500",
+  ORGANIC:   "bg-green-600",
+  EXCLUSIVE: "bg-purple-600",
+};
 
 function StarRating({ rating, count }: { rating: number; count: number }) {
   return (
@@ -40,7 +34,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
             className={cn(
               "h-3 w-3",
               i < Math.floor(rating)
-                ? "fill-amber-400 text-amber-400"
+                ? "fill-[#FCA311] text-[#FCA311]"
                 : "fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600",
             )}
           />
@@ -51,15 +45,10 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
   );
 }
 
-interface ProductCardProps {
-  product:    Product;
-  className?: string;
-}
-
 const CARD_SLIDE_MS = 4000;
 
 function CardCarousel({ images, alt, href }: { images: string[]; alt: string; href: string }) {
-  const [idx,    setIdx]    = useState(0);
+  const [idx,     setIdx]     = useState(0);
   const [hovered, setHovered] = useState(false);
   const touchStart = useRef<number | null>(null);
   const count = images.length;
@@ -89,7 +78,7 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
   return (
     <Link
       href={href}
-      className="block relative h-44 rounded-t-2xl overflow-hidden bg-gray-50 dark:bg-gray-700/50"
+      className="block relative h-44 overflow-hidden bg-gray-50 dark:bg-gray-700/30"
       tabIndex={-1}
       aria-hidden
       onMouseEnter={() => setHovered(true)}
@@ -103,24 +92,22 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
         alt={alt}
         fill
         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        className="object-contain p-4 group-hover:scale-108 transition-transform duration-500"
-        style={{ transform: "scale(1)" }}
+        className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
       {count > 1 && (
         <>
           <button
             onClick={(e) => go(-1, e)}
             aria-label="Previous image"
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/80 dark:bg-gray-900/80 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-gray-900/90 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <ChevronLeft className="h-3.5 w-3.5 text-gray-700 dark:text-gray-200" />
           </button>
           <button
             onClick={(e) => go(1, e)}
             aria-label="Next image"
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/80 dark:bg-gray-900/80 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-gray-900/90 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <ChevronRight className="h-3.5 w-3.5 text-gray-700 dark:text-gray-200" />
           </button>
@@ -130,7 +117,7 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
                 key={i}
                 className={cn(
                   "rounded-full transition-all duration-300",
-                  i === idx ? "w-3 h-1 bg-[#00539F]" : "w-1 h-1 bg-white/70"
+                  i === idx ? "w-3 h-1 bg-[#FCA311]" : "w-1 h-1 bg-white/70",
                 )}
               />
             ))}
@@ -141,11 +128,16 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
   );
 }
 
+interface ProductCardProps {
+  product:    Product;
+  className?: string;
+}
+
 export default function ProductCard({ product, className }: ProductCardProps) {
   const { items, addItem, updateQuantity } = useCartStore();
-  const { token }  = useAuthStore();
-  const router     = useRouter();
-  const pathname   = usePathname();
+  const { token } = useAuthStore();
+  const router    = useRouter();
+  const pathname  = usePathname();
 
   const cartItem = items.find((i) => i.product._id === product._id);
   const qty      = cartItem?.quantity ?? 0;
@@ -170,30 +162,34 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       className={cn(
         "group relative bg-white dark:bg-gray-800 rounded-2xl",
         "border border-gray-100 dark:border-gray-700/70",
-        "shadow-sm hover:shadow-xl hover:-translate-y-0.5",
+        "shadow-sm hover:shadow-lg hover:-translate-y-0.5",
         "transition-all duration-300 flex flex-col overflow-hidden",
         className,
       )}
     >
-      {/* Top badges */}
+      {/* Sale / badge row — top left */}
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1">
-        {product.badge && <CustomBadge badge={product.badge} />}
         {discount && (
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500 text-white">
-            {discount}% OFF
+          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#25A244] text-white uppercase tracking-wide">
+            Sale
+          </span>
+        )}
+        {product.badge && (
+          <span className={cn("text-[10px] font-black px-2 py-0.5 rounded text-white uppercase tracking-wide", BADGE_MAP[product.badge] ?? "bg-gray-500")}>
+            {product.badge}
           </span>
         )}
         {!product.inStock && (
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-500 text-white">
-            OUT OF STOCK
+          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-gray-400 text-white uppercase">
+            Out of Stock
           </span>
         )}
       </div>
 
-      {/* Wishlist */}
+      {/* Wishlist — top right */}
       <WishlistButton product={product} className="absolute top-2.5 right-2.5 z-10" />
 
-      {/* Image carousel */}
+      {/* Image */}
       <CardCarousel
         images={product.images.length > 0 ? product.images : ["/images/placeholder-product.png"]}
         alt={product.name}
@@ -202,23 +198,24 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
       {/* Body */}
       <div className="flex flex-col flex-1 p-3.5 gap-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
           {product.category}
         </p>
 
         <Link
           href={`/products/${product.slug}`}
-          className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 hover:text-[#00539F] dark:hover:text-blue-400 transition-colors leading-snug"
+          className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 hover:text-[#FCA311] transition-colors leading-snug"
         >
           {product.name}
         </Link>
 
-        <p className="text-[11px] text-gray-400 dark:text-gray-500">{product.brand}</p>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.brand}</p>
 
         <StarRating rating={product.rating} count={product.reviewCount} />
 
         {/* Price */}
-        <div className="flex items-baseline gap-2 mt-auto pt-2">
+        <div className="flex items-baseline gap-2 mt-auto pt-1.5">
           <span className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
             ₹{product.price.toFixed(0)}
           </span>
@@ -228,35 +225,35 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             </span>
           )}
           {discount && (
-            <span className="text-xs font-bold text-green-600 dark:text-green-400 ml-auto">
-              Save ₹{(product.originalPrice! - product.price).toFixed(0)}
+            <span className="ml-auto text-[10px] font-bold text-[#25A244] dark:text-green-400">
+              {discount}% off
             </span>
           )}
         </div>
 
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 -mt-0.5">{product.unit}</p>
+        {product.unit && (
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 -mt-0.5">{product.unit}</p>
+        )}
 
         {/* Cart control */}
         {product.inStock ? (
           qty === 0 ? (
             <button
               onClick={() => requireAuth(1, (t) => void addItem(product, 1, t))}
-              className={cn(
-                "mt-2 w-full h-10 flex items-center justify-center gap-2",
-                "bg-[#00539F] text-white text-sm font-bold rounded-xl",
-                "hover:bg-[#003B7A] active:scale-95 transition-all duration-200",
-                "shadow-sm hover:shadow-md",
-              )}
+              className="mt-2 w-full h-10 flex items-center justify-center gap-2 text-white text-sm font-bold rounded-xl transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md"
+              style={{ backgroundColor: AMBER }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER; }}
               aria-label={`Add ${product.name} to cart`}
             >
               <ShoppingCart className="h-4 w-4" aria-hidden />
-              Add to cart
+              Add to Cart
             </button>
           ) : (
-            <div className="mt-2 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-1">
+            <div className="mt-2 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-1.5">
               <button
                 onClick={() => requireAuth(qty - 1, (t) => void updateQuantity(product._id, qty - 1, t))}
-                className="h-8 w-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-600 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-500 active:scale-90 transition-all"
+                className="h-8 w-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 shadow-sm hover:border-[#FCA311] active:scale-90 transition-all"
                 aria-label="Decrease quantity"
               >
                 <Minus className="h-3.5 w-3.5 text-gray-700 dark:text-gray-300" />
@@ -266,7 +263,8 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               </span>
               <button
                 onClick={() => requireAuth(qty + 1, (t) => void updateQuantity(product._id, qty + 1, t))}
-                className="h-8 w-8 flex items-center justify-center rounded-lg bg-[#00539F] text-white shadow-sm hover:bg-[#003B7A] active:scale-90 transition-all"
+                className="h-8 w-8 flex items-center justify-center rounded-lg text-white shadow-sm active:scale-90 transition-all"
+                style={{ backgroundColor: AMBER }}
                 aria-label="Increase quantity"
               >
                 <Plus className="h-3.5 w-3.5" />

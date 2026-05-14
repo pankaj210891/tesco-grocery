@@ -96,7 +96,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                 className={cn(
                   "rounded-full transition-all duration-300",
                   i === selected
-                    ? "w-4 h-1.5 bg-[#00539F]"
+                    ? "w-4 h-1.5 bg-[#FCA311]"
                     : "w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400"
                 )}
               />
@@ -117,7 +117,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
               className={cn(
                 "relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all",
                 i === selected
-                  ? "border-[#00539F] shadow-sm scale-105"
+                  ? "border-[#FCA311] shadow-sm scale-105"
                   : "border-gray-200 dark:border-gray-600 hover:border-gray-400 opacity-60 hover:opacity-100"
               )}
             >
