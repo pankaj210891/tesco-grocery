@@ -25,7 +25,7 @@ export default function CartPageContent() {
         <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mb-8">
           Your cart is saved to your account. Sign in to add items and checkout.
         </p>
-        <Link href="/login" className="px-8 py-3 bg-[#00539F] text-white font-bold rounded-xl hover:bg-[#003B7A] transition-colors">
+        <Link href="/login" className="px-8 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors">
           Sign in
         </Link>
       </div>
@@ -44,7 +44,7 @@ export default function CartPageContent() {
         <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mb-8">
           Looks like you haven&apos;t added anything yet. Start browsing and fill it up!
         </p>
-        <Link href="/products" className="px-8 py-3 bg-[#00539F] text-white font-bold rounded-xl hover:bg-[#003B7A] transition-colors">
+        <Link href="/products" className="px-8 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors">
           Browse Products
         </Link>
       </div>

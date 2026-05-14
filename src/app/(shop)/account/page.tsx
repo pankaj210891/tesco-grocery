@@ -18,7 +18,7 @@ import AddressSection from "@/components/account/AddressSection";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
   pending:    "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
-  processing: "bg-blue-50   dark:bg-blue-900/20   text-blue-700   dark:text-blue-400   border-blue-200   dark:border-blue-800/40",
+  processing: "bg-amber-50   dark:bg-amber-900/20   text-[#FCA311]   dark:text-amber-400   border-amber-200   dark:border-amber-800/40",
   shipped:    "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/40",
   delivered:  "bg-green-50  dark:bg-green-900/20  text-green-700  dark:text-green-400  border-green-200  dark:border-green-800/40",
   cancelled:  "bg-red-50    dark:bg-red-900/20    text-red-700    dark:text-red-400    border-red-200    dark:border-red-800/40",
@@ -164,7 +164,7 @@ export default function AccountPage() {
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === id
-                ? "bg-white dark:bg-gray-700 text-[#00539F] dark:text-blue-400 shadow-sm"
+                ? "bg-white dark:bg-gray-700 text-[#FCA311] dark:text-amber-400 shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
@@ -188,14 +188,14 @@ export default function AccountPage() {
                 <div className="flex items-center gap-4 mb-6">
                   <div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-black shrink-0"
-                    style={{ background: "linear-gradient(135deg, #0F4C75, #00539F)" }}
+                    style={{ background: "linear-gradient(135deg, #0F4C75, #FCA311)" }}
                   >
                     {getInitials(user.name)}
                   </div>
                   <div className="min-w-0">
                     <p className="font-black text-gray-900 dark:text-white truncate text-base">{user.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-                    <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-[#00539F] dark:text-blue-400 uppercase tracking-wide">
+                    <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/40 text-[#FCA311] dark:text-amber-400 uppercase tracking-wide">
                       {user.role}
                     </span>
                   </div>
@@ -231,8 +231,8 @@ export default function AccountPage() {
                   label: "Total Orders",
                   value: allOrders.length,
                   Icon:  Package,
-                  color: "text-[#00539F] dark:text-blue-400",
-                  bg:    "bg-blue-50 dark:bg-blue-900/20",
+                  color: "text-[#FCA311] dark:text-amber-400",
+                  bg:    "bg-amber-50 dark:bg-amber-900/20",
                 },
                 {
                   label: "Delivered",
@@ -261,7 +261,7 @@ export default function AccountPage() {
               ))}
 
               {/* Total spent — full width on lg */}
-              <div className="col-span-3 bg-gradient-to-br from-[#0F4C75] to-[#00539F] rounded-2xl p-5 flex items-center gap-4">
+              <div className="col-span-3 bg-gradient-to-br from-[#0F4C75] to-[#FCA311] rounded-2xl p-5 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
@@ -269,7 +269,7 @@ export default function AccountPage() {
                   <p className="text-3xl font-black text-white">
                     {loading ? "—" : formatPrice(stats.totalSpent)}
                   </p>
-                  <p className="text-sm text-blue-200 mt-0.5">Total spent (excl. cancelled)</p>
+                  <p className="text-sm text-white/70 mt-0.5">Total spent (excl. cancelled)</p>
                 </div>
                 <div className="ml-auto shrink-0">
                   <ReceiptText className="h-10 w-10 text-white/20" />
@@ -282,7 +282,7 @@ export default function AccountPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white text-lg">
-                <Package className="h-5 w-5 text-[#00539F]" />
+                <Package className="h-5 w-5 text-[#FCA311]" />
                 Order History
                 {!loading && !filterLoading && (
                   <span className="text-sm font-normal text-gray-400 dark:text-gray-500">
@@ -308,7 +308,7 @@ export default function AccountPage() {
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 font-semibold mb-1">No orders yet</p>
                 <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">Start exploring and place your first order.</p>
-                <Link href="/products" className="px-6 py-2.5 bg-[#00539F] text-white text-sm font-bold rounded-2xl hover:bg-[#003B7A] transition-colors shadow-sm">
+                <Link href="/products" className="px-6 py-2.5 bg-[#FCA311] text-white text-sm font-bold rounded-2xl hover:bg-[#E8920A] transition-colors shadow-sm">
                   Start shopping
                 </Link>
               </div>
@@ -319,7 +319,7 @@ export default function AccountPage() {
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 font-semibold mb-1">No orders in this period</p>
                 <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">Try a different date range.</p>
-                <button onClick={dateFilter.reset} className="text-[#00539F] dark:text-blue-400 text-sm font-bold hover:underline">
+                <button onClick={dateFilter.reset} className="text-[#FCA311] dark:text-amber-400 text-sm font-bold hover:underline">
                   Clear filter
                 </button>
               </div>
@@ -329,16 +329,16 @@ export default function AccountPage() {
                   <li key={order._id}>
                     <Link
                       href={`/account/orders/${order.orderNumber}`}
-                      className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-[#00539F]/40 dark:hover:border-blue-500/40 hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-all group"
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-[#FCA311]/40 dark:hover:border-amber-500/40 hover:bg-amber-50/40 dark:hover:bg-amber-900/10 transition-all group"
                     >
                       {/* Order icon */}
-                      <div className="w-10 h-10 rounded-xl bg-[#00539F]/8 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                        <Package className="h-4.5 w-4.5 text-[#00539F] dark:text-blue-400" style={{ width: "1.125rem", height: "1.125rem" }} />
+                      <div className="w-10 h-10 rounded-xl bg-[#FCA311]/8 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                        <Package className="h-4.5 w-4.5 text-[#FCA311] dark:text-amber-400" style={{ width: "1.125rem", height: "1.125rem" }} />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <span className="text-sm font-black text-[#00539F] dark:text-blue-400 tracking-wide">
+                          <span className="text-sm font-black text-[#FCA311] dark:text-amber-400 tracking-wide">
                             {order.orderNumber}
                           </span>
                           <StatusBadge status={order.status} />
@@ -350,7 +350,7 @@ export default function AccountPage() {
 
                       <div className="text-right shrink-0 flex items-center gap-2">
                         <p className="font-black text-gray-900 dark:text-white">{formatPrice(order.total)}</p>
-                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#00539F] dark:group-hover:text-blue-400 transition-colors" />
+                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#FCA311] dark:group-hover:text-blue-400 transition-colors" />
                       </div>
                     </Link>
                   </li>

@@ -68,7 +68,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-[#00539F] uppercase tracking-wider">
+            <span className="text-sm font-semibold text-[#FCA311] uppercase tracking-wider">
               {product.category}
             </span>
             {discount && <Badge variant="sale" label={`${discount}% off`} />}
@@ -114,7 +114,7 @@ export default async function ProductDetailPage({ params }: Props) {
               {product.inStock ? "In stock — ready to dispatch" : "Currently out of stock"}
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <Truck className="h-4 w-4 text-[#00539F] shrink-0" />
+              <Truck className="h-4 w-4 text-[#FCA311] shrink-0" />
               Free delivery on orders over ₹500
             </li>
           </ul>

@@ -43,13 +43,13 @@ export default function ActiveFilters() {
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#00539F] text-sm font-medium rounded-full border border-blue-200"
+          className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#FCA311] text-sm font-medium rounded-full border border-blue-200"
         >
           {chip.label}
           <button
             onClick={() => remove(chip.key, chip.extra)}
             aria-label={`Remove ${chip.label} filter`}
-            className="hover:text-[#003B7A] transition-colors"
+            className="hover:text-[#E8920A] transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>

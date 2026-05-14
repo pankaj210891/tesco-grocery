@@ -53,7 +53,7 @@ const inputCls = (hasError?: boolean) =>
     "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white",
     hasError
       ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-      : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100"
+      : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15"
   );
 
 function loadRazorpayScript(): Promise<boolean> {
@@ -206,7 +206,7 @@ export default function CheckoutPageContent() {
           email:   delivery.email,
           contact: delivery.phone,
         },
-        theme: { color: "#00539F" },
+        theme: { color: "#FCA311" },
         handler: async (response: {
           razorpay_payment_id: string;
           razorpay_order_id:   string;
@@ -301,7 +301,7 @@ export default function CheckoutPageContent() {
         </div>
         <h1 className="text-xl font-black text-gray-900 dark:text-white mb-2">Sign in to checkout</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">You need to be signed in to place an order.</p>
-        <Link href="/login" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
+        <Link href="/login" className="px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
           Sign in
         </Link>
       </div>
@@ -316,7 +316,7 @@ export default function CheckoutPageContent() {
         </div>
         <h1 className="text-xl font-black text-gray-900 mb-2">Your cart is empty</h1>
         <p className="text-gray-500 text-sm mb-6">Add some items before checking out.</p>
-        <Link href="/products" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
+        <Link href="/products" className="px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
           Browse products
         </Link>
       </div>
@@ -336,7 +336,7 @@ export default function CheckoutPageContent() {
             {/* Delivery section */}
             <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
               <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-                <MapPin className="h-5 w-5 text-[#00539F]" aria-hidden />
+                <MapPin className="h-5 w-5 text-[#FCA311]" aria-hidden />
                 Delivery details
               </h2>
 
@@ -357,7 +357,7 @@ export default function CheckoutPageContent() {
                   <button
                     type="button"
                     onClick={() => setShowAddressModal(true)}
-                    className="shrink-0 text-xs font-semibold text-[#00539F] hover:underline"
+                    className="shrink-0 text-xs font-semibold text-[#FCA311] hover:underline"
                   >
                     Change
                   </button>
@@ -438,7 +438,7 @@ export default function CheckoutPageContent() {
             {/* Payment method section */}
             <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
               <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-                <CreditCard className="h-5 w-5 text-[#00539F]" aria-hidden />
+                <CreditCard className="h-5 w-5 text-[#FCA311]" aria-hidden />
                 Payment method
               </h2>
 

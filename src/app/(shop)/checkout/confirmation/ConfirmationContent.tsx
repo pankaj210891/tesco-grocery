@@ -29,7 +29,7 @@ export default function ConfirmationContent() {
       ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/60 via-white to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/40 via-white to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
       <div className="max-w-2xl mx-auto px-4 py-14 sm:py-20">
 
         {/* ── Success icon & headline ── */}
@@ -60,7 +60,7 @@ export default function ConfirmationContent() {
         {/* ── Order summary card ── */}
         <div className="relative bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/80 dark:shadow-none overflow-hidden mb-6">
           {/* Top accent bar */}
-          <div className={`h-1.5 w-full ${isCOD ? "bg-gradient-to-r from-amber-400 to-orange-400" : "bg-gradient-to-r from-blue-500 to-indigo-500"}`} />
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#FCA311] to-[#E8920A]" />
 
           <div className="p-6 sm:p-8">
             {/* Payment badge */}
@@ -86,7 +86,7 @@ export default function ConfirmationContent() {
                 <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
                   Order reference
                 </p>
-                <p className="text-lg font-black text-[#00539F] dark:text-blue-400 tracking-wide font-mono">
+                <p className="text-lg font-black text-[#FCA311] dark:text-amber-400 tracking-wide font-mono">
                   {orderNumber}
                 </p>
               </div>
@@ -124,8 +124,8 @@ export default function ConfirmationContent() {
           <div className="space-y-5">
             {NEXT_STEPS.map(({ icon: Icon, title, desc }, i) => (
               <div key={i} className="flex items-start gap-4">
-                <div className="shrink-0 w-9 h-9 rounded-xl bg-[#00539F]/10 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Icon className="h-4 w-4 text-[#00539F] dark:text-blue-400" aria-hidden />
+                <div className="shrink-0 w-9 h-9 rounded-xl bg-[#FCA311]/10 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Icon className="h-4 w-4 text-[#FCA311] dark:text-amber-400" aria-hidden />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{title}</p>
@@ -140,9 +140,9 @@ export default function ConfirmationContent() {
         </div>
 
         {/* ── Order tracking placeholder ── */}
-        <div className="bg-gradient-to-r from-[#00539F]/5 to-indigo-500/5 dark:from-blue-900/20 dark:to-indigo-900/20 border border-[#00539F]/20 dark:border-blue-800/40 rounded-2xl px-5 py-4 mb-8 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#00539F]/10 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
-            <Package className="h-4 w-4 text-[#00539F] dark:text-blue-400" />
+        <div className="bg-gradient-to-r from-[#FCA311]/5 to-indigo-500/5 dark:from-blue-900/20 dark:to-indigo-900/20 border border-[#FCA311]/20 dark:border-blue-800/40 rounded-2xl px-5 py-4 mb-8 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#FCA311]/10 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+            <Package className="h-4 w-4 text-[#FCA311] dark:text-amber-400" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Order tracking</p>
@@ -150,7 +150,7 @@ export default function ConfirmationContent() {
           </div>
           <Link
             href="/account"
-            className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#00539F] dark:text-blue-400 hover:underline"
+            className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
           >
             View <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -160,7 +160,7 @@ export default function ConfirmationContent() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/products"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#00539F] hover:bg-[#003B7A] text-white font-bold rounded-2xl text-sm transition-all shadow-lg shadow-[#00539F]/25 hover:shadow-[#003B7A]/30 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#FCA311] hover:bg-[#E8920A] text-white font-bold rounded-2xl text-sm transition-all shadow-lg shadow-[#FCA311]/25 hover:shadow-[#E8920A]/30 hover:-translate-y-0.5"
           >
             <ShoppingBag className="h-4 w-4" />
             Continue Shopping

@@ -41,10 +41,10 @@ export default function ThemeToggle({ variant = "default" }: Props) {
               "p-1.5 rounded-full transition-all duration-150",
               isNavbar
                 ? active
-                  ? "bg-white text-[#0F4C75]"
+                  ? "bg-white text-[#FCA311]"
                   : "text-white/70 hover:text-white hover:bg-white/10"
                 : active
-                  ? "bg-white dark:bg-gray-700 text-[#0F4C75] dark:text-white shadow-sm"
+                  ? "bg-white dark:bg-gray-700 text-[#FCA311] dark:text-white shadow-sm"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             )}
           >

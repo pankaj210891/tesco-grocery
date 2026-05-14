@@ -44,7 +44,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             {cartQty} already in your cart
           </div>
-          <Link href="/cart" className="text-sm font-semibold text-[#00539F] hover:underline">
+          <Link href="/cart" className="text-sm font-semibold text-[#FCA311] hover:underline">
             View Cart →
           </Link>
         </div>
@@ -81,7 +81,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
           "w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl",
           "text-base font-bold transition-all active:scale-[0.98]",
           product.inStock
-            ? "bg-[#00539F] text-white hover:bg-[#003B7A] shadow-sm hover:shadow"
+            ? "bg-[#FCA311] text-white hover:bg-[#E8920A] shadow-sm hover:shadow"
             : "bg-gray-200 text-gray-500 cursor-not-allowed"
         )}
       >

@@ -92,11 +92,11 @@ function StoreCard({ store }: { store: Store }) {
 
         {/* Contact */}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-          <a href={`tel:${store.phone}`} className="flex items-center gap-1.5 hover:text-[#0F4C75] dark:hover:text-blue-400">
+          <a href={`tel:${store.phone}`} className="flex items-center gap-1.5 hover:text-[#FCA311] dark:hover:text-amber-400">
             <Phone className="h-3.5 w-3.5" /> {store.phone}
           </a>
           {store.email && (
-            <a href={`mailto:${store.email}`} className="flex items-center gap-1.5 hover:text-[#0F4C75] dark:hover:text-blue-400">
+            <a href={`mailto:${store.email}`} className="flex items-center gap-1.5 hover:text-[#FCA311] dark:hover:text-amber-400">
               <Mail className="h-3.5 w-3.5" /> {store.email}
             </a>
           )}
@@ -119,7 +119,7 @@ function StoreCard({ store }: { store: Store }) {
             {store.amenities.map((a) => (
               <span
                 key={a}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[11px] font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-[11px] font-medium"
               >
                 {AMENITY_ICONS[a] ?? null}
                 {a}
@@ -172,7 +172,7 @@ function StoreCard({ store }: { store: Store }) {
                     className={cn(
                       "flex justify-between text-sm py-0.5",
                       isToday
-                        ? "font-semibold text-[#0F4C75] dark:text-blue-400"
+                        ? "font-semibold text-[#FCA311] dark:text-amber-400"
                         : "text-gray-600 dark:text-gray-400"
                     )}
                   >
@@ -223,7 +223,7 @@ export default function StoreLocatorPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
-      <div className="bg-[#0F4C75] text-white py-12 px-4">
+      <div className="bg-[#FCA311] text-white py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 rounded-2xl mb-4">
             <MapPin className="h-7 w-7" />
@@ -256,8 +256,8 @@ export default function StoreLocatorPage() {
               className={cn(
                 "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                 search === ""
-                  ? "bg-[#0F4C75] text-white"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75]"
+                  ? "bg-[#FCA311] text-white"
+                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
               )}
             >
               All ({stores.length})
@@ -269,8 +269,8 @@ export default function StoreLocatorPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                   search.toLowerCase() === city.toLowerCase()
-                    ? "bg-[#0F4C75] text-white"
-                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75]"
+                    ? "bg-[#FCA311] text-white"
+                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
                 )}
               >
                 {city}

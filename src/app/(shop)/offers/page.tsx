@@ -57,11 +57,11 @@ function OfferCard({ offer }: { offer: Offer }) {
           <span className="text-4xl leading-none" aria-hidden>{offer.emoji ?? "🏷️"}</span>
           <div className="text-right space-y-1">
             {offer.badge && (
-              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-[#0F4C75] text-white">
+              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FCA311] text-white">
                 {offer.badge}
               </span>
             )}
-            <p className="text-lg font-black text-[#0F4C75] leading-none">{discountLabel}</p>
+            <p className="text-lg font-black text-[#FCA311] leading-none">{discountLabel}</p>
           </div>
         </div>
 
@@ -102,7 +102,7 @@ function OfferCard({ offer }: { offer: Offer }) {
                 "p-1.5 rounded-lg transition-colors",
                 expired
                   ? "opacity-40 cursor-not-allowed"
-                  : "bg-[#0F4C75] text-white hover:bg-[#0A3352]"
+                  : "bg-[#FCA311] text-white hover:bg-[#E8920A]"
               )}
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -117,7 +117,7 @@ function OfferCard({ offer }: { offer: Offer }) {
             "flex items-center justify-center gap-1.5 w-full py-2 rounded-xl text-sm font-semibold transition-colors",
             expired
               ? "bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
-              : "bg-[#0F4C75] text-white hover:bg-[#0A3352]"
+              : "bg-[#FCA311] text-white hover:bg-[#E8920A]"
           )}
         >
           Shop now <ChevronRight className="h-4 w-4" />
@@ -161,7 +161,7 @@ export default function OffersPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
-      <div className="bg-[#0F4C75] text-white py-12 px-4">
+      <div className="bg-[#FCA311] text-white py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 rounded-2xl mb-4">
             <Tag className="h-7 w-7" />
@@ -183,8 +183,8 @@ export default function OffersPage() {
               className={cn(
                 "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                 filter === f.key
-                  ? "bg-[#0F4C75] text-white"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75]"
+                  ? "bg-[#FCA311] text-white"
+                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
               )}
             >
               {f.label}

@@ -59,7 +59,7 @@ export default function CartItem({ item }: CartItemProps) {
           <div className="min-w-0">
             <Link
               href={`/products/${product.slug}`}
-              className="font-semibold text-sm text-gray-900 dark:text-white hover:text-[#00539F] dark:hover:text-blue-400 transition-colors line-clamp-2 leading-snug"
+              className="font-semibold text-sm text-gray-900 dark:text-white hover:text-[#FCA311] dark:hover:text-blue-400 transition-colors line-clamp-2 leading-snug"
             >
               {product.name}
             </Link>

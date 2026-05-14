@@ -21,7 +21,7 @@ const PRESETS: Preset[] = [
 ];
 
 const DATE_INPUT_CLS =
-  "block w-full max-w-full min-w-0 appearance-none px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-base text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00539F]/30";
+  "block w-full max-w-full min-w-0 appearance-none px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-base text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FCA311]/30";
 
 function formatDateInput(d: Date | null): string {
   if (!d) return "";
@@ -100,7 +100,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
           className={cn(
             "flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all",
             isActive
-              ? "border-[#00539F] bg-[#00539F]/5 text-[#00539F] dark:border-blue-500 dark:bg-blue-500/10 dark:text-blue-400"
+              ? "border-[#FCA311] bg-[#FCA311]/5 text-[#FCA311] dark:border-blue-500 dark:bg-blue-500/10 dark:text-amber-400"
               : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600",
           )}
           aria-haspopup="dialog"
@@ -140,7 +140,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
                 className={cn(
                   "w-full text-left px-4 py-2.5 text-sm transition-colors",
                   filter.preset === p.value
-                    ? "bg-[#00539F]/8 text-[#00539F] dark:text-blue-400 font-semibold"
+                    ? "bg-[#FCA311]/8 text-[#FCA311] dark:text-amber-400 font-semibold"
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50",
                 )}
               >
@@ -156,7 +156,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
                 />
                 <button
                   onClick={applyCustom}
-                  className="flex items-center justify-center w-full py-2 bg-[#00539F] hover:bg-[#003B7A] text-white text-sm font-semibold rounded-xl transition-colors"
+                  className="flex items-center justify-center w-full py-2 bg-[#FCA311] hover:bg-[#E8920A] text-white text-sm font-semibold rounded-xl transition-colors"
                 >
                   Apply
                 </button>
@@ -203,7 +203,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
                   className={cn(
                     "w-full flex items-center justify-between px-5 py-3.5 text-sm transition-colors",
                     filter.preset === p.value
-                      ? "text-[#00539F] dark:text-blue-400 font-semibold bg-[#00539F]/5 dark:bg-blue-500/10"
+                      ? "text-[#FCA311] dark:text-amber-400 font-semibold bg-[#FCA311]/5 dark:bg-blue-500/10"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60",
                   )}
                 >
@@ -220,7 +220,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
                   />
                   <button
                     onClick={applyCustom}
-                    className="flex items-center justify-center w-full py-3 bg-[#00539F] hover:bg-[#003B7A] text-white text-sm font-bold rounded-2xl transition-colors"
+                    className="flex items-center justify-center w-full py-3 bg-[#FCA311] hover:bg-[#E8920A] text-white text-sm font-bold rounded-2xl transition-colors"
                   >
                     Apply range
                   </button>

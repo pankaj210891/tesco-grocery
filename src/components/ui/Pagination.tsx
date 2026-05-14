@@ -81,7 +81,7 @@ export default function Pagination({ currentPage, totalPages, total, limit }: Pr
               className={cn(
                 "flex items-center justify-center h-9 min-w-[2.25rem] px-2 rounded-xl border text-sm font-semibold transition-colors",
                 p === currentPage
-                  ? "bg-[#00539F] border-[#00539F] text-white shadow-sm"
+                  ? "bg-[#FCA311] border-[#FCA311] text-white shadow-sm"
                   : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               )}
             >

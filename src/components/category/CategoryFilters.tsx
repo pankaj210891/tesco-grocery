@@ -53,8 +53,8 @@ export default function CategoryFilters() {
             className={cn(
               "px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors",
               active
-                ? "bg-[#00539F] border-[#00539F] text-white"
-                : "bg-white border-gray-300 text-gray-700 hover:border-[#00539F] hover:text-[#00539F]"
+                ? "bg-[#FCA311] border-[#FCA311] text-white"
+                : "bg-white border-gray-300 text-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
             )}
           >
             {label}

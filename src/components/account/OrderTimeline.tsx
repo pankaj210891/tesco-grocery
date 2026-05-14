@@ -59,7 +59,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
           position: absolute;
           inset: -4px;
           border-radius: 9999px;
-          border: 2px solid #00539F;
+          border: 2px solid #FCA311;
           animation: pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite;
         }
         .dark .step-pulse::before { border-color: #60a5fa; }
@@ -93,7 +93,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                     className={cn(
                       "relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500",
                       isDone     && "bg-green-500 border-green-500 shadow-md shadow-green-200 dark:shadow-green-900/40",
-                      isCurrent  && "bg-[#00539F] border-[#00539F] shadow-md shadow-blue-200 dark:shadow-blue-900/40",
+                      isCurrent  && "bg-[#FCA311] border-[#FCA311] shadow-md shadow-blue-200 dark:shadow-blue-900/40",
                       isUpcoming && "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
                     )}
                   >
@@ -113,13 +113,13 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                     className={cn(
                       "text-xs font-bold transition-colors leading-tight flex items-center justify-center gap-1",
                       isDone     && "text-green-600 dark:text-green-400",
-                      isCurrent  && "text-[#00539F] dark:text-blue-400",
+                      isCurrent  && "text-[#FCA311] dark:text-amber-400",
                       isUpcoming && "text-gray-400 dark:text-gray-600",
                     )}
                   >
                     <span>{step.label}</span>
                     {isCurrent && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#00539F] dark:bg-blue-400 shrink-0 animate-bounce" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FCA311] dark:bg-blue-400 shrink-0 animate-bounce" />
                     )}
                   </p>
                   <p
@@ -143,7 +143,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                     />
                   )}
                   {isCurrent && (
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#00539F] to-gray-200 dark:to-gray-700" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#FCA311] to-gray-200 dark:to-gray-700" />
                   )}
                 </div>
               )}
@@ -174,7 +174,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                     className={cn(
                       "relative w-9 h-9 rounded-full flex items-center justify-center border-2 shrink-0 transition-all duration-500",
                       isDone    && "bg-green-500 border-green-500 shadow-sm",
-                      isCurrent && "bg-[#00539F] border-[#00539F] shadow-sm",
+                      isCurrent && "bg-[#FCA311] border-[#FCA311] shadow-sm",
                       isUpcoming && "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
                     )}
                   >
@@ -203,13 +203,13 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                   className={cn(
                     "text-sm font-bold leading-none mt-2 transition-colors",
                     isDone    && "text-green-600 dark:text-green-400",
-                    isCurrent && "text-[#00539F] dark:text-blue-400",
+                    isCurrent && "text-[#FCA311] dark:text-amber-400",
                     isUpcoming && "text-gray-400 dark:text-gray-600",
                   )}
                 >
                   {step.label}
                   {isCurrent && (
-                    <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-[#00539F] dark:text-blue-400 align-middle">
+                    <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-[#FCA311] dark:text-amber-400 align-middle">
                       Current
                     </span>
                   )}
