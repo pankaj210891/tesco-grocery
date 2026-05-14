@@ -53,6 +53,15 @@
     outline-offset: 2px;
   }
 
+  /* Prevent iOS/Android auto-zoom on input focus (threshold: font-size < 16px) */
+  @media screen and (max-width: 768px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
   /* Smooth scrollbar in dark mode */
   .dark ::-webkit-scrollbar {
     background: #1E293B;

@@ -11,9 +11,10 @@ import type { HomepageSection, SectionItem } from "@/types";
 const SCROLL_PX = 340;
 
 function ProductCard({ item }: { item: SectionItem }) {
+  const href = item.productSlug ? `/products/${item.productSlug}` : item.href;
   return (
     <Link
-      href={item.href}
+      href={href}
       className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/70 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group"
     >
       <div

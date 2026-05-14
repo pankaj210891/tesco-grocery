@@ -122,12 +122,12 @@ export default function AccountPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 mb-8 w-full sm:w-auto sm:inline-flex">
+      <div className="inline-flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 mb-8">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === id
                 ? "bg-white dark:bg-gray-700 text-[#00539F] dark:text-blue-400 shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"

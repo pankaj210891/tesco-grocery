@@ -1,9 +1,10 @@
 "use client";
 
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Star, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
+import { Star, Plus, Minus, ShoppingCart, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
@@ -53,6 +54,91 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 interface ProductCardProps {
   product:    Product;
   className?: string;
+}
+
+const CARD_SLIDE_MS = 4000;
+
+function CardCarousel({ images, alt, href }: { images: string[]; alt: string; href: string }) {
+  const [idx,    setIdx]    = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const touchStart = useRef<number | null>(null);
+  const count = images.length;
+
+  const go = useCallback((dir: 1 | -1, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setIdx((i) => (i + dir + count) % count);
+  }, [count]);
+
+  useEffect(() => {
+    if (count <= 1 || hovered) return;
+    const t = setTimeout(() => setIdx((i) => (i + 1) % count), CARD_SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [idx, hovered, count]);
+
+  function onTouchStart(e: React.TouchEvent) { touchStart.current = e.touches[0]?.clientX ?? null; }
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchStart.current === null) return;
+    const delta = (e.changedTouches[0]?.clientX ?? 0) - touchStart.current;
+    if (Math.abs(delta) > 40) go(delta < 0 ? 1 : -1);
+    touchStart.current = null;
+  }
+
+  const src = images[idx] ?? "/images/placeholder-product.png";
+
+  return (
+    <Link
+      href={href}
+      className="block relative h-44 rounded-t-2xl overflow-hidden bg-gray-50 dark:bg-gray-700/50"
+      tabIndex={-1}
+      aria-hidden
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <Image
+        key={src}
+        src={src}
+        alt={alt}
+        fill
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+        className="object-contain p-4 group-hover:scale-108 transition-transform duration-500"
+        style={{ transform: "scale(1)" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+      {count > 1 && (
+        <>
+          <button
+            onClick={(e) => go(-1, e)}
+            aria-label="Previous image"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/80 dark:bg-gray-900/80 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft className="h-3.5 w-3.5 text-gray-700 dark:text-gray-200" />
+          </button>
+          <button
+            onClick={(e) => go(1, e)}
+            aria-label="Next image"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/80 dark:bg-gray-900/80 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronRight className="h-3.5 w-3.5 text-gray-700 dark:text-gray-200" />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "rounded-full transition-all duration-300",
+                  i === idx ? "w-3 h-1 bg-[#00539F]" : "w-1 h-1 bg-white/70"
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </Link>
+  );
 }
 
 export default function ProductCard({ product, className }: ProductCardProps) {
@@ -107,24 +193,12 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       {/* Wishlist */}
       <WishlistButton product={product} className="absolute top-2.5 right-2.5 z-10" />
 
-      {/* Image */}
-      <Link
+      {/* Image carousel */}
+      <CardCarousel
+        images={product.images.length > 0 ? product.images : ["/images/placeholder-product.png"]}
+        alt={product.name}
         href={`/products/${product.slug}`}
-        className="block relative h-44 rounded-t-2xl overflow-hidden bg-gray-50 dark:bg-gray-700/50"
-        tabIndex={-1}
-        aria-hidden
-      >
-        <Image
-          src={product.images[0] ?? "/images/placeholder-product.png"}
-          alt={product.name}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-contain p-4 group-hover:scale-108 transition-transform duration-500"
-          style={{ transform: "scale(1)" }}
-        />
-        {/* Hover shimmer */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </Link>
+      />
 
       {/* Body */}
       <div className="flex flex-col flex-1 p-3.5 gap-1.5">

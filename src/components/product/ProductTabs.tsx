@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tag } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import ReviewsSection from "@/components/product/reviews/ReviewsSection";
@@ -14,7 +14,17 @@ const TABS = [
 type Tab = typeof TABS[number]["key"];
 
 export default function ProductTabs({ product }: { product: Product }) {
-  const [active, setActive] = useState<Tab>("details");
+  const [active,      setActive]      = useState<Tab>("details");
+  const [reviewCount, setReviewCount] = useState(product.reviewCount);
+
+  // Eagerly fetch the live count so the tab badge is always accurate,
+  // even if the user never opens the Reviews tab.
+  useEffect(() => {
+    fetch(`/api/products/${product.slug}/reviews?page=1&limit=1`)
+      .then((r) => r.json() as Promise<{ success: boolean; data: { summary: { total: number } } }>)
+      .then((json) => { if (json.success) setReviewCount(json.data.summary.total); })
+      .catch(() => {});
+  }, [product.slug]);
 
   return (
     <div>
@@ -32,9 +42,9 @@ export default function ProductTabs({ product }: { product: Product }) {
             )}
           >
             {tab.label}
-            {tab.key === "reviews" && product.reviewCount > 0 && (
+            {tab.key === "reviews" && reviewCount > 0 && (
               <span className="ml-1.5 text-xs font-normal text-gray-400">
-                ({product.reviewCount})
+                ({reviewCount})
               </span>
             )}
           </button>
@@ -113,7 +123,10 @@ export default function ProductTabs({ product }: { product: Product }) {
 
       {active === "reviews" && (
         <div className="max-w-3xl">
-          <ReviewsSection productSlug={product.slug} />
+          <ReviewsSection
+            productSlug={product.slug}
+            onCountLoaded={setReviewCount}
+          />
         </div>
       )}
     </div>
