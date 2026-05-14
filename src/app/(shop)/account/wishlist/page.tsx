@@ -122,7 +122,7 @@ export default function WishlistPage() {
           </Link>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ul className="flex flex-col gap-3">
           {items.map((product) => <WishlistItem key={product._id} product={product} />)}
         </ul>
       )}

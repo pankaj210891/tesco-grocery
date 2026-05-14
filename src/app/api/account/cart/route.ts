@@ -11,6 +11,7 @@ async function buildCartItems(items: { productId: string; quantity: number }[]):
   const ids = items
     .map((i) => { try { return new mongoose.Types.ObjectId(i.productId); } catch { return null; } })
     .filter(Boolean) as mongoose.Types.ObjectId[];
+  if (!ids.length) return [];
   const docs = await ProductModel.find({ _id: { $in: ids } }).lean<ProductDoc[]>();
   const map = new Map(docs.map((d) => [d._id.toString(), d]));
   return items
@@ -38,41 +39,68 @@ async function buildCartItems(items: { productId: string; quantity: number }[]):
 export async function GET(req: NextRequest) {
   const auth = getAuthUser(req);
   if (!auth) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  await connectDB();
-  const doc = await CartModel.findOne({ userId: auth.userId }).lean();
-  const items = await buildCartItems((doc?.items ?? []) as { productId: string; quantity: number }[]);
-  return NextResponse.json({ success: true, data: items });
+  try {
+    await connectDB();
+    const doc = await CartModel.findOne({ userId: auth.userId }).lean();
+    const items = await buildCartItems((doc?.items ?? []) as { productId: string; quantity: number }[]);
+    return NextResponse.json({ success: true, data: items });
+  } catch (err) {
+    console.error("[cart GET]", err);
+    return NextResponse.json({ success: false, error: "Failed to fetch cart" }, { status: 500 });
+  }
 }
 
 // POST /api/account/cart  — { productId, quantity }  sets quantity for that item
 export async function POST(req: NextRequest) {
   const auth = getAuthUser(req);
   if (!auth) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  const body = await req.json() as { productId?: string; quantity?: number };
+
+  let body: { productId?: string; quantity?: number };
+  try { body = await req.json() as { productId?: string; quantity?: number }; }
+  catch { return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 }); }
+
   const { productId, quantity } = body;
   if (!productId || typeof quantity !== "number" || quantity < 1) {
     return NextResponse.json({ success: false, error: "productId and quantity (≥1) required" }, { status: 422 });
   }
-  await connectDB();
-  const doc = await CartModel.findOne({ userId: auth.userId });
-  if (doc) {
-    const idx = doc.items.findIndex((i: { productId: string }) => i.productId === productId);
-    if (idx >= 0) { doc.items[idx].quantity = quantity; }
-    else { doc.items.push({ productId, quantity }); }
-    await doc.save();
-  } else {
-    await CartModel.create({ userId: auth.userId, items: [{ productId, quantity }] });
+
+  try {
+    await connectDB();
+
+    // Try to update quantity on an existing item in the cart
+    let doc = await CartModel.findOneAndUpdate(
+      { userId: auth.userId, "items.productId": productId },
+      { $set: { "items.$.quantity": quantity } },
+      { new: true },
+    ).lean();
+
+    if (!doc) {
+      // Item not in cart yet — push it (upsert creates the cart document if absent)
+      doc = await CartModel.findOneAndUpdate(
+        { userId: auth.userId },
+        { $push: { items: { productId, quantity } } },
+        { upsert: true, new: true },
+      ).lean();
+    }
+
+    const items = await buildCartItems((doc?.items ?? []) as { productId: string; quantity: number }[]);
+    return NextResponse.json({ success: true, data: items });
+  } catch (err) {
+    console.error("[cart POST]", err);
+    return NextResponse.json({ success: false, error: "Failed to update cart" }, { status: 500 });
   }
-  const updated = await CartModel.findOne({ userId: auth.userId }).lean();
-  const items = await buildCartItems((updated?.items ?? []) as { productId: string; quantity: number }[]);
-  return NextResponse.json({ success: true, data: items });
 }
 
 // DELETE /api/account/cart  — clear all
 export async function DELETE(req: NextRequest) {
   const auth = getAuthUser(req);
   if (!auth) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  await connectDB();
-  await CartModel.findOneAndUpdate({ userId: auth.userId }, { $set: { items: [] } });
-  return NextResponse.json({ success: true, data: [] });
+  try {
+    await connectDB();
+    await CartModel.findOneAndUpdate({ userId: auth.userId }, { $set: { items: [] } });
+    return NextResponse.json({ success: true, data: [] });
+  } catch (err) {
+    console.error("[cart DELETE]", err);
+    return NextResponse.json({ success: false, error: "Failed to clear cart" }, { status: 500 });
+  }
 }

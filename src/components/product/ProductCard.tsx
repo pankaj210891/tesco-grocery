@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+
 import { Star, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
 import NavArrow from "@/components/ui/NavArrow";
 import { toast } from "sonner";
@@ -104,8 +104,8 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
       {/* Nav arrows */}
       {count > 1 && (
         <>
-          <NavArrow direction="prev" onClick={() => go(-1)} variant="overlay" size="sm" label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 dark:bg-gray-700 hover:scale-110" />
-          <NavArrow direction="next" onClick={() => go(1)} variant="overlay" size="sm" label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 dark:bg-gray-700 hover:scale-110" />
+          <NavArrow direction="prev" onClick={() => go(-1)} variant="amber" size="sm" label="Previous image" className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100" />
+          <NavArrow direction="next" onClick={() => go(1)} variant="amber" size="sm" label="Next image" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100" />
           {/* Dots */}
           <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
             {images.map((_, i) => (
@@ -132,8 +132,6 @@ interface ProductCardProps {
 export default function ProductCard({ product, className }: ProductCardProps) {
   const { items, addItem, updateQuantity } = useCartStore();
   const { token } = useAuthStore();
-  const router    = useRouter();
-  const pathname  = usePathname();
 
   const cartItem = items.find((i) => i.product._id === product._id);
   const qty      = cartItem?.quantity ?? 0;
@@ -143,15 +141,25 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : null;
 
-  function requireAuth(quantity: number, action: (token: string) => void) {
+  function handleCartAction(quantity: number) {
     if (!token) {
+      // Guest: add to local cart + save pending action for sync after login
+      void addItem(product, quantity, null);
       savePendingAction({ type: "addToCart", product, quantity });
-      toast.info("Sign in to add items to your cart");
-      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      toast.info("Added to cart — sign in to save & checkout");
       return;
     }
-    action(token);
+    void addItem(product, quantity, token);
   }
+
+  function handleQuantityChange(newQty: number) {
+    if (!token) {
+      void updateQuantity(product._id, newQty, null);
+      return;
+    }
+    void updateQuantity(product._id, newQty, token);
+  }
+
 
   const badge = product.badge ? BADGE_MAP[product.badge] : null;
 
@@ -169,8 +177,8 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       {/* ── Badges ── */}
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1">
         {discount && (
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#25A244] text-white tracking-wide">
-            -{discount}%
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-red-500 text-white tracking-wide">
+            {discount}% off
           </span>
         )}
         {badge && (
@@ -186,7 +194,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       </div>
 
       {/* ── Wishlist ── */}
-      <div className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute top-2.5 right-2.5 z-10">
         <WishlistButton
           product={product}
           className="w-8 h-8 bg-white dark:bg-gray-700 shadow-md hover:scale-110"
@@ -211,7 +219,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         {/* Name */}
         <Link
           href={`/products/${product.slug}`}
-          className="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors leading-snug"
+          className="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors leading-snug"
         >
           {product.name}
         </Link>
@@ -248,7 +256,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         {product.inStock ? (
           qty === 0 ? (
             <button
-              onClick={() => requireAuth(1, (t) => void addItem(product, 1, t))}
+              onClick={() => handleCartAction(1)}
               className="mt-1.5 w-full h-9 flex items-center justify-center gap-2 text-white text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.97]"
               style={{ backgroundColor: AMBER }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
@@ -261,7 +269,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           ) : (
             <div className="mt-1.5 flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1 border border-gray-200 dark:border-gray-600/50">
               <button
-                onClick={() => requireAuth(qty - 1, (t) => void updateQuantity(product._id, qty - 1, t))}
+                onClick={() => handleQuantityChange(qty - 1)}
                 className="h-7 w-7 flex items-center justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:border-[#FCA311] active:scale-90 transition-all shadow-sm"
                 aria-label="Decrease quantity"
               >
@@ -271,7 +279,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 {qty}
               </span>
               <button
-                onClick={() => requireAuth(qty + 1, (t) => void updateQuantity(product._id, qty + 1, t))}
+                onClick={() => handleQuantityChange(qty + 1)}
                 className="h-7 w-7 flex items-center justify-center rounded-md text-white active:scale-90 transition-all shadow-sm"
                 style={{ backgroundColor: AMBER }}
                 aria-label="Increase quantity"

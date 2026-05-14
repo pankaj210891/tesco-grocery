@@ -1,13 +1,11 @@
 import { create } from "zustand";
 import type { CartItem, Product } from "@/types";
 
-// ─── PromoInfo is populated by the server — never computed on the client ──────
-
 export interface PromoInfo {
   label:          string;
   discountType:   "percentage" | "fixed" | "freeDelivery";
-  discountValue:  number;  // e.g. 20 for 20%, 799 for ₹799, 0 for freeDelivery
-  discountAmount: number;  // backend-calculated absolute saving in ₹
+  discountValue:  number;
+  discountAmount: number;
   minOrderValue:  number;
 }
 
@@ -18,7 +16,6 @@ interface CartState {
   loading:    boolean;
   loaded:     boolean;
 
-  /* Promo state — survives cart → checkout navigation */
   promoCode:    string | null;
   promoInfo:    PromoInfo | null;
   setPromoCode: (code: string | null) => void;
@@ -26,9 +23,10 @@ interface CartState {
   clearPromo:   () => void;
 
   fetchCart:      (token: string) => Promise<void>;
-  addItem:        (product: Product, quantity: number, token: string) => Promise<void>;
-  removeItem:     (productId: string, token: string) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number, token: string) => Promise<void>;
+  // token: string → syncs with server; token: null → guest local-only
+  addItem:        (product: Product, quantity: number, token: string | null) => Promise<void>;
+  removeItem:     (productId: string, token: string | null) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number, token: string | null) => Promise<void>;
   clearCart:      (token: string) => Promise<void>;
   reset:          () => void;
 }
@@ -72,38 +70,64 @@ export const useCartStore = create<CartState>()((set, get) => ({
   addItem: async (product, quantity, token) => {
     const existing = get().items.find((i) => i.product._id === product._id);
     const newQty   = (existing?.quantity ?? 0) + quantity;
+
+    // Optimistic local update — also marks `loaded:true` so fetchCart won't
+    // overwrite this state if it finishes late (race-condition guard).
     set((s) => {
       const items = existing
         ? s.items.map((i) => i.product._id === product._id ? { ...i, quantity: newQty } : i)
         : [...s.items, { product, quantity: newQty }];
-      return { items, ...computeTotals(items) };
+      return { items, ...computeTotals(items), loaded: true };
     });
-    await fetch("/api/account/cart", {
-      method:  "POST",
-      headers: AUTH(token),
-      body:    JSON.stringify({ productId: product._id, quantity: newQty }),
-    });
+
+    // Guest mode: local-only, no API call
+    if (!token) return;
+
+    // Logged-in: sync with server and update state from response
+    try {
+      const res = await fetch("/api/account/cart", {
+        method:  "POST",
+        headers: AUTH(token),
+        body:    JSON.stringify({ productId: product._id, quantity: newQty }),
+      });
+      if (res.ok) {
+        const json = await res.json() as { success: boolean; data: CartItem[] };
+        if (json.success) set({ items: json.data, ...computeTotals(json.data) });
+      }
+    } catch {
+      // network error — optimistic state remains; will reconcile on next fetchCart
+    }
   },
 
   removeItem: async (productId, token) => {
     set((s) => {
       const items = s.items.filter((i) => i.product._id !== productId);
-      return { items, ...computeTotals(items) };
+      return { items, ...computeTotals(items), loaded: true };
     });
-    await fetch(`/api/account/cart/${productId}`, { method: "DELETE", headers: AUTH(token) });
+    if (!token) return;
+    try {
+      await fetch(`/api/account/cart/${productId}`, { method: "DELETE", headers: AUTH(token) });
+    } catch { /* network error */ }
   },
 
   updateQuantity: async (productId, quantity, token) => {
     if (quantity <= 0) { await get().removeItem(productId, token); return; }
     set((s) => {
       const items = s.items.map((i) => i.product._id === productId ? { ...i, quantity } : i);
-      return { items, ...computeTotals(items) };
+      return { items, ...computeTotals(items), loaded: true };
     });
-    await fetch("/api/account/cart", {
-      method:  "POST",
-      headers: AUTH(token),
-      body:    JSON.stringify({ productId, quantity }),
-    });
+    if (!token) return;
+    try {
+      const res = await fetch("/api/account/cart", {
+        method:  "POST",
+        headers: AUTH(token),
+        body:    JSON.stringify({ productId, quantity }),
+      });
+      if (res.ok) {
+        const json = await res.json() as { success: boolean; data: CartItem[] };
+        if (json.success) set({ items: json.data, ...computeTotals(json.data) });
+      }
+    } catch { /* network error */ }
   },
 
   clearCart: async (token) => {

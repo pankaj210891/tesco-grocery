@@ -58,8 +58,8 @@ export default function CartItem({ item }: CartItemProps) {
           className="object-contain p-2"
         />
         {discount && (
-          <span className="absolute top-1 left-1 text-[9px] font-black px-1.5 py-0.5 bg-[#25A244] text-white rounded-md leading-none">
-            -{discount}%
+          <span className="absolute top-1 left-1 text-[9px] font-black px-1.5 py-0.5 bg-red-500 text-white rounded-md leading-none">
+            {discount}% off
           </span>
         )}
       </Link>

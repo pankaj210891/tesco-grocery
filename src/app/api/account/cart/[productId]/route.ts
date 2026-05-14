@@ -11,10 +11,15 @@ export async function DELETE(
   const auth = getAuthUser(req);
   if (!auth) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   const { productId } = await params;
-  await connectDB();
-  await CartModel.findOneAndUpdate(
-    { userId: auth.userId },
-    { $pull: { items: { productId } } }
-  );
-  return NextResponse.json({ success: true });
+  try {
+    await connectDB();
+    await CartModel.findOneAndUpdate(
+      { userId: auth.userId },
+      { $pull: { items: { productId } } },
+    );
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[cart item DELETE]", err);
+    return NextResponse.json({ success: false, error: "Failed to remove item" }, { status: 500 });
+  }
 }
