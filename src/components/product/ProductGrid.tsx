@@ -14,10 +14,10 @@ export default function ProductGrid({ products }: ProductGridProps) {
           className="h-16 w-16 text-gray-300 mb-4"
           aria-hidden
         />
-        <h3 className="text-lg font-semibold text-gray-700">
+        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
           No products found
         </h3>
-        <p className="text-gray-400 text-sm mt-1 max-w-xs">
+        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 max-w-xs">
           Try adjusting your filters or search terms to find what you&apos;re
           looking for.
         </p>

@@ -22,10 +22,11 @@ function OfferCard({ item }: { item: SectionItem }) {
     days <= 0      ? "Offer expired" :
     days === 1     ? "⏰ Ends tomorrow" :
                      `⏰ Ends in ${days} days`;
+  const href = item.productSlug ? `/products/${item.productSlug}` : item.href;
 
   return (
     <Link
-      href={item.href}
+      href={href}
       className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/70 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group"
     >
       <div

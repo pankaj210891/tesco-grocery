@@ -16,7 +16,12 @@ interface ReviewsData {
   totalPages: number;
 }
 
-export default function ReviewsSection({ productSlug }: { productSlug: string }) {
+interface Props {
+  productSlug:    string;
+  onCountLoaded?: (count: number) => void;
+}
+
+export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
   const { user, token } = useAuthStore();
   const router = useRouter();
   const [data,    setData]    = useState<ReviewsData | null>(null);
@@ -40,19 +45,21 @@ export default function ReviewsSection({ productSlug }: { productSlug: string })
           setAllReviews((prev) =>
             page === 1 ? json.data.reviews : [...prev, ...json.data.reviews]
           );
+          if (page === 1) onCountLoaded?.(json.data.summary.total);
         }
       } finally {
         setLoading(false);
       }
     }
     void load();
-  }, [productSlug, page]);
+  }, [productSlug, page, onCountLoaded]);
 
   async function syncSummary() {
     const res  = await fetch(`/api/products/${productSlug}/reviews?page=1&limit=1`);
     const json = await res.json() as { success: boolean; data: ReviewsData };
     if (json.success) {
       setData((prev) => prev ? { ...prev, summary: json.data.summary } : json.data);
+      onCountLoaded?.(json.data.summary.total);
     }
   }
 

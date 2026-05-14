@@ -9,6 +9,7 @@ import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { formatPrice } from "@/lib/utils/format";
+import OrderTimeline from "@/components/account/OrderTimeline";
 import type { Order } from "@/types";
 import { use } from "react";
 
@@ -117,6 +118,15 @@ export default function OrderDetailPage({
       </div>
 
       <div className="space-y-5">
+
+        {/* Order tracking timeline */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
+            <Truck className="h-4 w-4 text-[#00539F]" aria-hidden />
+            Order Tracking
+          </h2>
+          <OrderTimeline status={order.status} />
+        </section>
 
         {/* Items */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">

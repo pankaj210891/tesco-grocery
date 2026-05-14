@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
+import Review from "@/lib/db/models/review.model";
 import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
 import type { Product, ProductFilters, PaginatedProducts } from "@/types";
@@ -34,7 +35,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   await connectDB();
 
   const {
-    category, minPrice, maxPrice, inStock,
+    category, brand, minPrice, maxPrice, inStock,
     sortBy, search, page = 1, limit = PRODUCTS_PER_PAGE,
   } = filters;
 
@@ -43,6 +44,9 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   if (category) {
     const name = CATEGORY_NAME_MAP[category] ?? category;
     query.category = name;
+  }
+  if (brand) {
+    query.brand = { $regex: brand, $options: "i" } as mongoose.QueryFilter<ProductDoc>["brand"];
   }
   if (inStock) query.inStock = true;
   if (minPrice !== undefined || maxPrice !== undefined) {
@@ -79,8 +83,18 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   await connectDB();
-  const doc = await ProductModel.findOne({ slug }).lean<ProductDoc>();
-  return doc ? toProduct(doc) : null;
+  const [doc, liveCount] = await Promise.all([
+    ProductModel.findOne({ slug }).lean<ProductDoc>(),
+    Review.countDocuments({ productSlug: slug, isApproved: true }),
+  ]);
+  if (!doc) return null;
+  // Keep the stored reviewCount in sync if it drifted (e.g. seeding issues)
+  if (doc.reviewCount !== liveCount) {
+    void ProductModel.updateOne({ slug }, { reviewCount: liveCount });
+  }
+  const product = toProduct(doc);
+  product.reviewCount = liveCount;
+  return product;
 }
 
 export async function getAllProductSlugs(): Promise<string[]> {

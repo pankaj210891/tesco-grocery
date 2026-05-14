@@ -10,9 +10,11 @@ import type { HomepageSection, SectionItem } from "@/types";
 const SCROLL_PX = 320;
 
 function BrandCard({ item }: { item: SectionItem }) {
+  // Always navigate to the products page filtered by this brand
+  const brandHref = `/products?brand=${encodeURIComponent(item.title)}`;
   return (
     <Link
-      href={item.href}
+      href={brandHref}
       className="flex-shrink-0 w-64 sm:w-72 h-48 sm:h-52 rounded-2xl overflow-hidden group relative"
       style={{ backgroundColor: item.color ?? "#1E293B" }}
     >

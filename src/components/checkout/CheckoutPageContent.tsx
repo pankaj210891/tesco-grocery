@@ -152,7 +152,8 @@ export default function CheckoutPageContent() {
       return {
         fullName: selectedAddress.fullName,
         email:    data.email,
-        phone:    selectedAddress.phone.replace(/\D/g, "").slice(0, 10),
+        // Always use form value — applyAddress() syncs it, and user may edit after selection
+        phone:    data.phone,
         address:  selectedAddress.line1 + (selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""),
         city:     selectedAddress.city,
         postcode: selectedAddress.postcode,

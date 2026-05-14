@@ -10,9 +10,10 @@ import type { HomepageSection, SectionItem } from "@/types";
 const SCROLL_PX = 320;
 
 function BrandCard({ item }: { item: SectionItem }) {
+  const brandHref = `/products?brand=${encodeURIComponent(item.title)}`;
   return (
     <Link
-      href={item.href}
+      href={brandHref}
       className="flex-shrink-0 flex flex-col items-center gap-2 w-24 sm:w-28 group"
     >
       <div

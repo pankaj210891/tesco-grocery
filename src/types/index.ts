@@ -26,6 +26,7 @@ export interface Product {
 
 export interface ProductFilters {
   category?: string;
+  brand?:    string;
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
@@ -319,6 +320,7 @@ export interface SectionItem {
   description?:   string;
   emoji?:         string;
   href:           string;
+  productSlug?:   string;
   badge?:         string;
   price?:         number;
   originalPrice?: number;
