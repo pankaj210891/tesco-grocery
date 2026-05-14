@@ -241,7 +241,7 @@ export default function StoreLocatorPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, city or postcode…"
-              className="w-full h-12 pl-10 pr-4 rounded-xl text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#F57C00]"
+              className="w-full h-12 pl-10 pr-4 rounded-xl text-base md:text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#F57C00]"
             />
           </div>
         </div>

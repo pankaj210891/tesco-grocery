@@ -94,7 +94,7 @@ export default function Footer() {
                   placeholder="Your email address"
                   required
                   aria-label="Email address for newsletter"
-                  className="flex-1 sm:w-64 h-11 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-blue-300 text-sm focus:outline-none focus:border-[#F57C00] transition-colors"
+                  className="flex-1 sm:w-64 h-11 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-blue-300 text-base md:text-sm focus:outline-none focus:border-[#F57C00] transition-colors"
                 />
                 <button
                   type="submit"

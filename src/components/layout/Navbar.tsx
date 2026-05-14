@@ -210,7 +210,7 @@ export default function Navbar() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products, brands and more…"
                 aria-label="Search products"
-                className="flex-1 min-w-0 h-full pl-4 pr-2 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 focus:outline-none"
+                className="flex-1 min-w-0 h-full pl-4 pr-2 text-base md:text-sm text-gray-900 bg-transparent placeholder:text-gray-400 focus:outline-none"
               />
               {searchQuery && (
                 <button

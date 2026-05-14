@@ -205,7 +205,7 @@ export default function CheckoutPricingSummary({
                 placeholder="Enter promo code"
                 aria-label="Promo code"
                 disabled={applying}
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] disabled:opacity-50"
+                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-base md:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#00539F] focus:ring-1 focus:ring-[#00539F] disabled:opacity-50"
               />
               <button
                 type="submit"
