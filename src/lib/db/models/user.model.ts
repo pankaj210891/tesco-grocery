@@ -2,11 +2,13 @@ import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
 const UserSchema = new Schema(
   {
-    name:     { type: String, required: true, trim: true },
-    email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
-    role:     { type: String, enum: ["customer", "vendor", "admin"], default: "customer" },
-    status:   { type: String, enum: ["active", "suspended"], default: "active" },
+    name:                 { type: String, required: true, trim: true },
+    email:                { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password:             { type: String, required: true },
+    role:                 { type: String, enum: ["customer", "vendor", "admin"], default: "customer" },
+    status:               { type: String, enum: ["active", "suspended"], default: "active" },
+    passwordResetToken:   { type: String, default: null },
+    passwordResetExpires: { type: Date,   default: null },
   },
   { timestamps: true }
 );

@@ -97,7 +97,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-16">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-16">
       <div className="flex items-center gap-2 mb-8">
         <Heart className="h-6 w-6 text-red-500 fill-red-500" />
         <h1 className="text-2xl font-black text-gray-900 dark:text-white">
@@ -122,7 +122,7 @@ export default function WishlistPage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="flex flex-col gap-3">
           {items.map((product) => <WishlistItem key={product._id} product={product} />)}
         </ul>
       )}

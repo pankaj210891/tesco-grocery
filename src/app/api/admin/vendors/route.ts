@@ -14,8 +14,17 @@ export async function GET(req: NextRequest) {
     const limit  = Math.min(50, Number(searchParams.get("limit") ?? 20));
     const status = searchParams.get("status") ?? "";
 
+    const q = searchParams.get("q") ?? "";
+
     const filter: Record<string, unknown> = {};
     if (status && status !== "all") filter.status = status;
+    if (q) {
+      filter.$or = [
+        { name:  { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+        { city:  { $regex: q, $options: "i" } },
+      ];
+    }
 
     const [vendors, total] = await Promise.all([
       VendorModel.find(filter)

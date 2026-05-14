@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import axios from "axios";
-import { Tag, Copy, Check, Clock, ChevronRight } from "lucide-react";
+import { Tag, Copy, Check, Clock, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { Offer } from "@/types";
 
@@ -49,7 +49,7 @@ function OfferCard({ offer }: { offer: Offer }) {
   return (
     <div
       className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
-      style={{ backgroundColor: offer.color ?? "#F9FAFB" }}
+      style={{ backgroundColor: offer.color || "#EFF6FF" }}
     >
       {/* Top section */}
       <div className="p-5 flex-1">
@@ -140,6 +140,7 @@ export default function OffersPage() {
   const [offers,  setOffers]  = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState("all");
+  const [search,  setSearch]  = useState("");
 
   useEffect(() => {
     async function load() {
@@ -153,10 +154,19 @@ export default function OffersPage() {
     void load();
   }, []);
 
-  const filtered = useMemo(
-    () => filter === "all" ? offers : offers.filter((o) => o.category === filter),
-    [offers, filter]
-  );
+  const filtered = useMemo(() => {
+    let list = filter === "all" ? offers : offers.filter((o) => o.category === filter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (o) =>
+          o.title.toLowerCase().includes(q) ||
+          (o.code ?? "").toLowerCase().includes(q) ||
+          (o.description ?? "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [offers, filter, search]);
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -167,9 +177,20 @@ export default function OffersPage() {
             <Tag className="h-7 w-7" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-black mb-2">Special Offers</h1>
-          <p className="text-blue-200 text-base">
+          <p className="text-amber-100 text-base mb-6">
             Exclusive deals, promo codes, and limited-time savings
           </p>
+          {/* Search */}
+          <div className="relative max-w-lg mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search offers or promo codes…"
+              className="w-full h-12 pl-10 pr-4 rounded-xl text-base md:text-sm text-gray-900 bg-white/95 backdrop-blur-sm shadow-lg shadow-black/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-gray-400"
+            />
+          </div>
         </div>
       </div>
 

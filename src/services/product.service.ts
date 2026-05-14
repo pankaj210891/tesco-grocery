@@ -37,10 +37,14 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   const {
     category, brand, minPrice, maxPrice, inStock,
     sortBy, search, page = 1, limit = PRODUCTS_PER_PAGE,
+    slugs,
   } = filters;
 
   const query: mongoose.QueryFilter<ProductDoc> = {};
 
+  if (slugs && slugs.length > 0) {
+    query.slug = { $in: slugs } as mongoose.QueryFilter<ProductDoc>["slug"];
+  }
   if (category) {
     const name = CATEGORY_NAME_MAP[category] ?? category;
     query.category = name;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ChevronDown, Calendar, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Calendar, X, Search } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { formatPrice } from "@/lib/utils/format";
 import type { Order } from "@/types";
@@ -48,13 +48,28 @@ export default function AdminOrdersPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo,   setDateTo]   = useState("");
+  const [tempFrom, setTempFrom] = useState("");
+  const [tempTo,   setTempTo]   = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [search, setSearch]               = useState("");
 
+  const dateFilterRef = useRef<HTMLDivElement>(null);
   const authHeader = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (dateFilterRef.current && !dateFilterRef.current.contains(e.target as Node)) {
+        setShowDateFilter(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const qs = new URLSearchParams({ page: String(page), limit: "20", status });
+    if (search) qs.set("q", search);
     if (dateFrom) qs.set("dateFrom", dateFrom);
     if (dateTo)   qs.set("dateTo", dateTo);
     fetch(`/api/admin/orders?${qs}`, { headers: authHeader })
@@ -62,7 +77,7 @@ export default function AdminOrdersPage() {
       .then((j) => { if (j.success) setData(j.data); })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, token, dateFrom, dateTo]);
+  }, [page, status, token, dateFrom, dateTo, search]);
 
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
@@ -73,13 +88,29 @@ export default function AdminOrdersPage() {
 
   async function updateStatus(id: string, newStatus: string) {
     setUpdating(id);
-    await fetch(`/api/admin/orders/${id}`, {
+    const res = await fetch(`/api/admin/orders/${id}`, {
       method: "PUT",
       headers: { ...authHeader, "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
     setUpdating(null);
-    void load();
+    if (res.ok) {
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          orders: prev.orders.map((o) =>
+            o._id === id ? { ...o, status: newStatus as Order["status"] } : o
+          ),
+        };
+      });
+    }
+  }
+
+  function openDateFilter() {
+    setTempFrom(dateFrom);
+    setTempTo(dateTo);
+    setShowDateFilter(true);
   }
 
   function applyPreset(from: string, to: string) {
@@ -89,9 +120,18 @@ export default function AdminOrdersPage() {
     setShowDateFilter(false);
   }
 
+  function applyCustomDates() {
+    setDateFrom(tempFrom);
+    setDateTo(tempTo);
+    setPage(1);
+    setShowDateFilter(false);
+  }
+
   function clearDates() {
     setDateFrom("");
     setDateTo("");
+    setTempFrom("");
+    setTempTo("");
     setPage(1);
   }
 
@@ -106,6 +146,17 @@ export default function AdminOrdersPage() {
             {data.total} total
           </span>
         )}
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          placeholder="Search order, customer…"
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+        />
       </div>
 
       {/* Filters row */}
@@ -128,9 +179,9 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Date filter button */}
-        <div className="relative">
+        <div className="relative" ref={dateFilterRef}>
           <button
-            onClick={() => setShowDateFilter((v) => !v)}
+            onClick={() => showDateFilter ? setShowDateFilter(false) : openDateFilter()}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               hasDateFilter
                 ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300"
@@ -166,8 +217,8 @@ export default function AdminOrdersPage() {
                   <label className="text-[11px] text-gray-400 mb-0.5 block">From</label>
                   <input
                     type="date"
-                    value={dateFrom}
-                    onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                    value={tempFrom}
+                    onChange={(e) => setTempFrom(e.target.value)}
                     className="w-full px-2.5 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-400"
                   />
                 </div>
@@ -175,16 +226,16 @@ export default function AdminOrdersPage() {
                   <label className="text-[11px] text-gray-400 mb-0.5 block">To</label>
                   <input
                     type="date"
-                    value={dateTo}
-                    onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-                    min={dateFrom}
+                    value={tempTo}
+                    onChange={(e) => setTempTo(e.target.value)}
+                    min={tempFrom}
                     className="w-full px-2.5 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-400"
                   />
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
                 <button
-                  onClick={() => setShowDateFilter(false)}
+                  onClick={applyCustomDates}
                   className="flex-1 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                 >
                   Apply
@@ -214,10 +265,10 @@ export default function AdminOrdersPage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 280px)" }}>
+        <div className="overflow-auto flex-1">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
+            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
               <tr>
                 {["Order", "Customer", "Items", "Total", "Payment", "Date", "Status", "Update"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>

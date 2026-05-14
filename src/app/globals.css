@@ -75,6 +75,11 @@
 }
 
 @layer utilities {
+  /* ── No-spinner number input ──────────────────────────────────── */
+  .no-spinner { -moz-appearance: textfield; }
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button { appearance: none; margin: 0; }
+
   /* ── Brand utilities ─────────────────────────────────────────── */
   .text-brand-primary   { color: var(--color-brand-primary); }
   .bg-brand-primary     { background-color: var(--color-brand-primary); }

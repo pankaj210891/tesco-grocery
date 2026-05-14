@@ -125,7 +125,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
         {open && !isMobile && (
           <div
             className={cn(
-              "absolute top-full mt-2 z-[40] w-64 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl py-2",
+              "absolute top-full mt-2 z-[40] w-64 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl py-2 max-h-[60vh] overflow-y-auto",
               align === "right" ? "right-0" : "left-0",
             )}
             role="listbox"

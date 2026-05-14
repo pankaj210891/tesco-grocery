@@ -3,23 +3,23 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import type { HomepageSection, SectionType } from "@/types";
-import ProductCarousel  from "./sections/ProductCarousel";
-import OfferCards       from "./sections/OfferCards";
-import BrandInspiration from "./sections/BrandInspiration";
-import InfoCards        from "./sections/InfoCards";
-import CategoryTiles    from "./sections/CategoryTiles";
+import ProductCarousel from "./sections/ProductCarousel";
+import OfferCards      from "./sections/OfferCards";
+import InfoCards       from "./sections/InfoCards";
+import CategoryTiles   from "./sections/CategoryTiles";
 import BrandGrid        from "./sections/BrandGrid";
+import BrandInspiration from "./sections/BrandInspiration";
 import ExploreCards     from "./sections/ExploreCards";
 
 const RENDERERS: Partial<Record<SectionType, React.ComponentType<{ section: HomepageSection }>>> = {
-  "product-carousel":  ProductCarousel,
-  "offer-cards":       OfferCards,
-  "brand-inspiration": BrandInspiration,
-  "info-cards":        InfoCards,
-  "category-tiles":    CategoryTiles,
-  "brand-grid":        BrandGrid,
-  "explore-cards":     ExploreCards,
-  // "hero-banner" is rendered by the dedicated HeroBanner component
+  "product-carousel":   ProductCarousel,
+  "offer-cards":        OfferCards,
+  "info-cards":         InfoCards,
+  "category-tiles":     CategoryTiles,
+  "brand-grid":         BrandGrid,
+  "brand-inspiration":  BrandInspiration,
+  "explore-cards":      ExploreCards,
+  // "hero-banner" not rendered inline
 };
 
 function SectionSkeleton({ cards = 5 }: { cards?: number }) {

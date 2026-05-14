@@ -34,6 +34,7 @@ export interface ProductFilters {
   search?: string;
   page?: number;
   limit?: number;
+  slugs?: string[];
 }
 
 export interface PaginatedProducts {

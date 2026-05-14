@@ -49,6 +49,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
    */
   const [theme, setThemeState] = useState<Theme>(readStoredTheme);
 
+  // Hydration fix: lazy initializer returns "system" on SSR (window undefined).
+  // After hydration React keeps that server state — re-read localStorage on mount.
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored && stored !== theme) setThemeState(stored);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
     localStorage.setItem(STORAGE_KEY, next);

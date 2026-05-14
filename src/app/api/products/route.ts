@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     maxPrice:  sp.get("maxPrice")  ? Number(sp.get("maxPrice"))  : undefined,
     page:      sp.get("page")      ? Number(sp.get("page"))      : undefined,
     limit:     sp.get("limit")     ? Number(sp.get("limit"))     : undefined,
+    slugs:     sp.get("slugs")     ? sp.get("slugs")!.split(",") : undefined,
   };
 
   try {

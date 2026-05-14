@@ -1,189 +1,84 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import { formatPrice } from "@/lib/utils/format";
-import type { HomepageSection, SectionItem } from "@/types";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import SectionCarousel from "@/components/ui/SectionCarousel";
+import ProductCard from "@/components/product/ProductCard";
+import type { HomepageSection, PaginatedProducts, Product } from "@/types";
 
-const SCROLL_PX = 340;
-const AMBER = "#FCA311";
+const CARD_W = "flex-shrink-0 snap-start w-[calc(100vw-4rem)] sm:w-[calc(50vw-2.5rem)] lg:w-[calc(25vw-1.25rem)] xl:w-[270px]";
+const ITEMS  = 8;
 
-function ProductCard({ item }: { item: SectionItem }) {
-  const href = item.productSlug ? `/products/${item.productSlug}` : item.href;
+function SkeletonCard() {
   return (
-    <Link
-      href={href}
-      className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/70 overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group"
-    >
-      {/* Image area */}
-      <div
-        className="h-36 sm:h-40 flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-gray-700/30"
-      >
-        <span
-          className="text-5xl sm:text-6xl select-none leading-none group-hover:scale-110 transition-transform duration-300"
-          aria-hidden
-        >
-          {item.emoji ?? "📦"}
-        </span>
-
-        {/* Sale / badge */}
-        {item.badge && (
-          <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-black rounded bg-[#25A244] text-white uppercase">
-            {item.badge}
-          </span>
-        )}
+    <div className={`${CARD_W} animate-pulse rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800`}>
+      <div className="aspect-square bg-gray-100 dark:bg-gray-700" />
+      <div className="p-3.5 space-y-2">
+        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded w-1/3" />
+        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full" />
+        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/4" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4 mt-2" />
+        <div className="h-9 bg-gray-100 dark:bg-gray-700 rounded-lg mt-1" />
       </div>
-
-      {/* Body */}
-      <div className="p-3 space-y-1">
-        {item.brand && (
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate">
-            {item.brand}
-          </p>
-        )}
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-[#FCA311] transition-colors">
-          {item.title}
-        </p>
-        {item.price != null && (
-          <p className="text-sm font-black text-gray-900 dark:text-white pt-0.5">
-            {formatPrice(item.price)}
-          </p>
-        )}
-        {/* Mini add-to-cart hint */}
-        <div className="flex items-center justify-end pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white" style={{ backgroundColor: AMBER }}>
-            <ShoppingCart className="h-3 w-3" aria-hidden />
-            Add
-          </span>
-        </div>
-      </div>
-    </Link>
+    </div>
   );
 }
 
-const NavBtn = ({
-  onClick, disabled, label, children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  label: string;
-  children: React.ReactNode;
-}) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    aria-label={label}
-    className={cn(
-      "w-8 h-8 rounded-full border-2 border-[#FCA311] bg-white dark:bg-gray-900 shadow-md flex items-center justify-center transition-all duration-200",
-      disabled ? "opacity-30 cursor-not-allowed" : "hover:bg-[#FCA311] hover:text-white",
-    )}
-  >
-    {children}
-  </button>
-);
-
 export default function ProductCarousel({ section }: { section: HomepageSection }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [canLeft,  setCanLeft]  = useState(false);
-  const [canRight, setCanRight] = useState(true);
-
-  const sync = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  }, []);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    sync();
-    el.addEventListener("scroll", sync, { passive: true });
-    const ro = new ResizeObserver(sync);
-    ro.observe(el);
-    return () => { el.removeEventListener("scroll", sync); ro.disconnect(); };
-  }, [sync]);
+    // Derive sort from ctaHref (e.g. "/products?sortBy=newest" → "newest").
+    // Fall back to "rating" so there is always something to show.
+    const ctaParams = new URLSearchParams(section.ctaHref?.split("?")[1] ?? "");
+    const sortBy    = ctaParams.get("sortBy") ?? "rating";
 
-  function nudge(dir: "left" | "right") {
-    trackRef.current?.scrollBy({ left: dir === "left" ? -SCROLL_PX : SCROLL_PX, behavior: "smooth" });
-  }
+    // Use section.order as the page number so sibling sections with the same
+    // sortBy show different products (e.g. top-picks page=2, trending page=5).
+    const page = Math.max(1, section.order);
+
+    async function load() {
+      try {
+        const { data } = await axios.get<{ success: boolean; data: PaginatedProducts }>(
+          `/api/products?sortBy=${sortBy}&limit=${ITEMS}&page=${page}`,
+        );
+        // If the chosen page is beyond total results, fall back to page 1.
+        const products = data.data?.products ?? [];
+        if (products.length === 0 && page > 1) {
+          const { data: fallback } = await axios.get<{ success: boolean; data: PaginatedProducts }>(
+            `/api/products?sortBy=${sortBy}&limit=${ITEMS}&page=1`,
+          );
+          setProducts(fallback.data?.products ?? []);
+        } else {
+          setProducts(products);
+        }
+      } catch {
+        // silently degrade — section simply stays empty
+      } finally {
+        setLoading(false);
+      }
+    }
+    void load();
+  // section is stable from parent; key fields won't change mid-life
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <section aria-labelledby={`section-${section.key}`}>
-
-      {/* Header row with nav arrows */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2
-            id={`section-${section.key}`}
-            className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100"
-          >
-            {section.title}
-          </h2>
-          {section.subtitle && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{section.subtitle}</p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {section.ctaLabel && section.ctaHref && (
-            <Link
-              href={section.ctaHref}
-              className="hidden sm:inline text-sm font-bold mr-2 hover:underline"
-              style={{ color: AMBER }}
-            >
-              {section.ctaLabel} →
-            </Link>
-          )}
-          <NavBtn onClick={() => nudge("left")} disabled={!canLeft} label="Scroll left">
-            <ChevronLeft className="h-4 w-4 text-[#FCA311] group-hover:text-white" />
-          </NavBtn>
-          <NavBtn onClick={() => nudge("right")} disabled={!canRight} label="Scroll right">
-            <ChevronRight className="h-4 w-4 text-[#FCA311]" />
-          </NavBtn>
-        </div>
-      </div>
-
-      {/* Track */}
-      <div className="relative">
-        <div
-          aria-hidden
-          className={cn(
-            "hidden sm:block absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-gray-950 to-transparent pointer-events-none z-[5] transition-opacity",
-            canLeft ? "opacity-100" : "opacity-0",
-          )}
-        />
-        <div
-          ref={trackRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto overscroll-x-contain scrollbar-none pb-1"
-        >
-          {section.items.map((item) => (
-            <ProductCard key={item._id} item={item} />
+    <SectionCarousel
+      title={section.title}
+      description={section.subtitle}
+      seeAllLabel={section.ctaLabel}
+      seeAllHref={section.ctaHref}
+      titleId={`section-${section.key}`}
+    >
+      {loading
+        ? Array.from({ length: ITEMS }).map((_, i) => <SkeletonCard key={i} />)
+        : products.map((product) => (
+            <div key={product._id} className={CARD_W}>
+              <ProductCard product={product} />
+            </div>
           ))}
-        </div>
-        <div
-          aria-hidden
-          className={cn(
-            "hidden sm:block absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none z-[5] transition-opacity",
-            canRight ? "opacity-100" : "opacity-0",
-          )}
-        />
-      </div>
-
-      {/* Mobile CTA */}
-      {section.ctaLabel && section.ctaHref && (
-        <div className="flex sm:hidden justify-center mt-4">
-          <Link
-            href={section.ctaHref}
-            className="text-sm font-bold px-5 py-2 rounded-xl border-2 border-[#FCA311] hover:bg-[#FCA311] hover:text-white transition-all"
-            style={{ color: AMBER }}
-          >
-            {section.ctaLabel}
-          </Link>
-        </div>
-      )}
-    </section>
+    </SectionCarousel>
   );
 }

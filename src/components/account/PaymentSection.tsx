@@ -21,7 +21,7 @@ function PaymentCard({
   return (
     <div className="relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-2">
       {method.isDefault && (
-        <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-semibold text-[#FCA311] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+        <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-semibold text-[#FCA311] bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 px-2 py-0.5 rounded-full">
           <Star className="h-3 w-3" aria-hidden /> Default
         </span>
       )}
