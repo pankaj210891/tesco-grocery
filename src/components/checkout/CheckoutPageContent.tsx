@@ -49,7 +49,7 @@ function Field({
 
 const inputCls = (hasError?: boolean) =>
   cn(
-    "w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
+    "w-full px-3.5 py-2.5 text-base md:text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
     "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white",
     hasError
       ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
@@ -152,7 +152,8 @@ export default function CheckoutPageContent() {
       return {
         fullName: selectedAddress.fullName,
         email:    data.email,
-        phone:    selectedAddress.phone.replace(/\D/g, "").slice(0, 10),
+        // Always use form value — applyAddress() syncs it, and user may edit after selection
+        phone:    data.phone,
         address:  selectedAddress.line1 + (selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""),
         city:     selectedAddress.city,
         postcode: selectedAddress.postcode,

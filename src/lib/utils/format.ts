@@ -1,10 +1,8 @@
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style:                 "currency",
-    currency:              "INR",
+  return `₹${new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(price);
+  }).format(price)}`;
 }
 
 export function slugify(str: string): string {

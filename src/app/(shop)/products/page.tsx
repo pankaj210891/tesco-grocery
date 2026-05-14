@@ -8,6 +8,8 @@ import FiltersSidebar from "@/components/product/FiltersSidebar";
 import SortControl from "@/components/product/SortControl";
 import ActiveFilters from "@/components/product/ActiveFilters";
 import MobileFiltersDrawer from "@/components/product/MobileFiltersDrawer";
+import Pagination from "@/components/ui/Pagination";
+import PageSizeSelector from "@/components/ui/PageSizeSelector";
 
 export const metadata: Metadata = {
   title: "All Products",
@@ -30,6 +32,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const filters: ProductFilters = {
     category:  str(params.category),
+    brand:     str(params.brand),
     search:    str(params.q),
     sortBy:    str(params.sortBy) as ProductFilters["sortBy"] | undefined,
     inStock:   str(params.inStock) === "true" ? true : undefined,
@@ -37,24 +40,37 @@ export default async function ProductsPage({ searchParams }: Props) {
     maxPrice:  str(params.maxPrice) !== undefined && str(params.maxPrice) !== ""
                  ? Number(str(params.maxPrice))
                  : undefined,
+    page:      str(params.page)  ? Number(str(params.page))  : 1,
+    limit:     str(params.limit) ? Number(str(params.limit)) : 20,
   };
 
-  const [{ products, total }, categories] = await Promise.all([
+  const [{ products, total, totalPages }, categories] = await Promise.all([
     getProducts(filters),
     getCategories(),
   ]);
 
   const categoryNames = categories.map((c) => c.name).sort();
   const category      = str(params.category);
-  const pageTitle     = category ? titleCase(category) : "All Products";
+  const brand         = str(params.brand);
+  const pageTitle     = brand
+    ? `${brand} Products`
+    : category ? titleCase(category) : "All Products";
+
+  const currentPage  = filters.page  ?? 1;
+  const currentLimit = filters.limit ?? 20;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-gray-900">{pageTitle}</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{pageTitle}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {total} {total === 1 ? "product" : "products"}
+          {brand && (
+            <span className="ml-1">
+              by <span className="font-semibold text-gray-700 dark:text-gray-300">{brand}</span>
+            </span>
+          )}
         </p>
       </div>
 
@@ -80,9 +96,14 @@ export default async function ProductsPage({ searchParams }: Props) {
               <SortControl />
             </Suspense>
 
-            <span className="ml-auto text-sm text-gray-500 hidden sm:inline">
-              {total} {total === 1 ? "result" : "results"}
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
+                {total} {total === 1 ? "result" : "results"}
+              </span>
+              <Suspense fallback={null}>
+                <PageSizeSelector currentLimit={currentLimit} />
+              </Suspense>
+            </div>
           </div>
 
           <Suspense fallback={null}>
@@ -90,6 +111,17 @@ export default async function ProductsPage({ searchParams }: Props) {
           </Suspense>
 
           <ProductGrid products={products} />
+
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                total={total}
+                limit={currentLimit}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

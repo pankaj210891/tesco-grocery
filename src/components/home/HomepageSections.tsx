@@ -22,14 +22,32 @@ const RENDERERS: Partial<Record<SectionType, React.ComponentType<{ section: Home
   // "hero-banner" is rendered by the dedicated HeroBanner component
 };
 
-function SectionSkeleton() {
+function SectionSkeleton({ cards = 5 }: { cards?: number }) {
   return (
     <div className="space-y-4">
-      <div className="animate-pulse h-7 w-56 bg-gray-200 dark:bg-gray-700 rounded-lg" />
-      <div className="animate-pulse h-4 w-80 bg-gray-100 dark:bg-gray-800 rounded" />
+      {/* Header shimmer */}
+      <div className="flex items-center gap-3">
+        <div className="animate-pulse w-1 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        <div className="space-y-2">
+          <div className="animate-pulse h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="animate-pulse h-3 w-72 bg-gray-100 dark:bg-gray-800 rounded" />
+        </div>
+      </div>
+      {/* Card shimmer */}
       <div className="flex gap-4 overflow-hidden">
-        {[1, 2, 3, 4].map((n) => (
-          <div key={n} className="animate-pulse flex-shrink-0 w-40 h-56 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+        {Array.from({ length: cards }).map((_, i) => (
+          <div
+            key={i}
+            className="animate-pulse flex-shrink-0 w-40 sm:w-44 rounded-2xl overflow-hidden"
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            <div className="h-36 sm:h-40 bg-gray-100 dark:bg-gray-800" />
+            <div className="p-3 space-y-2 bg-white dark:bg-gray-800">
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/4" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-full" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3" />
+            </div>
+          </div>
         ))}
       </div>
     </div>

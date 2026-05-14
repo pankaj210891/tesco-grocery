@@ -63,7 +63,7 @@ export default function WishlistPage() {
   const { user, token, hasHydrated } = useAuthStore();
   const { items, loading, loaded } = useWishlistStore();
 
-  if (!hasHydrated || !loaded || loading) {
+  if (!hasHydrated) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 animate-pulse space-y-4">
         <div className="h-8 bg-gray-200 rounded w-48" />
@@ -78,11 +78,20 @@ export default function WishlistPage() {
         <div className="inline-flex bg-red-50 rounded-full p-5 mb-5">
           <Heart className="h-10 w-10 text-red-300" />
         </div>
-        <h2 className="text-lg font-bold text-gray-800 mb-2">Sign in to view your wishlist</h2>
-        <p className="text-sm text-gray-500 mb-6">Save your favourite products and access them anytime.</p>
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">Sign in to view your wishlist</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Save your favourite products and access them anytime.</p>
         <Link href="/login" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
           Sign in
         </Link>
+      </div>
+    );
+  }
+
+  if (!loaded || loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+        {[1, 2, 3].map((n) => <div key={n} className="h-28 bg-gray-100 dark:bg-gray-800 rounded-xl" />)}
       </div>
     );
   }
@@ -103,11 +112,11 @@ export default function WishlistPage() {
 
       {items.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex bg-red-50 rounded-full p-5 mb-5">
-            <Heart className="h-10 w-10 text-red-300" />
+          <div className="inline-flex bg-red-50 dark:bg-red-900/20 rounded-full p-5 mb-5">
+            <Heart className="h-10 w-10 text-red-300 dark:text-red-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Your wishlist is empty</h2>
-          <p className="text-sm text-gray-500 mb-6">Tap the heart icon on any product to save it here.</p>
+          <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">Your wishlist is empty</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Tap the heart icon on any product to save it here.</p>
           <Link href="/products" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
             Browse products
           </Link>

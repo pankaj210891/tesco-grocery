@@ -7,6 +7,7 @@ const SectionItemSchema = new Schema(
     description:   String,
     emoji:         String,
     href:          { type: String, required: true },
+    productSlug:   String,
     badge:         String,
     price:         Number,
     originalPrice: Number,
@@ -61,6 +62,7 @@ export interface IHomepageSection extends Document {
     description?:   string;
     emoji?:         string;
     href:           string;
+    productSlug?:   string;
     badge?:         string;
     price?:         number;
     originalPrice?: number;
