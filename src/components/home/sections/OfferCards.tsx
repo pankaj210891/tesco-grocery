@@ -26,17 +26,17 @@ function OfferCard({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-150"
+      className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/70 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group"
     >
       <div
-        className="h-36 sm:h-40 flex items-center justify-center relative"
+        className="h-36 sm:h-40 flex items-center justify-center relative overflow-hidden"
         style={{ backgroundColor: item.color ?? "#F9FAFB" }}
       >
-        <span className="text-5xl sm:text-6xl select-none leading-none" aria-hidden>
+        <span className="text-5xl sm:text-6xl select-none leading-none group-hover:scale-110 transition-transform duration-300" aria-hidden>
           {item.emoji ?? "📦"}
         </span>
         {item.discount && (
-          <span className="absolute top-2 right-2 px-2 py-1 text-[11px] font-black rounded-lg bg-red-500 text-white leading-none">
+          <span className="absolute top-2 right-2 px-2 py-1 text-[11px] font-black rounded-xl bg-red-500 text-white shadow-sm">
             -{item.discount}%
           </span>
         )}
@@ -44,7 +44,7 @@ function OfferCard({ item }: { item: SectionItem }) {
 
       <div className="p-3 space-y-0.5">
         {item.brand && (
-          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide truncate">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate">
             {item.brand}
           </p>
         )}
