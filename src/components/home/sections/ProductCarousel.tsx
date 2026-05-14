@@ -1,57 +1,69 @@
-import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
+"use client";
+
+import { useState, useEffect } from "react";
+import axios from "axios";
 import SectionCarousel from "@/components/ui/SectionCarousel";
-import { formatPrice } from "@/lib/utils/format";
-import type { HomepageSection, SectionItem } from "@/types";
+import ProductCard from "@/components/product/ProductCard";
+import type { HomepageSection, PaginatedProducts, Product } from "@/types";
 
-const AMBER = "#FCA311";
+const CARD_W = "flex-shrink-0 snap-start w-[calc(100vw-4rem)] sm:w-[calc(50vw-2.5rem)] lg:w-[calc(25vw-1.25rem)] xl:w-[270px]";
+const ITEMS  = 8;
 
-function CarouselItem({ item }: { item: SectionItem }) {
-  const href = item.productSlug ? `/products/${item.productSlug}` : (item.href ?? "/products");
+function SkeletonCard() {
   return (
-    <Link
-      href={href}
-      className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/70 overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group"
-    >
-      {/* Image area */}
-      <div className="h-36 sm:h-40 flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-gray-700/30">
-        <span className="text-5xl sm:text-6xl select-none leading-none group-hover:scale-110 transition-transform duration-300" aria-hidden>
-          {item.emoji ?? "📦"}
-        </span>
-        {item.badge && (
-          <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-black rounded bg-[#25A244] text-white uppercase">
-            {item.badge}
-          </span>
-        )}
+    <div className={`${CARD_W} animate-pulse rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800`}>
+      <div className="aspect-square bg-gray-100 dark:bg-gray-700" />
+      <div className="p-3.5 space-y-2">
+        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded w-1/3" />
+        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full" />
+        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/4" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4 mt-2" />
+        <div className="h-9 bg-gray-100 dark:bg-gray-700 rounded-lg mt-1" />
       </div>
-
-      {/* Body */}
-      <div className="p-3 space-y-1">
-        {item.brand && (
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate">
-            {item.brand}
-          </p>
-        )}
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-[#FCA311] transition-colors">
-          {item.title}
-        </p>
-        {item.price != null && (
-          <p className="text-sm font-black text-gray-900 dark:text-white pt-0.5">
-            {formatPrice(item.price)}
-          </p>
-        )}
-        <div className="flex items-center justify-end pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white" style={{ backgroundColor: AMBER }}>
-            <ShoppingCart className="h-3 w-3" aria-hidden />
-            Add
-          </span>
-        </div>
-      </div>
-    </Link>
+    </div>
   );
 }
 
 export default function ProductCarousel({ section }: { section: HomepageSection }) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    // Derive sort from ctaHref (e.g. "/products?sortBy=newest" → "newest").
+    // Fall back to "rating" so there is always something to show.
+    const ctaParams = new URLSearchParams(section.ctaHref?.split("?")[1] ?? "");
+    const sortBy    = ctaParams.get("sortBy") ?? "rating";
+
+    // Use section.order as the page number so sibling sections with the same
+    // sortBy show different products (e.g. top-picks page=2, trending page=5).
+    const page = Math.max(1, section.order);
+
+    async function load() {
+      try {
+        const { data } = await axios.get<{ success: boolean; data: PaginatedProducts }>(
+          `/api/products?sortBy=${sortBy}&limit=${ITEMS}&page=${page}`,
+        );
+        // If the chosen page is beyond total results, fall back to page 1.
+        const products = data.data?.products ?? [];
+        if (products.length === 0 && page > 1) {
+          const { data: fallback } = await axios.get<{ success: boolean; data: PaginatedProducts }>(
+            `/api/products?sortBy=${sortBy}&limit=${ITEMS}&page=1`,
+          );
+          setProducts(fallback.data?.products ?? []);
+        } else {
+          setProducts(products);
+        }
+      } catch {
+        // silently degrade — section simply stays empty
+      } finally {
+        setLoading(false);
+      }
+    }
+    void load();
+  // section is stable from parent; key fields won't change mid-life
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <SectionCarousel
       title={section.title}
@@ -60,9 +72,13 @@ export default function ProductCarousel({ section }: { section: HomepageSection 
       seeAllHref={section.ctaHref}
       titleId={`section-${section.key}`}
     >
-      {section.items.map((item) => (
-        <CarouselItem key={item._id} item={item} />
-      ))}
+      {loading
+        ? Array.from({ length: ITEMS }).map((_, i) => <SkeletonCard key={i} />)
+        : products.map((product) => (
+            <div key={product._id} className={CARD_W}>
+              <ProductCard product={product} />
+            </div>
+          ))}
     </SectionCarousel>
   );
 }

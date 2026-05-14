@@ -18,7 +18,7 @@ export default function FeaturedProducts({ products }: FeaturedProductsProps) {
       titleId="featured-heading"
     >
       {products.map((product) => (
-        <div key={product._id} className="flex-shrink-0 w-44 sm:w-52">
+        <div key={product._id} className="flex-shrink-0 snap-start w-[calc(100vw-4rem)] sm:w-[calc(50vw-2.5rem)] lg:w-[calc(25vw-1.25rem)] xl:w-[270px]">
           <ProductCard product={product} />
         </div>
       ))}

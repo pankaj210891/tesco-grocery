@@ -1,73 +1,63 @@
-import Link from "next/link";
+"use client";
+
+import { useState, useEffect } from "react";
+import axios from "axios";
 import SectionCarousel from "@/components/ui/SectionCarousel";
-import { formatPrice } from "@/lib/utils/format";
-import type { HomepageSection, SectionItem } from "@/types";
+import ProductCard from "@/components/product/ProductCard";
+import type { HomepageSection, PaginatedProducts, Product } from "@/types";
 
-function daysLeft(expiresAt?: string): number | null {
-  if (!expiresAt) return null;
-  return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000);
-}
+const CARD_W = "flex-shrink-0 w-[200px] sm:w-[270px]";
+const ITEMS  = 8;
 
-function OfferCard({ item }: { item: SectionItem }) {
-  const days = daysLeft(item.expiresAt);
-  const expiry =
-    days === null  ? null :
-    days <= 0      ? "Offer expired" :
-    days === 1     ? "⏰ Ends tomorrow" :
-                     `⏰ Ends in ${days} days`;
-  const href = item.productSlug ? `/products/${item.productSlug}` : (item.href ?? "/offers");
-
+function SkeletonCard() {
   return (
-    <Link
-      href={href}
-      className="flex-shrink-0 w-40 sm:w-44 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/70 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group"
-    >
-      <div
-        className="h-36 sm:h-40 flex items-center justify-center relative overflow-hidden"
-        style={{ backgroundColor: item.color ?? "#F9FAFB" }}
-      >
-        <span className="text-5xl sm:text-6xl select-none leading-none group-hover:scale-110 transition-transform duration-300" aria-hidden>
-          {item.emoji ?? "📦"}
-        </span>
-        {item.discount && (
-          <span className="absolute top-2 right-2 px-2 py-1 text-[11px] font-black rounded-xl bg-red-500 text-white shadow-sm">
-            -{item.discount}%
-          </span>
-        )}
+    <div className={`${CARD_W} animate-pulse rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800`}>
+      <div className="aspect-square bg-gray-100 dark:bg-gray-700" />
+      <div className="p-3.5 space-y-2">
+        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded w-1/3" />
+        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full" />
+        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/4" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4 mt-2" />
+        <div className="h-9 bg-gray-100 dark:bg-gray-700 rounded-lg mt-1" />
       </div>
-
-      <div className="p-3 space-y-0.5">
-        {item.brand && (
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate">
-            {item.brand}
-          </p>
-        )}
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2 min-h-[2.5rem]">
-          {item.title}
-        </p>
-        <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-          {item.price != null && (
-            <span className="text-sm font-black text-red-600 dark:text-red-400">
-              {formatPrice(item.price)}
-            </span>
-          )}
-          {item.originalPrice != null && (
-            <span className="text-xs text-gray-400 line-through">
-              {formatPrice(item.originalPrice)}
-            </span>
-          )}
-        </div>
-        {expiry && (
-          <p className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 pt-0.5">
-            {expiry}
-          </p>
-        )}
-      </div>
-    </Link>
+    </div>
   );
 }
 
 export default function OfferCards({ section }: { section: HomepageSection }) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    // Offer sections surface discounted products; "price-asc" surfaces the
+    // best-value items. Use section.order as page to avoid overlap with other
+    // carousels using the same sort.
+    const page = Math.max(1, section.order);
+
+    async function load() {
+      try {
+        const { data } = await axios.get<{ success: boolean; data: PaginatedProducts }>(
+          `/api/products?sortBy=price-asc&limit=${ITEMS}&page=${page}`,
+        );
+        const products = data.data?.products ?? [];
+        if (products.length === 0 && page > 1) {
+          const { data: fallback } = await axios.get<{ success: boolean; data: PaginatedProducts }>(
+            `/api/products?sortBy=price-asc&limit=${ITEMS}&page=1`,
+          );
+          setProducts(fallback.data?.products ?? []);
+        } else {
+          setProducts(products);
+        }
+      } catch {
+        // silently degrade
+      } finally {
+        setLoading(false);
+      }
+    }
+    void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <SectionCarousel
       title={section.title}
@@ -76,9 +66,13 @@ export default function OfferCards({ section }: { section: HomepageSection }) {
       seeAllHref={section.ctaHref}
       titleId={`section-${section.key}`}
     >
-      {section.items.map((item) => (
-        <OfferCard key={item._id} item={item} />
-      ))}
+      {loading
+        ? Array.from({ length: ITEMS }).map((_, i) => <SkeletonCard key={i} />)
+        : products.map((product) => (
+            <div key={product._id} className={CARD_W}>
+              <ProductCard product={product} />
+            </div>
+          ))}
     </SectionCarousel>
   );
 }

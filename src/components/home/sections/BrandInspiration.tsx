@@ -40,6 +40,7 @@ export default function BrandInspiration({ section }: { section: HomepageSection
       seeAllLabel={section.ctaLabel}
       seeAllHref={section.ctaHref}
       titleId={`section-${section.key}`}
+      showArrows={false}
     >
       {section.items.map((item) => (
         <BrandCard key={item._id} item={item} />

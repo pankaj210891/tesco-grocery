@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import NavArrow from "@/components/ui/NavArrow";
 
-const SCROLL_PX = 340;
+const SCROLL_PX = 300;
 
 interface SectionCarouselProps {
   title: string;
@@ -15,6 +15,7 @@ interface SectionCarouselProps {
   titleId?: string;
   children: React.ReactNode;
   className?: string;
+  showArrows?: boolean;
 }
 
 export default function SectionCarousel({
@@ -25,6 +26,7 @@ export default function SectionCarousel({
   titleId,
   children,
   className,
+  showArrows = true,
 }: SectionCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -85,7 +87,7 @@ export default function SectionCarousel({
         />
         <div
           ref={trackRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto overscroll-x-contain scrollbar-none pb-1"
+          className="flex gap-3 sm:gap-4 overflow-x-auto overscroll-x-contain scrollbar-none pb-1 snap-x snap-mandatory"
         >
           {children}
         </div>
@@ -99,10 +101,12 @@ export default function SectionCarousel({
       </div>
 
       {/* Nav arrows — bottom right */}
-      <div className="flex justify-end gap-2 mt-3">
-        <NavArrow direction="prev" onClick={() => nudge("left")} disabled={!canLeft} label="Scroll left" />
-        <NavArrow direction="next" onClick={() => nudge("right")} disabled={!canRight} label="Scroll right" />
-      </div>
+      {showArrows && (
+        <div className="flex justify-end gap-2 mt-3">
+          <NavArrow direction="prev" onClick={() => nudge("left")} disabled={!canLeft} label="Scroll left" />
+          <NavArrow direction="next" onClick={() => nudge("right")} disabled={!canRight} label="Scroll right" />
+        </div>
+      )}
 
     </section>
   );
