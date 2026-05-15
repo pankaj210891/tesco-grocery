@@ -56,7 +56,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
       {!query && (
         <div className="flex flex-col items-center py-20 text-center">
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-400 dark:text-gray-500 text-lg">
             Start typing in the search bar above ↑
           </p>
         </div>
@@ -70,7 +70,7 @@ export default async function SearchPage({ searchParams }: Props) {
             <Suspense fallback={<SortSkeleton />}>
               <SortControl />
             </Suspense>
-            <span className="text-sm text-gray-500 hidden sm:inline">
+            <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
               {total} {total === 1 ? "result" : "results"}
             </span>
           </div>
@@ -82,5 +82,5 @@ export default async function SearchPage({ searchParams }: Props) {
 }
 
 function SortSkeleton() {
-  return <div className="h-8 w-44 bg-gray-200 rounded-lg animate-pulse" />;
+  return <div className="h-8 w-44 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />;
 }
