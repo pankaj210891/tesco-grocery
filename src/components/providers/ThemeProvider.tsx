@@ -29,6 +29,25 @@ function getSystemPreference(): ResolvedTheme {
     : "light";
 }
 
+/*
+ * Reads the stored theme synchronously.
+ * Returns "system" during SSR (window is undefined) so server-rendered HTML
+ * is always theme-neutral — ThemeToggle's `mounted` guard ensures no hydration
+ * mismatch even when the client returns a different stored value.
+ */
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "system";
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      return stored;
+    }
+  } catch {
+    // localStorage unavailable (private browsing, storage quota, etc.)
+  }
+  return "system";
+}
+
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error("useTheme must be used inside <ThemeProvider>");
@@ -37,25 +56,33 @@ export function useTheme(): ThemeContextValue {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   /*
-   * Always initialise with "system" so the server and client produce identical
-   * HTML during hydration. The real stored preference is applied in the mount
-   * effect below, after React has safely taken over the DOM.
-   * The blocking <script> in layout.tsx handles the visual class so there is
-   * no flash of wrong theme before the effect runs.
+   * Lazy initializer — called once on mount, never during SSR.
+   * Reading localStorage here (instead of in a useEffect) means the correct
+   * theme is available on the very first client render, so the DOM-sync effect
+   * below only ever fires with the right value. There is no intermediate
+   * "system → stored" two-step that previously caused the dark class to flicker.
+   *
+   * Hydration safety: ThemeToggle's `mounted` guard keeps all buttons inactive
+   * on the first pass (matching server HTML), so the different initial theme
+   * value between SSR ("system") and client (stored) never produces a mismatch.
    */
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>(readStoredTheme);
 
+  /* Remove the transition-suppressor added by the blocking script in layout.tsx */
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setThemeState(stored);
-    }
+    const raf = requestAnimationFrame(() => {
+      document.documentElement.classList.remove("no-transitions");
+    });
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // ignore write failures
+    }
   }, []);
 
   /* Sync the DOM class whenever theme state changes. */

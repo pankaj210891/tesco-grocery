@@ -43,17 +43,17 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       {/*
        * Blocking script — runs synchronously before first paint.
-       * Reads the stored theme from localStorage and applies the "dark" class
-       * immediately so there is no flash of wrong theme on refresh.
-       * Logic mirrors ThemeProvider:
-       *   "dark"            → dark
-       *   "light"           → light
-       *   "system" / unset  → follow OS preference
+       * 1. Adds `no-transitions` so the CSS transition on <body> cannot animate
+       *    a brief wrong-theme state between server HTML and React hydration.
+       *    ThemeProvider removes this class after the first animation frame.
+       * 2. Reads the stored theme from localStorage and applies the "dark" class
+       *    immediately so there is no flash of wrong theme on hard reload.
+       * Logic mirrors ThemeProvider: "dark" → dark | "light" → light | else → OS pref.
        */}
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('prakash-theme'),p=window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.classList.toggle('dark',t==='dark'||(t!=='light'&&p))}catch(e){}})()`,
+            __html: `(function(){try{document.documentElement.classList.add('no-transitions');var t=localStorage.getItem('prakash-theme'),p=window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.classList.toggle('dark',t==='dark'||(t!=='light'&&p))}catch(e){}})()`,
           }}
         />
       </head>

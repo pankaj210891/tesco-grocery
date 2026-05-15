@@ -75,6 +75,15 @@
 }
 
 @layer utilities {
+  /* Suppress all CSS transitions during the initial theme-class application.
+     ThemeProvider adds this class via the blocking script in layout.tsx and
+     removes it after the first animation frame, preventing body's
+     `transition: background-color` from animating a brief wrong-theme state. */
+  .no-transitions,
+  .no-transitions * {
+    transition: none !important;
+  }
+
   /* ── No-spinner number input ──────────────────────────────────── */
   .no-spinner { -moz-appearance: textfield; }
   .no-spinner::-webkit-inner-spin-button,
