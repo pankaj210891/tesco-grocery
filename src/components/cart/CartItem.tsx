@@ -51,7 +51,7 @@ export default function CartItem({ item }: CartItemProps) {
         aria-hidden
       >
         <Image
-          src={product.images[0] ?? "/images/placeholder-product.png"}
+          src={product.images[0] ?? "/images/placeholder-product.webp"}
           alt={product.name}
           fill
           sizes="96px"

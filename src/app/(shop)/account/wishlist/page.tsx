@@ -26,7 +26,7 @@ function WishlistItem({ product }: { product: Product }) {
       <Link href={`/products/${product.slug}`} className="shrink-0">
         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
           <Image
-            src={product.images[0] ?? "/images/placeholder-product.png"}
+            src={product.images[0] ?? "/images/placeholder-product.webp"}
             alt={product.name}
             fill
             sizes="80px"

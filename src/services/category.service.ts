@@ -8,6 +8,7 @@ function toCategory(doc: CategoryDoc & { _id: { toString(): string } }): Categor
     name:         doc.name,
     slug:         doc.slug,
     emoji:        doc.emoji ?? "📦",
+    image:        (doc as CategoryDoc & { image?: string }).image ?? "",
     description:  doc.description ?? "",
     color:        doc.color ?? "bg-gray-50",
     textColor:    doc.textColor ?? "text-gray-700",

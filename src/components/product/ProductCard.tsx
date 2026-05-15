@@ -78,7 +78,7 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
     touchStart.current = null;
   }
 
-  const src = images[idx] ?? "/images/placeholder-product.png";
+  const src = images[idx] ?? "/images/placeholder-product.webp";
 
   return (
     <Link
@@ -203,7 +203,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
       {/* ── Image ── */}
       <CardCarousel
-        images={product.images.length > 0 ? product.images : ["/images/placeholder-product.png"]}
+        images={product.images.length > 0 ? product.images : ["/images/placeholder-product.webp"]}
         alt={product.name}
         href={`/products/${product.slug}`}
       />
