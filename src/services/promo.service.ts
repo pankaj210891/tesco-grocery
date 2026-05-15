@@ -50,6 +50,7 @@ export interface EligiblePromo {
   discountValue: number;
   discountAmount: number; // projected saving for this cart
   minOrderValue: number;
+  eligibleCategories: string[]; // [] = all categories
   badge?: string;
   emoji?: string;
   color?: string;
@@ -365,6 +366,7 @@ export async function getEligiblePromos(
       discountValue: offer.discountValue,
       discountAmount,
       minOrderValue: offer.minOrderValue,
+      eligibleCategories: offer.eligibleCategories ?? [],
       badge: offer.badge,
       emoji: offer.emoji,
       color: offer.color,

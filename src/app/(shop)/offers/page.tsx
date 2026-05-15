@@ -78,6 +78,11 @@ function OfferCard({ offer }: { offer: Offer }) {
             Min. order ₹{offer.minOrderValue}
           </p>
         )}
+        {offer.eligibleCategories?.length > 0 && (
+          <p className="text-[11px] font-semibold text-amber-600 mt-1">
+            Valid for: {offer.eligibleCategories.map((c) => c.replace(/-/g, " ")).join(", ")}
+          </p>
+        )}
       </div>
 
       {/* Footer */}

@@ -331,6 +331,11 @@ function EligiblePromoCard({
           )}
         </div>
         <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{promo.title}</p>
+        {promo.eligibleCategories.length > 0 && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 truncate">
+            Valid for: {promo.eligibleCategories.map((c) => c.replace(/-/g, " ")).join(", ")}
+          </p>
+        )}
         <p className="text-[11px] font-semibold text-green-600 dark:text-green-400">
           Save {formatPrice(promo.discountAmount)}
         </p>

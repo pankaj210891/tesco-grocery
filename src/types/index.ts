@@ -284,23 +284,24 @@ export interface Faq {
 export type DiscountType = "percentage" | "fixed" | "freeDelivery";
 
 export interface Offer {
-  _id:           string;
-  title:         string;
-  subtitle?:     string;
-  description?:  string;
-  code?:         string;
-  discountType:  DiscountType;
-  discountValue: number;
-  minOrderValue: number;
-  expiresAt:     string;
-  isActive:      boolean;
-  badge?:        string;
-  color?:        string;
-  emoji?:        string;
-  category:      string;
-  href:          string;
-  order:         number;
-  createdAt:     string;
+  _id:                 string;
+  title:               string;
+  subtitle?:           string;
+  description?:        string;
+  code?:               string;
+  discountType:        DiscountType;
+  discountValue:       number;
+  minOrderValue:       number;
+  expiresAt:           string;
+  isActive:            boolean;
+  eligibleCategories:  string[]; // [] = all categories
+  badge?:              string;
+  color?:              string;
+  emoji?:              string;
+  category:            string;
+  href:                string;
+  order:               number;
+  createdAt:           string;
 }
 
 // ─── Homepage Sections ────────────────────────────────────────────────────────
