@@ -16,7 +16,6 @@ const CategorySchema = new Schema(
   { timestamps: true }
 );
 
-CategorySchema.index({ slug: 1 });
 CategorySchema.index({ order: 1 });
 
 export type CategoryDoc = InferSchemaType<typeof CategorySchema> & {

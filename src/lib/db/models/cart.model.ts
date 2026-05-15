@@ -16,8 +16,6 @@ const CartSchema = new Schema(
   { timestamps: true }
 );
 
-CartSchema.index({ userId: 1 });
-
 export type CartDoc = InferSchemaType<typeof CartSchema> & {
   _id: mongoose.Types.ObjectId;
   createdAt: Date;
