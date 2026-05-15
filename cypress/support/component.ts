@@ -5,7 +5,6 @@
  */
 
 import "./commands";
-import "../../src/app/globals.css";
 
 import { mount } from "cypress/react";
 
