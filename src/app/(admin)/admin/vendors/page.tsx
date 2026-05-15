@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, ChevronLeft, ChevronRight, X, Search } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import type { Vendor, VendorStatus } from "@/types";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PageData { vendors: Vendor[]; total: number; page: number; totalPages: number; }
 
@@ -25,6 +26,7 @@ export default function AdminVendorsPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(false);
   const [form, setForm]       = useState({ ...EMPTY_FORM });
+  useScrollLock(modal);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
   const [updating, setUpdating] = useState<string | null>(null);

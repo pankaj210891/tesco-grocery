@@ -6,7 +6,7 @@ function ExploreCard({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="relative flex flex-col justify-between p-5 rounded-2xl overflow-hidden min-h-[130px] sm:min-h-[150px] hover:shadow-lg transition-all duration-150 group border border-black/5"
+      className="relative flex flex-col justify-between p-5 rounded-2xl overflow-hidden min-h-[130px] sm:min-h-[150px] hover:shadow-lg transition-shadow duration-150 group border border-black/5"
       style={{ backgroundColor: item.color ?? "#F3F4F6" }}
     >
       <div>

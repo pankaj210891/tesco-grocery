@@ -5,6 +5,7 @@ interface RatingStarsProps {
   rating: number;
   reviewCount?: number;
   size?: "sm" | "md" | "lg";
+  showScore?: boolean;
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export default function RatingStars({
   rating,
   reviewCount,
   size = "md",
+  showScore = true,
   className,
 }: RatingStarsProps) {
   const full = Math.floor(rating);
@@ -44,18 +46,20 @@ export default function RatingStars({
                 ? "fill-amber-400 text-amber-400"
                 : i === full && hasHalf
                   ? "fill-amber-200 text-amber-400"
-                  : "fill-gray-200 text-gray-200"
+                  : "fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600"
             )}
             aria-hidden
           />
         ))}
       </div>
-      <span className={cn(textMap[size], "font-semibold text-gray-700")}>
-        {rating.toFixed(1)}
-      </span>
+      {showScore && (
+        <span className={cn(textMap[size], "font-semibold text-gray-700")}>
+          {rating.toFixed(1)}
+        </span>
+      )}
       {reviewCount !== undefined && (
-        <span className={cn(textMap[size], "text-gray-400")}>
-          ({reviewCount.toLocaleString()})
+        <span className={cn(textMap[size], "text-gray-400 dark:text-gray-500 tabular-nums leading-none")}>
+          {reviewCount > 0 ? `(${reviewCount.toLocaleString()})` : "No reviews"}
         </span>
       )}
     </div>

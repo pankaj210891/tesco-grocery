@@ -123,7 +123,7 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 mt-2 hover:brightness-105 active:scale-95"
+            className="w-full py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors transition-transform flex items-center justify-center gap-2 mt-2 hover:brightness-105 active:scale-95"
             style={{ backgroundColor: "#FCA311" }}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}

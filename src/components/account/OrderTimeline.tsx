@@ -91,7 +91,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                   )}
                   <div
                     className={cn(
-                      "relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                      "relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors transition-shadow duration-500",
                       isDone     && "bg-green-500 border-green-500 shadow-md shadow-green-200 dark:shadow-green-900/40",
                       isCurrent  && "bg-[#FCA311] border-[#FCA311] shadow-md shadow-blue-200 dark:shadow-blue-900/40",
                       isUpcoming && "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
@@ -172,7 +172,7 @@ export default function OrderTimeline({ status }: { status: Order["status"] }) {
                   )}
                   <div
                     className={cn(
-                      "relative w-9 h-9 rounded-full flex items-center justify-center border-2 shrink-0 transition-all duration-500",
+                      "relative w-9 h-9 rounded-full flex items-center justify-center border-2 shrink-0 transition-colors transition-shadow duration-500",
                       isDone    && "bg-green-500 border-green-500 shadow-sm",
                       isCurrent && "bg-[#FCA311] border-[#FCA311] shadow-sm",
                       isUpcoming && "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",

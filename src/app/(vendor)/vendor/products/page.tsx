@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth.store";
 import type { Product, ProductBadge } from "@/types";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PageData { products: Product[]; total: number; page: number; totalPages: number; }
 
@@ -26,6 +27,7 @@ export default function VendorProductsPage() {
   const [modal, setModal]     = useState<"add" | "edit" | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm]       = useState({ ...EMPTY });
+  useScrollLock(modal !== null);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
 

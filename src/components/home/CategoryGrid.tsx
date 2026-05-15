@@ -26,7 +26,7 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
             "w-[88px] sm:w-[100px]",
             "bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700",
             "shadow-sm hover:shadow-md hover:border-[#FCA311] dark:hover:border-[#FCA311]",
-            "transition-all duration-200 group",
+            "transition-colors transition-shadow duration-200 group",
           )}
         >
           <div

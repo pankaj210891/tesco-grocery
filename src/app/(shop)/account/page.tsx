@@ -168,7 +168,7 @@ export default function AccountPage() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                     activeTab === id
                       ? "bg-amber-50 dark:bg-amber-900/20 text-[#FCA311] dark:text-amber-400 font-semibold"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -184,14 +184,14 @@ export default function AccountPage() {
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60 space-y-0.5">
               <Link
                 href="/account/wishlist"
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <HelpCircle className="h-4 w-4 shrink-0" />
                 Help & Support
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 Sign out
@@ -207,7 +207,7 @@ export default function AccountPage() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
                   activeTab === id
                     ? "bg-[#FCA311] text-white shadow-sm"
                     : "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
@@ -390,7 +390,7 @@ function OrderRow({ order }: { order: Order }) {
     <li>
       <Link
         href={`/account/orders/${order.orderNumber}`}
-        className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-700/60 hover:border-[#FCA311]/40 dark:hover:border-amber-500/30 hover:bg-amber-50/30 dark:hover:bg-amber-900/5 transition-all group"
+        className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-700/60 hover:border-[#FCA311]/40 dark:hover:border-amber-500/30 hover:bg-amber-50/30 dark:hover:bg-amber-900/5 transition-colors group"
       >
         <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0">
           <Package className="h-4 w-4 text-[#FCA311]" />

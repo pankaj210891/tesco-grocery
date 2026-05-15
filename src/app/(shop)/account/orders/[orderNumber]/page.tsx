@@ -8,6 +8,7 @@ import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle } from 
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils/format";
 import OrderTimeline from "@/components/account/OrderTimeline";
 import type { Order } from "@/types";
@@ -51,6 +52,7 @@ export default function OrderDetailPage({
   const [error,         setError]         = useState("");
   const [showCancel,    setShowCancel]    = useState(false);
   const [cancelReason,  setCancelReason]  = useState("");
+  useScrollLock(showCancel);
   const [cancelComment, setCancelComment] = useState("");
   const [cancelling,    setCancelling]    = useState(false);
   const [cancelError,   setCancelError]   = useState("");

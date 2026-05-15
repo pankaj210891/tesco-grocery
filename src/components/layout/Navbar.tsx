@@ -26,6 +26,7 @@ import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthData } from "@/hooks/useAuthData";
 import { useHydrated } from "@/hooks/useHydrated";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const AMBER = "#FCA311";
 const BRAND = "#E8920A";
@@ -65,6 +66,7 @@ function getInitials(name: string): string {
 export default function Navbar() {
   const [mobileOpen,  setMobileOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  useScrollLock(mobileOpen);
   const [accountOpen, setAccountOpen] = useState(false);
   const [deptOpen,    setDeptOpen]    = useState(false);
   const [scrolled,    setScrolled]    = useState(false);
@@ -129,7 +131,7 @@ export default function Navbar() {
           {/* Hamburger — mobile */}
           <button
             onClick={() => setMobileOpen((o) => !o)}
-            className="md:hidden flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+            className="md:hidden flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-colors transition-transform"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
           >
@@ -165,7 +167,7 @@ export default function Navbar() {
             <div className={cn(
               "flex items-center w-full h-11 rounded-xl overflow-hidden",
               "bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-              "focus-within:border-[#FCA311] focus-within:ring-2 focus-within:ring-[#FCA311]/20 transition-all",
+              "focus-within:border-[#FCA311] focus-within:ring-2 focus-within:ring-[#FCA311]/20 transition-colors",
             )}>
               <input
                 type="text"
@@ -214,7 +216,7 @@ export default function Navbar() {
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountOpen((o) => !o)}
-                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-colors transition-transform"
                   aria-label="Account menu"
                   aria-expanded={accountOpen}
                 >
@@ -262,7 +264,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-colors transition-transform"
               >
                 <User className="h-5 w-5" />
                 <span className="hidden sm:inline text-[10px] font-semibold">Sign in</span>
@@ -273,7 +275,7 @@ export default function Navbar() {
             <Link
               href="/account/wishlist"
               aria-label={`Wishlist, ${hydrated ? wishlistCount : 0} items`}
-              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-colors transition-transform"
             >
               <Heart className="h-5 w-5" />
               <span className="hidden sm:inline text-[10px] font-semibold">Wishlist</span>
@@ -292,7 +294,7 @@ export default function Navbar() {
             <Link
               href="/cart"
               aria-label={`Cart, ${hydrated ? totalItems : 0} items`}
-              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-colors transition-transform"
             >
               <ShoppingCart className="h-5 w-5" />
               <span className="hidden sm:inline text-[10px] font-semibold">Cart</span>
@@ -323,7 +325,7 @@ export default function Navbar() {
             <button
               onClick={() => setDeptOpen((o) => !o)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-all whitespace-nowrap",
+                "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-colors whitespace-nowrap",
                 deptOpen ? "brightness-90" : "hover:brightness-105 active:scale-95",
               )}
               style={{ backgroundColor: AMBER }}
@@ -363,7 +365,7 @@ export default function Navbar() {
                 <Link
                   href={link.href}
                   className={cn(
-                    "flex items-center px-3 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2",
+                    "flex items-center px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2",
                     pathname === link.href
                       ? "border-[#FCA311] text-[#FCA311] font-semibold"
                       : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300",

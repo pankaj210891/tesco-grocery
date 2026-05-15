@@ -48,7 +48,7 @@ export default function PaymentMethodSelector({
             type="button"
             onClick={() => onChange(opt.id)}
             className={cn(
-              "w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all",
+              "w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-colors transition-shadow",
               selected
                 ? "border-[#FCA311] bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500"
                 : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-800"

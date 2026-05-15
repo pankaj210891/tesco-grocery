@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { X, CreditCard, Check } from "lucide-react";
 import { CARD_LABELS } from "@/lib/utils/card";
 import type { PaymentMethod, CardType } from "@/types";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PaymentSelectModalProps {
   payments: PaymentMethod[];
@@ -18,6 +19,8 @@ export default function PaymentSelectModal({
   onSelect,
   onClose,
 }: PaymentSelectModalProps) {
+  useScrollLock(true);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();

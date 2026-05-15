@@ -149,13 +149,13 @@ export default function FiltersSidebar({ categories }: FiltersSidebarProps) {
               className="sr-only peer"
             />
             <div className={cn(
-              "w-9 h-5 rounded-full border-2 transition-all",
+              "w-9 h-5 rounded-full border-2 transition-colors",
               inStock
                 ? "bg-[#FCA311] border-[#FCA311]"
                 : "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600",
             )}>
               <div className={cn(
-                "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-all duration-200",
+                "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform duration-200",
                 inStock ? "left-[18px]" : "left-[3px]",
               )} />
             </div>

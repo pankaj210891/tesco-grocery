@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface Category {
   _id:          string;
@@ -37,6 +38,7 @@ export default function AdminCategoriesPage() {
   const [search,     setSearch]     = useState("");
   const [showForm,   setShowForm]   = useState(false);
   const [editing,    setEditing]    = useState<Category | null>(null);
+  useScrollLock(showForm);
   const [form,       setForm]       = useState({ ...EMPTY_FORM });
   const [saving,     setSaving]     = useState(false);
   const [deleting,   setDeleting]   = useState<string | null>(null);

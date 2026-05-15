@@ -166,7 +166,7 @@ export default function HeroBanner() {
               </p>
               <Link
                 href={slide.href}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white font-bold text-sm hover:bg-[#FCA311] hover:text-white active:scale-95 transition-all duration-200 shadow-lg"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white font-bold text-sm hover:bg-[#FCA311] hover:text-white active:scale-95 transition-colors transition-transform duration-200 shadow-lg"
                 style={{ color: "#FCA311" }}
               >
                 {slide.cta}
@@ -203,7 +203,7 @@ export default function HeroBanner() {
               aria-label={`Go to slide ${i + 1}`}
               onClick={() => goTo(i)}
               className={cn(
-                "transition-all duration-300 rounded-full",
+                "transition-[width,background-color] duration-300 rounded-full",
                 i === active ? "w-6 h-2 bg-white shadow" : "w-2 h-2 bg-white/50 hover:bg-white/80",
               )}
             />
@@ -230,7 +230,7 @@ export default function HeroBanner() {
             href={mb.href}
             className={cn(
               "flex-1 group relative overflow-hidden rounded-2xl bg-gradient-to-br p-6 flex flex-col justify-between",
-              "border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all duration-200",
+              "border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-colors transition-shadow duration-200",
               mb.bg,
             )}
           >

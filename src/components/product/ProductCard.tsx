@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Star, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
+import { Plus, Minus, ShoppingCart, Zap } from "lucide-react";
 import NavArrow from "@/components/ui/NavArrow";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
@@ -12,6 +12,7 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { savePendingAction } from "@/lib/pending-action";
 import WishlistButton from "./WishlistButton";
+import RatingStars from "./RatingStars";
 import type { Product } from "@/types";
 
 const AMBER = "#FCA311";
@@ -24,31 +25,6 @@ const BADGE_MAP: Record<string, { bg: string; text: string }> = {
   ORGANIC:   { bg: "bg-green-600",   text: "text-white" },
   EXCLUSIVE: { bg: "bg-purple-600",  text: "text-white" },
 };
-
-function StarRating({ rating, count }: { rating: number; count: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className={cn(
-              "h-3 w-3",
-              i < Math.floor(rating)
-                ? "fill-[#FCA311] text-[#FCA311]"
-                : i < rating
-                  ? "fill-[#FCA311]/50 text-[#FCA311]/50"
-                  : "fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600",
-            )}
-          />
-        ))}
-      </div>
-      <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums leading-none">
-        {count > 0 ? `(${count})` : "No reviews"}
-      </span>
-    </div>
-  );
-}
 
 const SLIDE_MS = 4000;
 
@@ -111,7 +87,7 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
               <span
                 key={i}
                 className={cn(
-                  "rounded-full transition-all duration-300",
+                  "rounded-full transition-[width,background-color] duration-300",
                   i === idx ? "w-4 h-1.5 bg-[#FCA311]" : "w-1.5 h-1.5 bg-white/60 dark:bg-gray-400/60",
                 )}
               />
@@ -169,7 +145,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         "rounded-xl border border-gray-200 dark:border-gray-700/60",
         "hover:border-[#FCA311]/50 dark:hover:border-[#FCA311]/40",
         "hover:shadow-[0_4px_20px_rgba(252,163,17,0.12)] dark:hover:shadow-[0_4px_20px_rgba(252,163,17,0.08)]",
-        "transition-all duration-300 overflow-hidden",
+        "transition-colors transition-shadow duration-300 overflow-hidden",
         className,
       )}
     >
@@ -228,7 +204,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.brand}</p>
         </div>
 
-        <StarRating rating={product.rating} count={product.reviewCount} />
+        <RatingStars rating={product.rating} reviewCount={product.reviewCount} size="sm" showScore={false} />
 
         {/* Price */}
         <div className="flex items-baseline gap-2 mt-auto pt-1">
@@ -256,7 +232,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
           qty === 0 ? (
             <button
               onClick={() => handleCartAction(1)}
-              className="mt-1.5 w-full h-9 flex items-center justify-center gap-2 text-white text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.97]"
+              className="mt-1.5 w-full h-9 flex items-center justify-center gap-2 text-white text-sm font-semibold rounded-lg transition-colors transition-transform duration-200 active:scale-[0.97]"
               style={{ backgroundColor: AMBER }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER; }}
@@ -269,7 +245,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             <div className="mt-1.5 flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1 border border-gray-200 dark:border-gray-600/50">
               <button
                 onClick={() => handleQuantityChange(qty - 1)}
-                className="h-7 w-7 flex items-center justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:border-[#FCA311] active:scale-90 transition-all shadow-sm"
+                className="h-7 w-7 flex items-center justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:border-[#FCA311] active:scale-90 transition-colors transition-transform shadow-sm"
                 aria-label="Decrease quantity"
               >
                 <Minus className="h-3 w-3 text-gray-600 dark:text-gray-300" />
@@ -279,7 +255,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               </span>
               <button
                 onClick={() => handleQuantityChange(qty + 1)}
-                className="h-7 w-7 flex items-center justify-center rounded-md text-white active:scale-90 transition-all shadow-sm"
+                className="h-7 w-7 flex items-center justify-center rounded-md text-white active:scale-90 transition-colors transition-transform shadow-sm"
                 style={{ backgroundColor: AMBER }}
                 aria-label="Increase quantity"
               >

@@ -42,7 +42,7 @@ export default function RatingBreakdown({ summary }: { summary: RatingSummary })
               <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" aria-hidden />
               <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                  className="h-full bg-amber-400 rounded-full transition-[width] duration-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>

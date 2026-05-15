@@ -172,14 +172,14 @@ export default function ConfirmationContent() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/products"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#FCA311] hover:bg-[#E8920A] text-white font-bold rounded-2xl text-sm transition-all shadow-lg shadow-[#FCA311]/25 hover:shadow-[#E8920A]/30 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#FCA311] hover:bg-[#E8920A] text-white font-bold rounded-2xl text-sm transition-colors transition-shadow transition-transform shadow-lg shadow-[#FCA311]/25 hover:shadow-[#E8920A]/30 hover:-translate-y-0.5"
           >
             <ShoppingBag className="h-4 w-4" />
             Continue Shopping
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl text-sm hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl text-sm hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Back to Home
           </Link>

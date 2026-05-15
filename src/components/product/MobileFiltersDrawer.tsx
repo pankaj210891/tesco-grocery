@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import FiltersSidebar from "@/components/product/FiltersSidebar";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface MobileFiltersDrawerProps {
   categories: string[];
@@ -13,6 +14,7 @@ export default function MobileFiltersDrawer({
   categories,
 }: MobileFiltersDrawerProps) {
   const [open, setOpen] = useState(false);
+  useScrollLock(open);
 
   return (
     <>

@@ -7,6 +7,7 @@ import {
   LogOut, Menu, X, FolderOpen, Tag,
 } from "lucide-react";
 import { useState } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store/auth.store";
 
@@ -53,6 +54,7 @@ export default function AdminSidebar() {
   const router   = useRouter();
   const { logout } = useAuthStore();
   const [open, setOpen] = useState(false);
+  useScrollLock(open);
 
   function handleLogout() {
     logout();
