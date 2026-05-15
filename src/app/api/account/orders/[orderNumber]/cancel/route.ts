@@ -44,20 +44,31 @@ export async function POST(
   }
 
   // ── Initiate Razorpay refund if applicable ────────────────────────────────
+  let refundInitiated = false;
+  let refundError: string | undefined;
+
   if (order.paymentMethod === "razorpay" && order.paymentStatus === "paid" && order.razorpayPaymentId) {
-    try {
-      const razorpay = new Razorpay({
-        key_id:     process.env.RAZORPAY_KEY_ID!,
-        key_secret: process.env.RAZORPAY_KEY_SECRET!,
-      });
+    const keyId     = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-      const refund = await razorpay.payments.refund(order.razorpayPaymentId, {
-        amount: Math.round(order.total * 100),
-      });
+    if (!keyId || !keySecret) {
+      refundError = "Razorpay credentials not configured in environment.";
+      console.error("[cancel] Razorpay refund skipped: missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET");
+    } else {
+      try {
+        const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
 
-      await setOrderRefund(orderNumber, refund.id, "initiated");
-    } catch (refundErr) {
-      console.error("[cancel] Razorpay refund initiation failed:", refundErr);
+        const refund = await razorpay.payments.refund(order.razorpayPaymentId, {
+          amount: Math.round(order.total * 100),
+        });
+
+        await setOrderRefund(orderNumber, refund.id, "initiated");
+        refundInitiated = true;
+        console.log("[cancel] Razorpay refund initiated:", refund.id, "for payment:", order.razorpayPaymentId);
+      } catch (refundErr) {
+        refundError = refundErr instanceof Error ? refundErr.message : String(refundErr);
+        console.error("[cancel] Razorpay refund initiation failed:", refundErr);
+      }
     }
   }
 
@@ -76,5 +87,5 @@ export async function POST(
     console.error("[cancel] Failed to send cancellation email:", emailErr);
   }
 
-  return Response.json({ success: true, data: order });
+  return Response.json({ success: true, data: order, refundInitiated, refundError });
 }
