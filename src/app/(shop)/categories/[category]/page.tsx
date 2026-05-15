@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { siteConfig } from "@/config/site";
 import { ChevronRight } from "lucide-react";
 import { getAllCategories, getCategoryBySlug } from "@/services/category.service";
 import { getProducts } from "@/services/product.service";
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!meta) return { title: "Category Not Found" };
 
   return {
-    title:       `${meta.name} — Prakash Supermarket`,
+    title:       `${meta.name} — ${siteConfig.name}`,
     description: meta.description,
   };
 }
