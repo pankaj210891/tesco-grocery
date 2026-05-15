@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Store,
-  ArrowLeft, LogOut, Menu, X, FolderOpen, Tag,
+  LogOut, Menu, X, FolderOpen, Tag,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
@@ -59,15 +59,10 @@ export default function AdminSidebar() {
     router.push("/login");
   }
 
-  const bottomActions = (onClose: () => void) => (
-    <>
-      <Link href="/" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Shop
-      </Link>
-      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-        <LogOut className="h-4 w-4" /> Logout
-      </button>
-    </>
+  const bottomActions = (
+    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+      <LogOut className="h-4 w-4" /> Logout
+    </button>
   );
 
   return (
@@ -91,7 +86,7 @@ export default function AdminSidebar() {
             </nav>
             {/* Sticky bottom */}
             <div className="shrink-0 px-4 py-4 border-t border-white/10 space-y-1">
-              {bottomActions(() => setOpen(false))}
+              {bottomActions}
             </div>
           </div>
           <div className="flex-1 bg-black/40" onClick={() => setOpen(false)} />
@@ -111,7 +106,7 @@ export default function AdminSidebar() {
         </nav>
         {/* Sticky bottom actions */}
         <div className="shrink-0 px-4 py-4 border-t border-white/10 space-y-1">
-          {bottomActions(() => {})}
+          {bottomActions}
         </div>
       </aside>
     </>

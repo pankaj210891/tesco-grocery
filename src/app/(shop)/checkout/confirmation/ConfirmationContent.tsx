@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Package, ShoppingBag, CreditCard, Truck, MapPin, ArrowRight, Clock } from "lucide-react";
 
+const orderConfirmationGenericMessage =
+  "Your order is confirmed and will be processed shortly.";
+
 export default function ConfirmationContent() {
   const sp          = useSearchParams();
   const orderNumber = sp.get("order") ?? "ORD-XXXXXXXX";
@@ -53,7 +56,7 @@ export default function ConfirmationContent() {
             {" "}
             {isCOD
               ? "Please keep the exact amount ready at delivery."
-              : "Your groceries will be with you soon."}
+              : orderConfirmationGenericMessage}
           </p>
         </div>
 
