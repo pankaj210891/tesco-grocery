@@ -9,6 +9,7 @@
     "lint": "eslint",
     "type-check": "tsc --noEmit",
     "generate-images": "node scripts/generate-images.mjs",
+    "fetch-images": "node scripts/fetch-product-images.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
