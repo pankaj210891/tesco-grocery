@@ -24,7 +24,7 @@ export default function ThemeToggle({ variant = "default" }: Props) {
     <div
       className={cn(
         "flex items-center gap-0.5 rounded-full p-0.5",
-        isNavbar ? "bg-black/20" : "bg-gray-100 dark:bg-gray-800"
+        isNavbar ? "bg-gray-200/70 dark:bg-black/20" : "bg-gray-100 dark:bg-gray-800"
       )}
       role="group"
       aria-label="Choose colour theme"
@@ -41,10 +41,10 @@ export default function ThemeToggle({ variant = "default" }: Props) {
               "p-1.5 rounded-full transition-all duration-150",
               isNavbar
                 ? active
-                  ? "bg-white text-[#0F4C75]"
-                  : "text-white/70 hover:text-white hover:bg-white/10"
+                  ? "bg-white text-[#FCA311] dark:bg-white dark:text-[#FCA311]"
+                  : "text-gray-500 dark:text-white/70 hover:text-gray-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
                 : active
-                  ? "bg-white dark:bg-gray-700 text-[#0F4C75] dark:text-white shadow-sm"
+                  ? "bg-white dark:bg-gray-700 text-[#FCA311] dark:text-white shadow-sm"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             )}
           >

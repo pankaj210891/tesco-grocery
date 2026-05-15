@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import axios from "axios";
-import { Tag, Copy, Check, Clock, ChevronRight } from "lucide-react";
+import { Tag, Copy, Check, Clock, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { Offer } from "@/types";
 
@@ -49,7 +49,7 @@ function OfferCard({ offer }: { offer: Offer }) {
   return (
     <div
       className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
-      style={{ backgroundColor: offer.color ?? "#F9FAFB" }}
+      style={{ backgroundColor: offer.color || "#EFF6FF" }}
     >
       {/* Top section */}
       <div className="p-5 flex-1">
@@ -57,11 +57,11 @@ function OfferCard({ offer }: { offer: Offer }) {
           <span className="text-4xl leading-none" aria-hidden>{offer.emoji ?? "🏷️"}</span>
           <div className="text-right space-y-1">
             {offer.badge && (
-              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-[#0F4C75] text-white">
+              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FCA311] text-white">
                 {offer.badge}
               </span>
             )}
-            <p className="text-lg font-black text-[#0F4C75] leading-none">{discountLabel}</p>
+            <p className="text-lg font-black text-[#FCA311] leading-none">{discountLabel}</p>
           </div>
         </div>
 
@@ -76,6 +76,11 @@ function OfferCard({ offer }: { offer: Offer }) {
         {offer.minOrderValue > 0 && (
           <p className="text-[11px] font-semibold text-gray-500 mt-2">
             Min. order ₹{offer.minOrderValue}
+          </p>
+        )}
+        {offer.eligibleCategories?.length > 0 && (
+          <p className="text-[11px] font-semibold text-amber-600 mt-1">
+            Valid for: {offer.eligibleCategories.map((c) => c.replace(/-/g, " ")).join(", ")}
           </p>
         )}
       </div>
@@ -102,7 +107,7 @@ function OfferCard({ offer }: { offer: Offer }) {
                 "p-1.5 rounded-lg transition-colors",
                 expired
                   ? "opacity-40 cursor-not-allowed"
-                  : "bg-[#0F4C75] text-white hover:bg-[#0A3352]"
+                  : "bg-[#FCA311] text-white hover:bg-[#E8920A]"
               )}
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -117,7 +122,7 @@ function OfferCard({ offer }: { offer: Offer }) {
             "flex items-center justify-center gap-1.5 w-full py-2 rounded-xl text-sm font-semibold transition-colors",
             expired
               ? "bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
-              : "bg-[#0F4C75] text-white hover:bg-[#0A3352]"
+              : "bg-[#FCA311] text-white hover:bg-[#E8920A]"
           )}
         >
           Shop now <ChevronRight className="h-4 w-4" />
@@ -140,6 +145,7 @@ export default function OffersPage() {
   const [offers,  setOffers]  = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState("all");
+  const [search,  setSearch]  = useState("");
 
   useEffect(() => {
     async function load() {
@@ -153,23 +159,43 @@ export default function OffersPage() {
     void load();
   }, []);
 
-  const filtered = useMemo(
-    () => filter === "all" ? offers : offers.filter((o) => o.category === filter),
-    [offers, filter]
-  );
+  const filtered = useMemo(() => {
+    let list = filter === "all" ? offers : offers.filter((o) => o.category === filter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (o) =>
+          o.title.toLowerCase().includes(q) ||
+          (o.code ?? "").toLowerCase().includes(q) ||
+          (o.description ?? "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [offers, filter, search]);
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
-      <div className="bg-[#0F4C75] text-white py-12 px-4">
+      <div className="bg-[#FCA311] text-white py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 rounded-2xl mb-4">
             <Tag className="h-7 w-7" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-black mb-2">Special Offers</h1>
-          <p className="text-blue-200 text-base">
+          <p className="text-amber-100 text-base mb-6">
             Exclusive deals, promo codes, and limited-time savings
           </p>
+          {/* Search */}
+          <div className="relative max-w-lg mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search offers or promo codes…"
+              className="w-full h-12 pl-10 pr-4 rounded-xl text-base md:text-sm text-gray-900 bg-white/95 backdrop-blur-sm shadow-lg shadow-black/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-gray-400"
+            />
+          </div>
         </div>
       </div>
 
@@ -183,8 +209,8 @@ export default function OffersPage() {
               className={cn(
                 "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                 filter === f.key
-                  ? "bg-[#0F4C75] text-white"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75]"
+                  ? "bg-[#FCA311] text-white"
+                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
               )}
             >
               {f.label}

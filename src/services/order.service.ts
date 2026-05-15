@@ -86,12 +86,30 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
   };
 }
 
-export async function getOrdersByUserId(userId: string): Promise<Order[]> {
+export interface OrderDateFilter {
+  from?: string; // ISO date string
+  to?:   string; // ISO date string
+}
+
+export async function getOrdersByUserId(
+  userId: string,
+  dateFilter?: OrderDateFilter,
+): Promise<Order[]> {
   await connectDB();
+
+  const query: Record<string, unknown> = { userId };
+  if (dateFilter?.from || dateFilter?.to) {
+    const range: Record<string, Date> = {};
+    // Expect YYYY-MM-DD strings; build clean UTC day boundaries (00:00:00 / 23:59:59)
+    if (dateFilter.from) range.$gte = new Date(`${dateFilter.from}T00:00:00.000Z`);
+    if (dateFilter.to)   range.$lte = new Date(`${dateFilter.to}T23:59:59.999Z`);
+    query.createdAt = range;
+  }
+
   const docs = await OrderModel
-    .find({ userId })
+    .find(query)
     .sort({ createdAt: -1 })
-    .limit(50)
+    .limit(100)
     .lean();
   return (docs as unknown as (OrderDoc & { _id: { toString(): string }; createdAt: Date })[]).map(toOrder);
 }

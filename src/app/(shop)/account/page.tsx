@@ -1,27 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Package, ChevronRight, LogOut, ShoppingBag, MapPin } from "lucide-react";
+import {
+  User, Package, ChevronRight, LogOut, ShoppingBag,
+  MapPin, Filter, TrendingUp, CheckCircle, Clock, ReceiptText,
+  Heart, HelpCircle,
+} from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { formatPrice } from "@/lib/utils/format";
+import { useDateFilter } from "@/hooks/useDateFilter";
+import DateFilter from "@/components/ui/DateFilter";
 import type { Order } from "@/types";
 import AddressSection from "@/components/account/AddressSection";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
-  pending:    "bg-yellow-50  text-yellow-700  border-yellow-200",
-  processing: "bg-blue-50    text-blue-700    border-blue-200",
-  shipped:    "bg-purple-50  text-purple-700  border-purple-200",
-  delivered:  "bg-green-50   text-green-700   border-green-200",
-  cancelled:  "bg-red-50     text-red-700     border-red-200",
+  pending:    "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
+  processing: "bg-amber-50   dark:bg-amber-900/20   text-[#FCA311]   dark:text-amber-400   border-amber-200   dark:border-amber-800/40",
+  shipped:    "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/40",
+  delivered:  "bg-green-50  dark:bg-green-900/20  text-green-700  dark:text-green-400  border-green-200  dark:border-green-800/40",
+  cancelled:  "bg-red-50    dark:bg-red-900/20    text-red-700    dark:text-red-400    border-red-200    dark:border-red-800/40",
 };
 
 function StatusBadge({ status }: { status: Order["status"] }) {
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${STATUS_STYLES[status]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border capitalize ${STATUS_STYLES[status]}`}>
       {status}
     </span>
   );
@@ -33,11 +39,17 @@ function formatDate(iso: string) {
   });
 }
 
-type Tab = "overview" | "addresses";
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
 
-const TABS: { id: Tab; label: string; Icon: React.FC<{ className?: string }> }[] = [
-  { id: "overview",  label: "Overview",   Icon: User },
-  { id: "addresses", label: "Addresses",  Icon: MapPin },
+type Tab = "overview" | "orders" | "addresses" | "wishlist";
+
+const SIDEBAR_LINKS: { id: Tab; label: string; Icon: React.FC<{ className?: string }> }[] = [
+  { id: "overview",  label: "Dashboard",       Icon: User    },
+  { id: "orders",    label: "My Orders",       Icon: Package },
+  { id: "addresses", label: "Saved Addresses", Icon: MapPin  },
+  { id: "wishlist",  label: "Wishlist",        Icon: Heart   },
 ];
 
 export default function AccountPage() {
@@ -45,17 +57,32 @@ export default function AccountPage() {
   const hydrated = useHydrated();
   const { user, token, logout } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [orders,  setOrders]  = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const [activeTab,            setActiveTab]            = useState<Tab>("overview");
+  const [allOrders,            setAllOrders]            = useState<Order[]>([]);
+  const [serverFilteredOrders, setServerFilteredOrders] = useState<Order[]>([]);
+  const [fetchedFilterKey,     setFetchedFilterKey]     = useState("");
+  const [loading,              setLoading]              = useState(true);
+  const [error,                setError]                = useState("");
+
+  const dateFilter = useDateFilter("all");
+
+  const fromParam = dateFilter.range.from ? dateFilter.range.from.toISOString().slice(0, 10) : "";
+  const toParam   = dateFilter.range.to   ? dateFilter.range.to.toISOString().slice(0, 10)   : "";
+
+  const currentFilterKey = `${fromParam}|${toParam}`;
+  const filterLoading    = !!(fromParam || toParam) && fetchedFilterKey !== currentFilterKey;
+  const displayOrders    = fromParam || toParam ? serverFilteredOrders : allOrders;
+
+  const stats = useMemo(() => {
+    const delivered  = allOrders.filter((o) => o.status === "delivered").length;
+    const pending    = allOrders.filter((o) => o.status === "pending" || o.status === "processing").length;
+    const totalSpent = allOrders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+    return { delivered, pending, totalSpent };
+  }, [allOrders]);
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!user) {
-      router.replace("/login?redirect=/account");
-      return;
-    }
+    if (!user) { router.replace("/login?redirect=/account"); return; }
     if (!token) return;
 
     async function load() {
@@ -63,7 +90,7 @@ export default function AccountPage() {
         const { data: json } = await axios.get("/api/account/orders", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOrders(json.data ?? []);
+        setAllOrders(json.data ?? []);
       } catch (err) {
         const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
         setError(msg ?? "Failed to load orders.");
@@ -71,155 +98,315 @@ export default function AccountPage() {
         setLoading(false);
       }
     }
-
     void load();
   }, [hydrated, user, router, token]);
 
+  useEffect(() => {
+    if (loading || !token || (!fromParam && !toParam)) return;
+
+    const params = new URLSearchParams();
+    if (fromParam) params.set("from", fromParam);
+    if (toParam)   params.set("to",   toParam);
+    const key = currentFilterKey;
+
+    async function fetchFiltered() {
+      try {
+        const { data: json } = await axios.get(
+          `/api/account/orders?${params.toString()}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        setServerFilteredOrders(json.data ?? []);
+      } catch { /* leave previous results */ }
+      finally { setFetchedFilterKey(key); }
+    }
+    void fetchFiltered();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromParam, toParam]);
+
   if (!hydrated || !user) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+      <div className="max-w-6xl mx-auto px-4 py-20">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-48 mx-auto" />
-          <div className="h-4 bg-gray-200 rounded w-64 mx-auto" />
+          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl w-48" />
+          <div className="grid grid-cols-3 gap-4">
+            {[1,2,3].map((n) => <div key={n} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-xl" />)}
+          </div>
         </div>
       </div>
     );
   }
 
-  function handleLogout() {
-    logout();
-    router.push("/");
-  }
+  function handleLogout() { logout(); router.push("/"); }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-6">My Account</h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 items-start">
 
-      {/* ── Tab bar ─────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-8 w-full sm:w-auto sm:inline-flex">
-        {TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              activeTab === id
-                ? "bg-white dark:bg-gray-700 text-[#00539F] dark:text-blue-400 shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Overview tab ────────────────────────────────────── */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
+        {/* ── Left sidebar ─────────────────────────────────── */}
+        <aside className="hidden lg:flex flex-col w-64 shrink-0 gap-3 sticky top-20">
           {/* Profile card */}
-          <div className="lg:col-span-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-4 mb-5">
-                <div className="inline-flex bg-[#00539F]/10 rounded-full p-3">
-                  <User className="h-7 w-7 text-[#00539F]" aria-hidden />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-black text-gray-900 dark:text-white truncate">{user.name}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-                </div>
+          <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-black shrink-0"
+                style={{ background: "linear-gradient(135deg, #0F4C75, #FCA311)" }}
+              >
+                {getInitials(user.name)}
               </div>
-
-              <div className="space-y-1 text-sm border-t border-gray-100 dark:border-gray-700 pt-4">
-                <div className="flex justify-between py-1">
-                  <span className="text-gray-500 dark:text-gray-400">Member since</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatDate(user.createdAt)}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-gray-500 dark:text-gray-400">Total orders</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{orders.length}</span>
-                </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 dark:text-white truncate text-sm leading-tight">{user.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
               </div>
+            </div>
 
+            <nav className="space-y-0.5">
+              {SIDEBAR_LINKS.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+                    activeTab === id
+                      ? "bg-amber-50 dark:bg-amber-900/20 text-[#FCA311] dark:text-amber-400 font-semibold"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {label}
+                  {activeTab === id && <ChevronRight className="h-3.5 w-3.5 ml-auto text-[#FCA311]" />}
+                </button>
+              ))}
+            </nav>
+
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60 space-y-0.5">
+              <Link
+                href="/account/wishlist"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+              >
+                <HelpCircle className="h-4 w-4 shrink-0" />
+                Help & Support
+              </Link>
               <button
                 onClick={handleLogout}
-                className="mt-5 w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold rounded-xl hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
               >
-                <LogOut className="h-4 w-4" aria-hidden />
+                <LogOut className="h-4 w-4 shrink-0" />
                 Sign out
               </button>
             </div>
           </div>
+        </aside>
 
-          {/* Order history */}
-          <div className="lg:col-span-8">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-                <Package className="h-5 w-5 text-[#00539F]" aria-hidden />
-                Order history
-              </h2>
-
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="animate-pulse h-20 bg-gray-100 rounded-xl" />
-                  ))}
-                </div>
-              ) : error ? (
-                <p className="text-sm text-red-600">{error}</p>
-              ) : orders.length === 0 ? (
-                <div className="text-center py-10">
-                  <div className="inline-flex bg-gray-100 rounded-full p-4 mb-4">
-                    <ShoppingBag className="h-8 w-8 text-gray-400" aria-hidden />
-                  </div>
-                  <p className="text-gray-500 text-sm mb-4">No orders yet.</p>
-                  <Link
-                    href="/products"
-                    className="px-5 py-2 bg-[#00539F] text-white text-sm font-semibold rounded-xl hover:bg-[#003B7A] transition-colors"
-                  >
-                    Start shopping
-                  </Link>
-                </div>
-              ) : (
-                <ul className="space-y-3">
-                  {orders.map((order) => (
-                    <li key={order._id}>
-                      <Link
-                        href={`/account/orders/${order.orderNumber}`}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-[#00539F]/30 dark:hover:border-blue-500/40 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-colors group"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-black text-[#00539F] tracking-wide">
-                              {order.orderNumber}
-                            </span>
-                            <StatusBadge status={order.status} />
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatDate(order.createdAt)} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-black text-gray-900 dark:text-white">{formatPrice(order.total)}</p>
-                          <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-[#00539F] transition-colors ml-auto mt-1" aria-hidden />
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+        {/* ── Mobile tab bar ── */}
+        <div className="lg:hidden w-full mb-2">
+          <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+            {SIDEBAR_LINKS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                  activeTab === id
+                    ? "bg-[#FCA311] text-white shadow-sm"
+                    : "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* ── Main content ─────────────────────────────────── */}
+        <div className="flex-1 min-w-0 space-y-5">
+
+          {/* ── Dashboard / Overview ── */}
+          {activeTab === "overview" && (
+            <>
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Total Orders", value: allOrders.length, Icon: Package,    color: "text-[#FCA311]", bg: "bg-amber-50 dark:bg-amber-900/20" },
+                  { label: "Delivered",    value: loading ? "—" : stats.delivered,   Icon: CheckCircle, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/20" },
+                  { label: "In Progress",  value: loading ? "—" : stats.pending,     Icon: Clock,       color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
+                  { label: "Total Spent",  value: loading ? "—" : formatPrice(stats.totalSpent), Icon: TrendingUp, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20" },
+                ].map(({ label, value, Icon, color, bg }) => (
+                  <div key={label} className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-4">
+                    <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center mb-3`}>
+                      <Icon className={`h-4.5 w-4.5 ${color}`} style={{ width: "1.125rem", height: "1.125rem" }} />
+                    </div>
+                    <p className="text-xl font-black text-gray-900 dark:text-white leading-none mb-1">{value}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total Spent banner */}
+              <div className="bg-gradient-to-r from-[#0F4C75] to-[#FCA311] rounded-xl p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                  <ReceiptText className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-white">{loading ? "—" : formatPrice(stats.totalSpent)}</p>
+                  <p className="text-sm text-white/70 mt-0.5">Lifetime spend (excl. cancelled)</p>
+                </div>
+              </div>
+
+              {/* Recent orders preview */}
+              <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                  <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                    <Package className="h-4 w-4 text-[#FCA311]" />
+                    Recent Orders
+                  </h2>
+                  <button
+                    onClick={() => setActiveTab("orders")}
+                    className="text-xs font-semibold text-[#FCA311] hover:underline"
+                  >
+                    View all
+                  </button>
+                </div>
+                <div className="p-5">
+                  {loading ? (
+                    <div className="space-y-3">
+                      {[1,2,3].map((n) => <div key={n} className="h-16 animate-pulse bg-gray-100 dark:bg-gray-700/40 rounded-xl" />)}
+                    </div>
+                  ) : allOrders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+                        <ShoppingBag className="h-7 w-7 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">No orders yet</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Start exploring and place your first order.</p>
+                      <Link href="/products" className="px-5 py-2 bg-[#FCA311] text-white text-sm font-bold rounded-xl hover:bg-[#E8920A] transition-colors">
+                        Start shopping
+                      </Link>
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {allOrders.slice(0, 5).map((order) => (
+                        <OrderRow key={order._id} order={order} />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Orders ── */}
+          {activeTab === "orders" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 relative z-10">
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                  <Package className="h-4 w-4 text-[#FCA311]" />
+                  Order History
+                  {!loading && !filterLoading && (
+                    <span className="text-xs font-normal text-gray-400 dark:text-gray-500">({displayOrders.length})</span>
+                  )}
+                </h2>
+                <DateFilter filter={dateFilter} align="right" />
+              </div>
+
+              <div className="p-5 min-h-[320px]">
+                {loading || filterLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((n) => <div key={n} className="h-16 animate-pulse bg-gray-100 dark:bg-gray-700/40 rounded-xl" />)}
+                  </div>
+                ) : error ? (
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                ) : allOrders.length === 0 ? (
+                  <div className="text-center py-14">
+                    <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+                      <ShoppingBag className="h-7 w-7 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">No orders yet</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Start exploring and place your first order.</p>
+                    <Link href="/products" className="px-5 py-2 bg-[#FCA311] text-white text-sm font-bold rounded-xl hover:bg-[#E8920A] transition-colors">
+                      Start shopping
+                    </Link>
+                  </div>
+                ) : displayOrders.length === 0 ? (
+                  <div className="text-center py-14">
+                    <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+                      <Filter className="h-7 w-7 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">No orders in this period</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Try a different date range.</p>
+                    <button onClick={dateFilter.reset} className="text-[#FCA311] dark:text-amber-400 text-sm font-bold hover:underline">
+                      Clear filter
+                    </button>
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {displayOrders.map((order) => <OrderRow key={order._id} order={order} />)}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Addresses ── */}
+          {activeTab === "addresses" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-[#FCA311]" />
+                  Saved Addresses
+                </h2>
+              </div>
+              <div className="p-5">
+                <AddressSection />
+              </div>
+            </div>
+          )}
+
+          {/* ── Wishlist shortcut ── */}
+          {activeTab === "wishlist" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-8 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                <Heart className="h-7 w-7 text-red-400" />
+              </div>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-2">Your Wishlist</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">View and manage your saved products.</p>
+              <Link href="/account/wishlist" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
+                Go to Wishlist
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
 
         </div>
-      )}
-
-      {/* ── Addresses tab ───────────────────────────────────── */}
-      {activeTab === "addresses" && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-          <AddressSection />
-        </div>
-      )}
+      </div>
     </div>
+  );
+}
+
+function OrderRow({ order }: { order: Order }) {
+  return (
+    <li>
+      <Link
+        href={`/account/orders/${order.orderNumber}`}
+        className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-700/60 hover:border-[#FCA311]/40 dark:hover:border-amber-500/30 hover:bg-amber-50/30 dark:hover:bg-amber-900/5 transition-all group"
+      >
+        <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0">
+          <Package className="h-4 w-4 text-[#FCA311]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <span className="text-sm font-bold text-[#FCA311] dark:text-amber-400 tracking-wide">
+              {order.orderNumber}
+            </span>
+            <StatusBadge status={order.status} />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {formatDate(order.createdAt)} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div className="text-right shrink-0 flex items-center gap-2">
+          <p className="font-bold text-gray-900 dark:text-white text-sm">{formatPrice(order.total)}</p>
+          <ChevronRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-[#FCA311] transition-colors" />
+        </div>
+      </Link>
+    </li>
   );
 }

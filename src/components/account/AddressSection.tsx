@@ -29,7 +29,7 @@ function AddressCard({
   return (
     <div className="relative bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 space-y-2">
       {address.isDefault && (
-        <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-semibold text-[#00539F] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+        <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-semibold text-[#FCA311] bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 px-2 py-0.5 rounded-full">
           <Star className="h-3 w-3" aria-hidden /> Default
         </span>
       )}
@@ -53,7 +53,7 @@ function AddressCard({
         {!address.isDefault && (
           <button
             onClick={onSetDefault}
-            className="text-xs text-[#00539F] font-semibold hover:underline"
+            className="text-xs text-[#FCA311] font-semibold hover:underline"
           >
             Set as default
           </button>
@@ -146,12 +146,12 @@ export default function AddressSection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white">
-          <MapPin className="h-5 w-5 text-[#00539F]" aria-hidden />
+          <MapPin className="h-5 w-5 text-[#FCA311]" aria-hidden />
           Saved addresses
         </h2>
         <button
           onClick={() => { setEditing(null); setShowModal(true); }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#00539F] text-white text-sm font-semibold rounded-xl hover:bg-[#003B7A] transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#FCA311] text-white text-sm font-semibold rounded-xl hover:bg-[#E8920A] transition-colors"
         >
           <Plus className="h-4 w-4" aria-hidden /> Add address
         </button>

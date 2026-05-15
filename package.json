@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
+    "generate-images": "node scripts/generate-images.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

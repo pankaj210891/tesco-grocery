@@ -4,7 +4,7 @@ type BadgeVariant = "sale" | "new" | "bestseller" | "outOfStock";
 
 const variantStyles: Record<BadgeVariant, string> = {
   sale: "bg-[#EE1C2E] text-white",
-  new: "bg-[#00539F] text-white",
+  new: "bg-[#FCA311] text-white",
   bestseller: "bg-amber-500 text-white",
   outOfStock: "bg-gray-400 text-white",
 };

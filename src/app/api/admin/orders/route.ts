@@ -16,8 +16,17 @@ export async function GET(req: NextRequest) {
     const dateFrom = searchParams.get("dateFrom") ?? "";
     const dateTo   = searchParams.get("dateTo")   ?? "";
 
+    const q = searchParams.get("q") ?? "";
+
     const filter: Record<string, unknown> = {};
     if (status && status !== "all") filter.status = status;
+    if (q) {
+      filter.$or = [
+        { orderNumber: { $regex: q, $options: "i" } },
+        { "delivery.fullName": { $regex: q, $options: "i" } },
+        { "delivery.email": { $regex: q, $options: "i" } },
+      ];
+    }
 
     if (dateFrom || dateTo) {
       const dateFilter: Record<string, Date> = {};

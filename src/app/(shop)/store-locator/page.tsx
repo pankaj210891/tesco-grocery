@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import {
   MapPin,
@@ -55,16 +55,18 @@ function isCurrentlyOpen(open: string, close: string): boolean {
 }
 
 function StoreCard({ store }: { store: Store }) {
-  const [expanded, setExpanded] = useState(false);
-  const today = todayKey();
+  const [expanded,  setExpanded]  = useState(false);
+  const [openAbove, setOpenAbove] = useState(false);
+  const btnRef  = useRef<HTMLButtonElement>(null);
+  const today      = todayKey();
   const todayHours = store.openingHours?.[today];
-  const isOpenNow =
+  const isOpenNow  =
     !!todayHours &&
     !todayHours.closed &&
     isCurrentlyOpen(todayHours.open, todayHours.close);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
       {/* Header */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -90,11 +92,11 @@ function StoreCard({ store }: { store: Store }) {
 
         {/* Contact */}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-          <a href={`tel:${store.phone}`} className="flex items-center gap-1.5 hover:text-[#0F4C75] dark:hover:text-blue-400">
+          <a href={`tel:${store.phone}`} className="flex items-center gap-1.5 hover:text-[#FCA311] dark:hover:text-amber-400">
             <Phone className="h-3.5 w-3.5" /> {store.phone}
           </a>
           {store.email && (
-            <a href={`mailto:${store.email}`} className="flex items-center gap-1.5 hover:text-[#0F4C75] dark:hover:text-blue-400">
+            <a href={`mailto:${store.email}`} className="flex items-center gap-1.5 hover:text-[#FCA311] dark:hover:text-amber-400">
               <Mail className="h-3.5 w-3.5" /> {store.email}
             </a>
           )}
@@ -117,7 +119,7 @@ function StoreCard({ store }: { store: Store }) {
             {store.amenities.map((a) => (
               <span
                 key={a}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[11px] font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-[11px] font-medium"
               >
                 {AMENITY_ICONS[a] ?? null}
                 {a}
@@ -127,37 +129,62 @@ function StoreCard({ store }: { store: Store }) {
         )}
       </div>
 
-      {/* Full hours toggle */}
-      <button
-        onClick={() => setExpanded((e) => !e)}
-        className="w-full flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-      >
-        <span className="flex items-center gap-1.5">
-          <Clock className="h-4 w-4" /> Opening hours
-        </span>
-        {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-      </button>
+      {/* Full hours — floating popover so card height stays fixed */}
+      <div className="relative border-t border-gray-100 dark:border-gray-800">
+        <button
+          ref={btnRef}
+          onClick={() => {
+            if (!expanded && btnRef.current) {
+              const rect        = btnRef.current.getBoundingClientRect();
+              const spaceBelow  = window.innerHeight - rect.bottom;
+              setOpenAbove(spaceBelow < 260); // popover ~240px tall
+            }
+            setExpanded((e) => !e);
+          }}
+          aria-expanded={expanded}
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-b-2xl"
+        >
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4" /> Opening hours
+          </span>
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
 
-      {expanded && (
-        <div className="px-5 pb-4 pt-2 space-y-1.5">
-          {DAYS.map((day) => {
-            const h = store.openingHours?.[day];
-            const isToday = day === today;
-            return (
-              <div
-                key={day}
-                className={cn(
-                  "flex justify-between text-sm",
-                  isToday ? "font-semibold text-[#0F4C75] dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-                )}
-              >
-                <span className="w-10">{DAY_LABELS[day]}</span>
-                <span>{h ? (h.closed ? "Closed" : `${h.open} – ${h.close}`) : "—"}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {expanded && (
+          <>
+            {/* Backdrop to close on outside click */}
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setExpanded(false)}
+              aria-hidden
+            />
+            {/* Floating panel — direction auto-detected from available viewport space */}
+            <div className={`absolute left-0 right-0 z-20 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl p-4 space-y-1.5 ${openAbove ? "bottom-full mb-1" : "top-full mt-1"}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                All opening hours
+              </p>
+              {DAYS.map((day) => {
+                const h       = store.openingHours?.[day];
+                const isToday = day === today;
+                return (
+                  <div
+                    key={day}
+                    className={cn(
+                      "flex justify-between text-sm py-0.5",
+                      isToday
+                        ? "font-semibold text-[#FCA311] dark:text-amber-400"
+                        : "text-gray-600 dark:text-gray-400"
+                    )}
+                  >
+                    <span className="w-10">{DAY_LABELS[day]}</span>
+                    <span>{h ? (h.closed ? "Closed" : `${h.open} – ${h.close}`) : "—"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -196,7 +223,7 @@ export default function StoreLocatorPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
-      <div className="bg-[#0F4C75] text-white py-12 px-4">
+      <div className="bg-[#FCA311] text-white py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 rounded-2xl mb-4">
             <MapPin className="h-7 w-7" />
@@ -214,7 +241,7 @@ export default function StoreLocatorPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, city or postcode…"
-              className="w-full h-12 pl-10 pr-4 rounded-xl text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#F57C00]"
+              className="w-full h-12 pl-10 pr-4 rounded-xl text-base md:text-sm text-gray-900 bg-white/95 backdrop-blur-sm shadow-lg shadow-black/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -229,8 +256,8 @@ export default function StoreLocatorPage() {
               className={cn(
                 "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                 search === ""
-                  ? "bg-[#0F4C75] text-white"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75]"
+                  ? "bg-[#FCA311] text-white"
+                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
               )}
             >
               All ({stores.length})
@@ -242,8 +269,8 @@ export default function StoreLocatorPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                   search.toLowerCase() === city.toLowerCase()
-                    ? "bg-[#0F4C75] text-white"
-                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75]"
+                    ? "bg-[#FCA311] text-white"
+                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311]"
                 )}
               >
                 {city}

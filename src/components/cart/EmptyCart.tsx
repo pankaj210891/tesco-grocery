@@ -16,7 +16,7 @@ export default function EmptyCart() {
       </p>
       <Link
         href="/products"
-        className="px-8 py-3 bg-[#00539F] text-white font-bold rounded-xl hover:bg-[#003B7A] transition-colors"
+        className="px-8 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors"
       >
         Browse Products
       </Link>

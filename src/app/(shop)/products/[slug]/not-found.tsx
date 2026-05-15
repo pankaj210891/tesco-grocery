@@ -17,7 +17,7 @@ export default function ProductNotFound() {
       <div className="flex flex-wrap gap-3 justify-center">
         <Link
           href="/products"
-          className="px-6 py-2.5 bg-[#00539F] text-white rounded-xl font-semibold text-sm hover:bg-[#003B7A] transition-colors"
+          className="px-6 py-2.5 bg-[#FCA311] text-white rounded-xl font-semibold text-sm hover:bg-[#E8920A] transition-colors"
         >
           Browse All Products
         </Link>

@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
 
   const filters: ProductFilters = {
     category:  sp.get("category")  ?? undefined,
+    brand:     sp.get("brand")     ?? undefined,
     search:    sp.get("q")         ?? undefined,
     sortBy:    (sp.get("sortBy") as ProductFilters["sortBy"]) ?? undefined,
     inStock:   sp.get("inStock") === "true" ? true : undefined,
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
     maxPrice:  sp.get("maxPrice")  ? Number(sp.get("maxPrice"))  : undefined,
     page:      sp.get("page")      ? Number(sp.get("page"))      : undefined,
     limit:     sp.get("limit")     ? Number(sp.get("limit"))     : undefined,
+    slugs:     sp.get("slugs")     ? sp.get("slugs")!.split(",") : undefined,
   };
 
   try {

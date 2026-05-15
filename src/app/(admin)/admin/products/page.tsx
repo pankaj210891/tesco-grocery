@@ -115,10 +115,10 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 280px)" }}>
+        <div className="overflow-auto flex-1">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
+            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
               <tr>
                 {["Product", "Category", "Price", "Badge", "Stock", "Actions"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
@@ -137,7 +137,7 @@ export default function AdminProductsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
-                        <Image src={p.images[0] ?? "/images/placeholder-product.png"} alt={p.name} fill className="object-contain p-1" />
+                        <Image src={p.images[0] ?? "/images/placeholder-product.webp"} alt={p.name} fill className="object-contain p-1" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[200px]">{p.name}</p>

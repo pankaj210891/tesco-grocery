@@ -29,7 +29,7 @@ export default async function RelatedProducts({ currentProduct }: RelatedProduct
         </h2>
         <Link
           href={`/categories/${categorySlug}`}
-          className="text-sm font-semibold text-[#00539F] dark:text-blue-400 hover:underline"
+          className="text-sm font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
         >
           View all →
         </Link>

@@ -83,7 +83,7 @@ export default function HelpPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
-      <div className="bg-[#0F4C75] text-white py-12 px-4">
+      <div className="bg-[#FCA311] text-white py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 rounded-2xl mb-4">
             <HelpCircle className="h-7 w-7" />
@@ -99,7 +99,7 @@ export default function HelpPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for answers…"
-              className="w-full h-12 pl-10 pr-4 rounded-xl text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#F57C00]"
+              className="w-full h-12 pl-10 pr-4 rounded-xl text-base md:text-sm text-gray-900 bg-white/95 backdrop-blur-sm shadow-lg shadow-black/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -115,8 +115,8 @@ export default function HelpPage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
                 active === cat.key
-                  ? "bg-[#0F4C75] text-white shadow-sm"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#0F4C75] hover:text-[#0F4C75] dark:hover:text-blue-400"
+                  ? "bg-[#FCA311] text-white shadow-sm"
+                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-[#FCA311] hover:text-[#FCA311] dark:hover:text-amber-400"
               )}
             >
               <span>{cat.emoji}</span> {cat.label}
@@ -165,7 +165,7 @@ export default function HelpPage() {
             </p>
             <a
               href="mailto:support@prakashsupermarket.co.uk"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0F4C75] text-white text-sm font-semibold hover:bg-[#0A3352] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FCA311] text-white text-sm font-semibold hover:bg-[#E8920A] transition-colors"
             >
               Contact Support
             </a>

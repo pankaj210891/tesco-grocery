@@ -8,7 +8,11 @@ export async function GET(req: Request) {
   }
 
   try {
-    const orders = await getOrdersByUserId(authUser.userId);
+    const { searchParams } = new URL(req.url);
+    const from = searchParams.get("from") ?? undefined;
+    const to   = searchParams.get("to")   ?? undefined;
+
+    const orders = await getOrdersByUserId(authUser.userId, { from, to });
     return Response.json({ data: orders });
   } catch (err) {
     console.error("[GET /api/account/orders]", err);

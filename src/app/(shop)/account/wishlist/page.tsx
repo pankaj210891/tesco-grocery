@@ -26,7 +26,7 @@ function WishlistItem({ product }: { product: Product }) {
       <Link href={`/products/${product.slug}`} className="shrink-0">
         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
           <Image
-            src={product.images[0] ?? "/images/placeholder-product.png"}
+            src={product.images[0] ?? "/images/placeholder-product.webp"}
             alt={product.name}
             fill
             sizes="80px"
@@ -37,7 +37,7 @@ function WishlistItem({ product }: { product: Product }) {
 
       <div className="flex-1 min-w-0">
         <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">{product.category}</p>
-        <Link href={`/products/${product.slug}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-[#00539F] dark:hover:text-blue-400 transition-colors line-clamp-2">
+        <Link href={`/products/${product.slug}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors line-clamp-2">
           {product.name}
         </Link>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{product.brand}</p>
@@ -49,7 +49,7 @@ function WishlistItem({ product }: { product: Product }) {
         <button
           onClick={handleAddToCart}
           disabled={!product.inStock}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00539F] disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 text-white text-xs font-semibold rounded-lg hover:bg-[#003B7A] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FCA311] disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 text-white text-xs font-semibold rounded-lg hover:bg-[#E8920A] transition-colors"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
           {product.inStock ? "Add to cart" : "Out of stock"}
@@ -63,7 +63,7 @@ export default function WishlistPage() {
   const { user, token, hasHydrated } = useAuthStore();
   const { items, loading, loaded } = useWishlistStore();
 
-  if (!hasHydrated || !loaded || loading) {
+  if (!hasHydrated) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 animate-pulse space-y-4">
         <div className="h-8 bg-gray-200 rounded w-48" />
@@ -78,17 +78,26 @@ export default function WishlistPage() {
         <div className="inline-flex bg-red-50 rounded-full p-5 mb-5">
           <Heart className="h-10 w-10 text-red-300" />
         </div>
-        <h2 className="text-lg font-bold text-gray-800 mb-2">Sign in to view your wishlist</h2>
-        <p className="text-sm text-gray-500 mb-6">Save your favourite products and access them anytime.</p>
-        <Link href="/login" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">Sign in to view your wishlist</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Save your favourite products and access them anytime.</p>
+        <Link href="/login" className="px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
           Sign in
         </Link>
       </div>
     );
   }
 
+  if (!loaded || loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+        {[1, 2, 3].map((n) => <div key={n} className="h-28 bg-gray-100 dark:bg-gray-800 rounded-xl" />)}
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-16">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-16">
       <div className="flex items-center gap-2 mb-8">
         <Heart className="h-6 w-6 text-red-500 fill-red-500" />
         <h1 className="text-2xl font-black text-gray-900 dark:text-white">
@@ -103,17 +112,17 @@ export default function WishlistPage() {
 
       {items.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex bg-red-50 rounded-full p-5 mb-5">
-            <Heart className="h-10 w-10 text-red-300" />
+          <div className="inline-flex bg-red-50 dark:bg-red-900/20 rounded-full p-5 mb-5">
+            <Heart className="h-10 w-10 text-red-300 dark:text-red-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Your wishlist is empty</h2>
-          <p className="text-sm text-gray-500 mb-6">Tap the heart icon on any product to save it here.</p>
-          <Link href="/products" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">Your wishlist is empty</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Tap the heart icon on any product to save it here.</p>
+          <Link href="/products" className="px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
             Browse products
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="flex flex-col gap-3">
           {items.map((product) => <WishlistItem key={product._id} product={product} />)}
         </ul>
       )}

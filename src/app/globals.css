@@ -4,19 +4,20 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* ── Prakash Supermarket brand palette ────────────────────────── */
-  --color-brand-primary:       #0F4C75;
+  /* ── Prakash Supermarket — Foodmart-inspired palette ─────────── */
+  --color-brand-primary:       #0F4C75;   /* Deep blue — links, secondary accents  */
   --color-brand-primary-dark:  #0A3352;
   --color-brand-primary-light: #1B6CA8;
-  --color-brand-accent:        #F57C00;
+  --color-brand-amber:         #FCA311;   /* Foodmart golden amber — primary CTA   */
+  --color-brand-amber-dark:    #E8920A;
+  --color-brand-accent:        #F57C00;   /* Legacy alias kept for compatibility   */
   --color-brand-accent-dark:   #E65100;
+  --color-brand-green:         #25A244;   /* Sale / success badges                 */
 
   /* ── Neutral ──────────────────────────────────────────────────── */
-  --color-surface:  #F5F7FA;
-  --color-border:   #E5E7EB;
-
-  /* ── Dark-mode surface overrides (consumed by @layer base) ───── */
+  --color-surface:      #F5F7FA;
   --color-surface-dark: #0F172A;
+  --color-border:       #E5E7EB;
   --color-border-dark:  #1E293B;
 
   /* ── Typography ───────────────────────────────────────────────── */
@@ -35,22 +36,32 @@
   }
 
   body {
-    background-color: var(--color-surface);
+    background-color: #FFFFFF;
     color: theme(colors.gray.900);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.15s ease, color 0.15s ease;
   }
 
-  /* Dark-mode body */
   .dark body {
     background-color: var(--color-surface-dark);
     color: theme(colors.gray.100);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brand-primary);
+    outline: 2px solid var(--color-brand-amber);
     outline-offset: 2px;
+  }
+
+  /* Prevent iOS/Android auto-zoom on input focus (threshold: font-size < 16px).
+     !important is required to override Tailwind utility classes (text-sm, text-xs)
+     which live in @layer utilities and would otherwise win over @layer base. */
+  @media screen and (max-width: 768px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   /* Smooth scrollbar in dark mode */
@@ -64,26 +75,44 @@
 }
 
 @layer utilities {
-  /* ── Brand utilities ────────────────────────────────────────── */
+  /* ── No-spinner number input ──────────────────────────────────── */
+  .no-spinner { -moz-appearance: textfield; }
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button { appearance: none; margin: 0; }
+
+  /* ── Brand utilities ─────────────────────────────────────────── */
   .text-brand-primary   { color: var(--color-brand-primary); }
   .bg-brand-primary     { background-color: var(--color-brand-primary); }
   .border-brand-primary { border-color: var(--color-brand-primary); }
 
+  .text-brand-amber     { color: var(--color-brand-amber); }
+  .bg-brand-amber       { background-color: var(--color-brand-amber); }
+  .border-brand-amber   { border-color: var(--color-brand-amber); }
+
   .text-brand-accent    { color: var(--color-brand-accent); }
   .bg-brand-accent      { background-color: var(--color-brand-accent); }
 
-  /* ── Backward-compat aliases (legacy tesco-* classes still in some components) */
+  /* ── Backward-compat aliases ─────────────────────────────────── */
   .text-tesco-blue      { color: var(--color-brand-primary); }
   .bg-tesco-blue        { background-color: var(--color-brand-primary); }
   .border-tesco-blue    { border-color: var(--color-brand-primary); }
   .text-tesco-red       { color: var(--color-brand-accent); }
   .bg-tesco-red         { background-color: var(--color-brand-accent); }
 
-  /* ── Scrollbar hide ─────────────────────────────────────────── */
+  /* ── Scrollbar hide ──────────────────────────────────────────── */
   .scrollbar-none {
     scrollbar-width: none;
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  /* ── Bottom-sheet slide-up animation ────────────────────────── */
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
   }
 }

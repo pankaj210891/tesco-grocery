@@ -21,7 +21,7 @@ export default function MobileFiltersDrawer({
         className={cn(
           "flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600",
           "text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800",
-          "hover:border-[#00539F] hover:text-[#00539F] transition-colors"
+          "hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
         )}
         aria-expanded={open}
         aria-label="Open filters"
@@ -67,7 +67,7 @@ export default function MobileFiltersDrawer({
             <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700">
               <button
                 onClick={() => setOpen(false)}
-                className="w-full py-2.5 bg-[#00539F] text-white rounded-xl font-semibold text-sm hover:bg-[#003B7A] transition-colors"
+                className="w-full py-2.5 bg-[#FCA311] text-white rounded-xl font-semibold text-sm hover:bg-[#E8920A] transition-colors"
               >
                 Show Results
               </button>

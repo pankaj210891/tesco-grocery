@@ -53,8 +53,8 @@ export default function CategoryFilters() {
             className={cn(
               "px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors",
               active
-                ? "bg-[#00539F] border-[#00539F] text-white"
-                : "bg-white border-gray-300 text-gray-700 hover:border-[#00539F] hover:text-[#00539F]"
+                ? "bg-[#FCA311] border-[#FCA311] text-white"
+                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-[#FCA311] hover:text-[#FCA311]"
             )}
           >
             {label}
@@ -69,7 +69,7 @@ export default function CategoryFilters() {
           "px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors",
           inStock
             ? "bg-green-600 border-green-600 text-white"
-            : "bg-white border-gray-300 text-gray-700 hover:border-green-600 hover:text-green-600"
+            : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-green-600 hover:text-green-600"
         )}
       >
         In stock only

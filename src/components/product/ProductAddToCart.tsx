@@ -9,7 +9,11 @@ import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { savePendingAction } from "@/lib/pending-action";
+import WishlistButton from "./WishlistButton";
 import type { Product } from "@/types";
+
+const AMBER = "#FCA311";
+const AMBER_DARK = "#E8920A";
 
 interface ProductAddToCartProps {
   product: Product;
@@ -38,60 +42,73 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
 
   return (
     <div className="space-y-4">
+      {/* Already-in-cart indicator */}
       {cartQty > 0 && (
-        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
-          <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+        <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2 text-green-700 dark:text-green-400 text-sm font-medium">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            {cartQty} already in your cart
+            {cartQty} {cartQty === 1 ? "unit" : "units"} in your cart
           </div>
-          <Link href="/cart" className="text-sm font-semibold text-[#00539F] hover:underline">
+          <Link href="/cart" className="text-sm font-bold text-[#FCA311] hover:underline">
             View Cart →
           </Link>
         </div>
       )}
 
+      {/* Quantity selector */}
       <div className="flex items-center gap-4">
-        <span className="text-sm font-semibold text-gray-700">Qty:</span>
-        <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden">
+        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Quantity</span>
+        <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden h-11">
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             disabled={qty <= 1}
             aria-label="Decrease quantity"
-            className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-11 h-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors border-r border-gray-200 dark:border-gray-600"
           >
             <Minus className="h-4 w-4" />
           </button>
-          <span className="px-5 py-2.5 text-base font-bold tabular-nums min-w-[3.5rem] text-center border-x border-gray-300">
+          <span className="w-14 h-full flex items-center justify-center text-base font-black tabular-nums text-gray-900 dark:text-white select-none bg-white dark:bg-gray-800">
             {qty}
           </span>
           <button
             onClick={() => setQty((q) => q + 1)}
             aria-label="Increase quantity"
-            className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 transition-colors"
+            className="w-11 h-full flex items-center justify-center transition-colors border-l border-gray-200 dark:border-gray-600 text-white"
+            style={{ backgroundColor: AMBER }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER; }}
           >
             <Plus className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <button
-        onClick={handleAdd}
-        disabled={!product.inStock}
-        className={cn(
-          "w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl",
-          "text-base font-bold transition-all active:scale-[0.98]",
-          product.inStock
-            ? "bg-[#00539F] text-white hover:bg-[#003B7A] shadow-sm hover:shadow"
-            : "bg-gray-200 text-gray-500 cursor-not-allowed"
-        )}
-      >
-        <ShoppingCart className="h-5 w-5" />
-        {product.inStock ? (token ? "Add to Cart" : "Sign in to Add") : "Out of Stock"}
-      </button>
+      {/* CTA row: Add to cart + Wishlist */}
+      <div className="flex gap-3">
+        <button
+          onClick={handleAdd}
+          disabled={!product.inStock}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl",
+            "text-base font-bold transition-all duration-200 active:scale-[0.98]",
+            product.inStock
+              ? "bg-[#FCA311] text-white hover:bg-[#E8920A] shadow-sm hover:shadow-md"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed",
+          )}
+        >
+          <ShoppingCart className="h-5 w-5" aria-hidden />
+          {product.inStock ? (token ? "Add to Cart" : "Sign in to Add") : "Out of Stock"}
+        </button>
+
+        <WishlistButton
+          product={product}
+          className="w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-red-300 dark:hover:border-red-700"
+        />
+      </div>
 
       {product.inStock && (
-        <p className="text-xs text-gray-500 text-center">
-          Free delivery on orders over <strong>₹500</strong>
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+          Free delivery on orders over <strong className="text-gray-600 dark:text-gray-300">₹500</strong>
         </p>
       )}
     </div>

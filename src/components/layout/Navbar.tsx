@@ -14,6 +14,10 @@ import {
   Heart,
   Store,
   LayoutDashboard,
+  MapPin,
+  HelpCircle,
+  Tag,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
@@ -24,61 +28,52 @@ import { useAuthData } from "@/hooks/useAuthData";
 import { useHydrated } from "@/hooks/useHydrated";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
-/** Primary brand colors — matches globals.css */
-const PRIMARY      = "#0F4C75";
-const PRIMARY_DARK = "#0A3352";
-const ACCENT       = "#F57C00";
+const AMBER = "#FCA311";
+const BRAND = "#E8920A";
 
-/** Nav categories shown in the horizontal desktop bar */
-const NAV_CATEGORIES = [
-  { label: "Fresh Food",           href: "/categories/fresh-food"          },
-  { label: "Bakery",               href: "/categories/bakery"               },
-  { label: "Frozen Food",          href: "/categories/frozen-food"          },
-  { label: "Treats & Snacks",      href: "/categories/treats-snacks"        },
-  { label: "Food Cupboard",        href: "/categories/food-cupboard"        },
-  { label: "Drinks",               href: "/categories/drinks"               },
-  { label: "Baby & Toddler",       href: "/categories/baby-toddler"         },
-  { label: "Health & Beauty",      href: "/categories/health-beauty"        },
-  { label: "Pets",                 href: "/categories/pets"                 },
-  { label: "Household",            href: "/categories/household"            },
-  { label: "Electronics & Gaming", href: "/categories/electronics-gaming"   },
-  { label: "Clothing",             href: "/categories/clothing-accessories" },
+const NAV_LINKS = [
+  { label: "Home",       href: "/"              },
+  { label: "Shop",       href: "/products"      },
+  { label: "Categories", href: "/categories"    },
+  { label: "Offers",     href: "/offers"        },
+  { label: "Store",      href: "/store-locator" },
+  { label: "Help",       href: "/help"          },
 ];
 
-/** Full department list for the mobile drawer */
 const ALL_DEPARTMENTS = [
-  { label: "Clothing & Accessories", href: "/categories/clothing-accessories" },
-  { label: "Marketplace",            href: "/categories/marketplace"           },
-  { label: "Fresh Food",             href: "/categories/fresh-food"            },
-  { label: "Bakery",                 href: "/categories/bakery"                },
-  { label: "Frozen Food",            href: "/categories/frozen-food"           },
-  { label: "Treats & Snacks",        href: "/categories/treats-snacks"         },
-  { label: "Food Cupboard",          href: "/categories/food-cupboard"         },
-  { label: "Drinks",                 href: "/categories/drinks"                },
-  { label: "Baby & Toddler",         href: "/categories/baby-toddler"          },
-  { label: "Health & Beauty",        href: "/categories/health-beauty"         },
-  { label: "Pets",                   href: "/categories/pets"                  },
-  { label: "Household",              href: "/categories/household"             },
-  { label: "Home & Furniture",       href: "/categories/home-furniture"        },
-  { label: "Electronics & Gaming",   href: "/categories/electronics-gaming"    },
-  { label: "Toys & Games",           href: "/categories/toys-games"            },
-  { label: "Parties & Seasonal",     href: "/categories/parties-seasonal"      },
-  { label: "Sports & Leisure",       href: "/categories/sports-leisure"        },
-  { label: "Hobbies & Stationery",   href: "/categories/hobbies-stationery"    },
-  { label: "Garden, DIY & Car Care", href: "/categories/garden-diy-car"        },
-  { label: "Kiosk",                  href: "/categories/kiosk"                 },
-  { label: "Inspiration & Events",   href: "/categories/inspiration-events"    },
+  { label: "Fresh Food",              href: "/categories/fresh-food"            },
+  { label: "Bakery",                  href: "/categories/bakery"                },
+  { label: "Frozen Food",             href: "/categories/frozen-food"           },
+  { label: "Treats & Snacks",         href: "/categories/treats-snacks"         },
+  { label: "Food Cupboard",           href: "/categories/food-cupboard"         },
+  { label: "Drinks",                  href: "/categories/drinks"                },
+  { label: "Baby & Toddler",          href: "/categories/baby-toddler"          },
+  { label: "Health & Beauty",         href: "/categories/health-beauty"         },
+  { label: "Pets",                    href: "/categories/pets"                  },
+  { label: "Household",               href: "/categories/household"             },
+  { label: "Home & Furniture",        href: "/categories/home-furniture"        },
+  { label: "Electronics & Gaming",    href: "/categories/electronics-gaming"    },
+  { label: "Clothing & Accessories",  href: "/categories/clothing-accessories"  },
+  { label: "Toys & Games",            href: "/categories/toys-games"            },
+  { label: "Sports & Leisure",        href: "/categories/sports-leisure"        },
+  { label: "Garden, DIY & Car Care",  href: "/categories/garden-diy-car"        },
 ];
+
+function getInitials(name: string): string {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen]   = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
-  const [deptOpen, setDeptOpen]       = useState(false);
-  const accountRef                    = useRef<HTMLDivElement>(null);
-  const deptRef                       = useRef<HTMLDivElement>(null);
-  const pathname  = usePathname();
-  const router    = useRouter();
+  const [deptOpen,    setDeptOpen]    = useState(false);
+  const [scrolled,    setScrolled]    = useState(false);
+
+  const accountRef = useRef<HTMLDivElement>(null);
+  const deptRef    = useRef<HTMLDivElement>(null);
+  const pathname   = usePathname();
+  const router     = useRouter();
 
   const totalItems    = useCartStore((s) => s.totalItems);
   const wishlistCount = useWishlistStore((s) => s.items.length);
@@ -89,16 +84,18 @@ export default function Navbar() {
   const hydrated = useHydrated();
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
-        setAccountOpen(false);
-      }
-      if (deptRef.current && !deptRef.current.contains(e.target as Node)) {
-        setDeptOpen(false);
-      }
+    function handler(e: MouseEvent) {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+      if (deptRef.current    && !deptRef.current.contains(e.target as Node))    setDeptOpen(false);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 4); }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   function handleLogout() {
@@ -121,16 +118,19 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 shadow-md">
+    <header className={cn(
+      "sticky top-0 z-50 bg-white dark:bg-gray-900 transition-shadow duration-300",
+      scrolled ? "shadow-md" : "shadow-sm",
+    )}>
 
-      {/* ── Top bar ────────────────────────────────────────────── */}
-      <div style={{ backgroundColor: PRIMARY }}>
+      {/* ── Top bar ─────────────────────────────────────────────── */}
+      <div className="border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
 
-          {/* Hamburger — mobile only, LEFT of logo */}
+          {/* Hamburger — mobile */}
           <button
             onClick={() => setMobileOpen((o) => !o)}
-            className="md:hidden flex items-center justify-center p-2 rounded text-white hover:bg-white/10 transition-colors"
+            className="md:hidden flex items-center justify-center p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
           >
@@ -143,44 +143,45 @@ export default function Navbar() {
             className="shrink-0 flex items-center gap-2 hover:opacity-90 transition-opacity"
             aria-label="Prakash Supermarket — Home"
           >
-            <div className="bg-white rounded-lg px-2.5 py-1 flex items-center gap-1.5">
-              <Store className="h-4 w-4 text-[#F57C00]" aria-hidden />
-              <span
-                className="font-black text-xl tracking-tight leading-none"
-                style={{ color: PRIMARY }}
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+                style={{ backgroundColor: AMBER }}
               >
-                Prakash
-              </span>
+                <Store className="h-4 w-4 text-white" aria-hidden />
+              </div>
+              <div className="leading-none">
+                <span className="font-black text-xl tracking-tight text-gray-900 dark:text-white">
+                  Prakash
+                </span>
+                <span className="hidden lg:block text-[10px] font-medium text-gray-400 dark:text-gray-500 tracking-wide">
+                  SUPERMARKET
+                </span>
+              </div>
             </div>
-            <span className="hidden lg:block text-white/80 text-xs font-medium leading-tight">
-              Supermarket
-            </span>
           </Link>
 
-          {/* Search — hidden on mobile */}
-          <form
-            onSubmit={handleSearch}
-            className="hidden md:flex flex-1 max-w-2xl"
-            role="search"
-          >
+          {/* Search bar */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-4" role="search">
             <div className={cn(
-              "flex items-center w-full h-10 rounded-full overflow-hidden",
-              "bg-white border-2 border-transparent focus-within:border-[#F57C00]"
+              "flex items-center w-full h-11 rounded-xl overflow-hidden",
+              "bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+              "focus-within:border-[#FCA311] focus-within:ring-2 focus-within:ring-[#FCA311]/20 transition-all",
             )}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, brands and more…"
+                placeholder="Search for products, brands and more…"
                 aria-label="Search products"
-                className="flex-1 min-w-0 h-full pl-4 pr-2 text-sm text-gray-900 bg-transparent placeholder:text-gray-400 focus:outline-none"
+                className="flex-1 min-w-0 h-full pl-4 pr-2 text-base md:text-sm text-gray-900 dark:text-gray-100 bg-transparent placeholder:text-gray-400 focus:outline-none"
               />
               {searchQuery && (
                 <button
                   type="button"
                   aria-label="Clear search"
                   onClick={() => setSearchQuery("")}
-                  className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 transition-colors"
+                  className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -188,14 +189,8 @@ export default function Navbar() {
               <button
                 type="submit"
                 aria-label="Submit search"
-                className="shrink-0 flex items-center justify-center w-12 h-full text-white transition-colors"
-                style={{ backgroundColor: ACCENT }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#E65100")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = ACCENT)
-                }
+                className="shrink-0 flex items-center justify-center w-12 h-full text-white rounded-r-xl transition-colors hover:brightness-105 active:scale-95"
+                style={{ backgroundColor: AMBER }}
               >
                 <Search className="h-4 w-4" />
               </button>
@@ -203,9 +198,14 @@ export default function Navbar() {
           </form>
 
           {/* Right actions */}
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
 
-            {/* Theme toggle */}
+            {/* Phone — desktop only */}
+            <div className="hidden lg:flex items-center gap-1.5 px-3 mr-1">
+              <Phone className="h-4 w-4 text-gray-400" aria-hidden />
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">+91 98765 43210</span>
+            </div>
+
             <div className="hidden sm:block">
               <ThemeToggle variant="navbar" />
             </div>
@@ -215,74 +215,76 @@ export default function Navbar() {
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountOpen((o) => !o)}
-                  className="flex flex-col items-center px-2 py-1 rounded text-white hover:bg-white/10 transition-colors text-xs"
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
                   aria-label="Account menu"
                   aria-expanded={accountOpen}
                 >
-                  <User className="h-5 w-5 mb-0.5" />
-                  <span className="hidden sm:inline max-w-[72px] truncate">
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white"
+                    style={{ backgroundColor: BRAND }}
+                  >
+                    {getInitials(user.name)}
+                  </div>
+                  <span className="hidden sm:inline text-xs font-semibold max-w-[60px] truncate">
                     {user.name.split(" ")[0]}
                   </span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform hidden sm:block", accountOpen && "rotate-180")} />
                 </button>
 
                 {accountOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-1 z-50">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-                      <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
-                        {user.name}
-                      </p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                        {user.email}
-                      </p>
+                  <div className="absolute right-0 top-full mt-2 min-w-[14rem] w-max max-w-xs bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ backgroundColor: BRAND }}>
+                          {getInitials(user.name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 break-all">{user.email}</p>
+                        </div>
+                      </div>
                       {user.role !== "customer" && (
-                        <span className={`mt-1 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded capitalize ${user.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
+                        <span className={cn("mt-2 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full capitalize", user.role === "admin" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400")}>
                           {user.role}
                         </span>
                       )}
                     </div>
-                    {user.role === "admin" && (
-                      <Link href="/admin" onClick={() => setAccountOpen(false)} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors">
-                        <LayoutDashboard className="h-4 w-4" /> Admin Panel
+
+                    <div className="py-1">
+                      {user.role === "admin" && (
+                        <Link href="/admin" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors">
+                          <LayoutDashboard className="h-4 w-4" /> Admin Panel
+                        </Link>
+                      )}
+                      {user.role === "vendor" && (
+                        <Link href="/vendor" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors">
+                          <Store className="h-4 w-4" /> Vendor Portal
+                        </Link>
+                      )}
+                      {(user.role === "admin" || user.role === "vendor") && (
+                        <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+                      )}
+                      <Link href="/account" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <User className="h-4 w-4" /> My Account
                       </Link>
-                    )}
-                    {user.role === "vendor" && (
-                      <Link href="/vendor" onClick={() => setAccountOpen(false)} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors">
-                        <Store className="h-4 w-4" /> Vendor Portal
+                      <Link href="/account/wishlist" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <Heart className="h-4 w-4" /> Wishlist
                       </Link>
-                    )}
-                    {(user.role === "admin" || user.role === "vendor") && (
-                      <div className="border-t border-gray-100 dark:border-gray-800 mt-1" />
-                    )}
-                    <Link
-                      href="/account"
-                      onClick={() => setAccountOpen(false)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <User className="h-4 w-4" /> My Account
-                    </Link>
-                    <Link
-                      href="/account/wishlist"
-                      onClick={() => setAccountOpen(false)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <Heart className="h-4 w-4" /> Wishlist
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                    >
-                      <LogOut className="h-4 w-4" /> Sign out
-                    </button>
+                      <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+                      <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                        <LogOut className="h-4 w-4" /> Sign out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
               <Link
                 href="/login"
-                className="flex flex-col items-center px-2 py-1 rounded text-white hover:bg-white/10 transition-colors text-xs"
+                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
               >
-                <User className="h-5 w-5 mb-0.5" />
-                <span className="hidden sm:inline">Sign in</span>
+                <User className="h-5 w-5" />
+                <span className="hidden sm:inline text-[10px] font-semibold">Sign in</span>
               </Link>
             )}
 
@@ -290,14 +292,14 @@ export default function Navbar() {
             <Link
               href="/account/wishlist"
               aria-label={`Wishlist, ${hydrated ? wishlistCount : 0} items`}
-              className="relative flex flex-col items-center px-2 py-1 rounded text-white hover:bg-white/10 transition-colors text-xs"
+              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
             >
-              <Heart className="h-5 w-5 mb-0.5" />
-              <span className="hidden sm:inline">Saved</span>
+              <Heart className="h-5 w-5" />
+              <span className="hidden sm:inline text-[10px] font-semibold">Wishlist</span>
               {hydrated && wishlistCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
-                  style={{ backgroundColor: ACCENT }}
+                  className="absolute -top-0.5 right-1 min-w-[17px] h-[17px] px-1 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
+                  style={{ backgroundColor: AMBER }}
                   aria-hidden
                 >
                   {wishlistCount > 99 ? "99+" : wishlistCount}
@@ -309,14 +311,14 @@ export default function Navbar() {
             <Link
               href="/cart"
               aria-label={`Cart, ${hydrated ? totalItems : 0} items`}
-              className="relative flex flex-col items-center px-2 py-1 rounded text-white hover:bg-white/10 transition-colors text-xs"
+              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
             >
-              <ShoppingCart className="h-5 w-5 mb-0.5" />
-              <span className="hidden sm:inline">Cart</span>
+              <ShoppingCart className="h-5 w-5" />
+              <span className="hidden sm:inline text-[10px] font-semibold">Cart</span>
               {hydrated && totalItems > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none"
-                  style={{ backgroundColor: ACCENT }}
+                  className="absolute -top-0.5 right-1 min-w-[17px] h-[17px] px-1 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
+                  style={{ backgroundColor: AMBER }}
                   aria-hidden
                 >
                   {totalItems > 99 ? "99+" : totalItems}
@@ -328,134 +330,119 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ── Category nav bar (desktop) ──────────────────────────── */}
+      {/* ── Secondary nav (desktop) ──────────────────────────────── */}
       <nav
-        className="hidden md:block"
-        style={{ backgroundColor: PRIMARY_DARK }}
+        className="hidden md:block bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800"
         aria-label="Product departments"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-          {/* "All Departments" dropdown — always visible, never scrolls away */}
-          <div ref={deptRef} className="relative shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1">
+
+          {/* All Departments dropdown */}
+          <div ref={deptRef} className="relative shrink-0 mr-2">
             <button
               onClick={() => setDeptOpen((o) => !o)}
               className={cn(
-                "flex items-center gap-1 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-r border-white/10",
-                deptOpen ? "text-white bg-[#0F4C75]" : "text-white hover:bg-[#0F4C75]"
+                "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-all whitespace-nowrap",
+                deptOpen ? "brightness-90" : "hover:brightness-105 active:scale-95",
               )}
+              style={{ backgroundColor: AMBER }}
             >
-              All Departments
+              <Menu className="h-4 w-4" />
+              Shop By Departments
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", deptOpen && "rotate-180")} />
             </button>
 
             {deptOpen && (
-              <div className="absolute top-full left-0 z-50 mt-0 w-56 bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 rounded-b-xl overflow-y-auto max-h-80">
-                {ALL_DEPARTMENTS.map((dept) => (
-                  <Link
-                    key={dept.href}
-                    href={dept.href}
-                    onClick={() => setDeptOpen(false)}
-                    className={cn(
-                      "flex items-center px-4 py-2.5 text-sm transition-colors",
-                      pathname === dept.href
-                        ? "bg-[#0F4C75] text-white font-semibold"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
-                    )}
-                  >
-                    {dept.label}
-                  </Link>
-                ))}
+              <div className="absolute top-full left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800 rounded-b-2xl overflow-hidden mt-px">
+                <div className="overflow-y-auto max-h-80">
+                  {ALL_DEPARTMENTS.map((dept) => (
+                    <Link
+                      key={dept.href}
+                      href={dept.href}
+                      onClick={() => setDeptOpen(false)}
+                      className={cn(
+                        "flex items-center px-4 py-2.5 text-sm transition-colors border-l-2",
+                        pathname === dept.href
+                          ? "border-[#FCA311] bg-amber-50 dark:bg-amber-950/20 text-[#FCA311] font-semibold"
+                          : "border-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-200",
+                      )}
+                    >
+                      {dept.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Scrollable — exactly 7 departments */}
-          <ul className="flex items-center overflow-x-auto scrollbar-none flex-1 min-w-0">
-            {NAV_CATEGORIES.slice(0, 7).map((cat) => (
-              <li key={cat.href}>
+          {/* Nav links */}
+          <ul className="flex items-center flex-1 min-w-0 overflow-x-auto scrollbar-none">
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
                 <Link
-                  href={cat.href}
+                  href={link.href}
                   className={cn(
-                    "flex items-center px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
-                    pathname === cat.href
-                      ? "text-white bg-[#0F4C75]"
-                      : "text-blue-200 hover:text-white hover:bg-[#0F4C75]"
+                    "flex items-center px-3 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2",
+                    pathname === link.href
+                      ? "border-[#FCA311] text-[#FCA311] font-semibold"
+                      : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300",
                   )}
                 >
-                  {cat.label}
+                  {link.label}
                 </Link>
               </li>
             ))}
           </ul>
 
-          {/* Right-side links — always visible */}
-          <div className="shrink-0 flex items-center border-l border-white/10">
-            <Link
-              href="/offers"
-              className="flex items-center px-3 py-2.5 text-sm font-medium text-[#F57C00] hover:text-white transition-colors whitespace-nowrap"
-            >
-              Special Offers
-            </Link>
-            <Link
-              href="/store-locator"
-              className="flex items-center px-3 py-2.5 text-sm font-medium text-blue-200 hover:text-white transition-colors whitespace-nowrap"
-            >
-              Store Locator
-            </Link>
-          </div>
+          {/* Coupon promo */}
+          <Link
+            href="/offers"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold whitespace-nowrap rounded-lg transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/20"
+            style={{ color: AMBER }}
+          >
+            <Tag className="h-4 w-4" />
+            Get Your Coupon Code
+          </Link>
         </div>
       </nav>
 
-      {/* ── Mobile drawer ───────────────────────────────────────── */}
+      {/* ── Mobile drawer ────────────────────────────────────────── */}
       {mobileOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-lg overflow-y-auto max-h-[calc(100dvh-64px)]">
+        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-xl overflow-y-auto max-h-[calc(100dvh-64px)]">
 
-          {/* Sticky header — search + theme toggle */}
-          <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-            <div className="px-4 pt-4 pb-2">
-              <form onSubmit={handleSearch} role="search">
-                <div className={cn(
-                  "flex items-center w-full h-10 rounded-full overflow-hidden",
-                  "border border-gray-300 dark:border-gray-700 focus-within:border-[#0F4C75]",
-                  "bg-white dark:bg-gray-800"
-                )}>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search products…"
-                    aria-label="Search products"
-                    className="flex-1 min-w-0 h-full pl-4 pr-2 text-base bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      onClick={() => setSearchQuery("")}
-                      className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    aria-label="Submit search"
-                    className="shrink-0 flex items-center justify-center w-12 h-full text-white"
-                    style={{ backgroundColor: ACCENT }}
-                  >
-                    <Search className="h-4 w-4" />
+          {/* Search + theme */}
+          <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-4 pb-3 space-y-3">
+            <form onSubmit={handleSearch} role="search">
+              <div className="flex items-center w-full h-11 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 focus-within:border-[#FCA311] bg-gray-50 dark:bg-gray-800 transition-colors">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products…"
+                  aria-label="Search products"
+                  className="flex-1 min-w-0 h-full pl-4 pr-2 text-base bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button type="button" aria-label="Clear search" onClick={() => setSearchQuery("")} className="shrink-0 flex items-center justify-center w-9 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <X className="h-4 w-4" />
                   </button>
-                </div>
-              </form>
-            </div>
-            <div className="px-4 py-2 flex items-center gap-3">
+                )}
+                <button type="submit" aria-label="Submit search" className="shrink-0 flex items-center justify-center w-12 h-full text-white rounded-r-xl transition-colors hover:brightness-105" style={{ backgroundColor: AMBER }}>
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+            <div className="flex items-center gap-3">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</span>
               <ThemeToggle />
             </div>
           </div>
 
-          {/* All departments */}
+          {/* Departments */}
           <nav aria-label="Mobile departments">
+            <div className="px-4 pt-4 pb-1 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Departments</p>
+            </div>
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {ALL_DEPARTMENTS.map((dept) => (
                 <li key={dept.href}>
@@ -463,54 +450,51 @@ export default function Navbar() {
                     href={dept.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "block px-6 py-3 text-sm font-medium transition-colors",
+                      "flex items-center justify-between px-6 py-3 text-sm font-medium transition-colors border-l-2",
                       pathname === dept.href
-                        ? "text-[#0F4C75] dark:text-blue-400 bg-blue-50 dark:bg-blue-950"
-                        : "text-gray-700 dark:text-gray-300 hover:text-[#0F4C75] dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        ? "border-[#FCA311] text-[#FCA311] bg-amber-50 dark:bg-amber-950/20"
+                        : "border-transparent text-gray-700 dark:text-gray-300 hover:text-[#FCA311] hover:bg-gray-50 dark:hover:bg-gray-800",
                     )}
                   >
                     {dept.label}
+                    {pathname === dept.href && <span className="w-1.5 h-1.5 rounded-full bg-[#FCA311]" aria-hidden />}
                   </Link>
                 </li>
               ))}
+            </ul>
+
+            <div className="px-4 pt-4 pb-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Quick links</p>
+            </div>
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800 mb-2">
               <li>
-                <Link
-                  href="/offers"
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-6 py-3 text-sm font-semibold hover:bg-orange-50 dark:hover:bg-orange-950"
-                  style={{ color: ACCENT }}
-                >
-                  🏷️ Special Offers
+                <Link href="/offers" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-6 py-3 text-sm font-semibold transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/20" style={{ color: AMBER }}>
+                  <Tag className="h-4 w-4" /> Special Offers
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/store-locator"
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#0F4C75] dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  📍 Store Locator
+                <Link href="/store-locator" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <MapPin className="h-4 w-4" /> Store Locator
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/help"
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#0F4C75] dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  ❓ Help Centre
+                <Link href="/help" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <HelpCircle className="h-4 w-4" /> Help Centre
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/products"
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-6 py-3 text-sm font-semibold hover:bg-orange-50 dark:hover:bg-orange-950"
-                  style={{ color: ACCENT }}
-                >
-                  All Products →
-                </Link>
-              </li>
+              {!hydrated || !user ? (
+                <li>
+                  <Link href="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-6 py-3 text-sm font-semibold hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors" style={{ color: AMBER }}>
+                    <User className="h-4 w-4" /> Sign in / Register
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-6 py-3 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                    <LogOut className="h-4 w-4" /> Sign out
+                  </button>
+                </li>
+              )}
             </ul>
           </nav>
         </div>

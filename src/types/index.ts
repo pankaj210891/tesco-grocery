@@ -26,6 +26,7 @@ export interface Product {
 
 export interface ProductFilters {
   category?: string;
+  brand?:    string;
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
@@ -33,6 +34,7 @@ export interface ProductFilters {
   search?: string;
   page?: number;
   limit?: number;
+  slugs?: string[];
 }
 
 export interface PaginatedProducts {
@@ -49,6 +51,7 @@ export interface Category {
   name:         string;
   slug:         string;
   emoji:        string;
+  image:        string;
   description:  string;
   color:        string;
   textColor:    string;
@@ -281,23 +284,24 @@ export interface Faq {
 export type DiscountType = "percentage" | "fixed" | "freeDelivery";
 
 export interface Offer {
-  _id:           string;
-  title:         string;
-  subtitle?:     string;
-  description?:  string;
-  code?:         string;
-  discountType:  DiscountType;
-  discountValue: number;
-  minOrderValue: number;
-  expiresAt:     string;
-  isActive:      boolean;
-  badge?:        string;
-  color?:        string;
-  emoji?:        string;
-  category:      string;
-  href:          string;
-  order:         number;
-  createdAt:     string;
+  _id:                 string;
+  title:               string;
+  subtitle?:           string;
+  description?:        string;
+  code?:               string;
+  discountType:        DiscountType;
+  discountValue:       number;
+  minOrderValue:       number;
+  expiresAt:           string;
+  isActive:            boolean;
+  eligibleCategories:  string[]; // [] = all categories
+  badge?:              string;
+  color?:              string;
+  emoji?:              string;
+  category:            string;
+  href:                string;
+  order:               number;
+  createdAt:           string;
 }
 
 // ─── Homepage Sections ────────────────────────────────────────────────────────
@@ -319,6 +323,7 @@ export interface SectionItem {
   description?:   string;
   emoji?:         string;
   href:           string;
+  productSlug?:   string;
   badge?:         string;
   price?:         number;
   originalPrice?: number;

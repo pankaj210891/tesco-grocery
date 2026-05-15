@@ -73,9 +73,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-5">
         <ol className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap">
-          <li><Link href="/" className="hover:text-[#00539F] transition-colors">Home</Link></li>
+          <li><Link href="/" className="hover:text-[#FCA311] transition-colors">Home</Link></li>
           <li><ChevronRight className="h-3.5 w-3.5 text-gray-300" /></li>
-          <li><Link href="/categories" className="hover:text-[#00539F] transition-colors">Categories</Link></li>
+          <li><Link href="/categories" className="hover:text-[#FCA311] transition-colors">Categories</Link></li>
           <li><ChevronRight className="h-3.5 w-3.5 text-gray-300" /></li>
           <li className="font-semibold text-gray-900 dark:text-gray-100">{meta.name}</li>
         </ol>
@@ -128,7 +128,7 @@ function EmptyCategory({ name }: { name: string }) {
       <p className="text-gray-400 text-lg mb-2">No products in {name} yet</p>
       <Link
         href="/products"
-        className="mt-4 px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors"
+        className="mt-4 px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors"
       >
         Browse all products
       </Link>

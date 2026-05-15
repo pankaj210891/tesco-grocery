@@ -28,7 +28,7 @@ export default function AuthFormField({
           "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800",
           error
             ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-            : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100",
+            : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15",
           className
         )}
         {...props}

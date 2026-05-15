@@ -50,6 +50,7 @@ export interface EligiblePromo {
   discountValue: number;
   discountAmount: number; // projected saving for this cart
   minOrderValue: number;
+  eligibleCategories: string[]; // [] = all categories
   badge?: string;
   emoji?: string;
   color?: string;
@@ -67,9 +68,14 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+function normCat(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, "-");
+}
+
 /**
  * Returns the subtotal of cart items that are eligible for the promo.
  * If the offer has no category/product restrictions, returns the full subtotal.
+ * Category comparison is case-insensitive and handles slug/display-name differences.
  */
 function eligibleSubtotal(offer: LeanOffer, items: CartItemInput[]): number {
   const hasCategories = offer.eligibleCategories.length > 0;
@@ -79,10 +85,13 @@ function eligibleSubtotal(offer: LeanOffer, items: CartItemInput[]): number {
     return items.reduce((s, i) => s + i.price * i.quantity, 0);
   }
 
+  const normalizedOfferCats = offer.eligibleCategories.map(normCat);
+
   return items
     .filter((i) => {
       const okCategory =
-        !hasCategories || offer.eligibleCategories.includes(i.category);
+        !hasCategories ||
+        normalizedOfferCats.includes(normCat(i.category));
       const okProduct =
         !hasProducts || offer.eligibleProductIds.includes(i.productId);
       return okCategory && okProduct;
@@ -103,8 +112,10 @@ function computeDiscount(
   const fee = deliveryFeeFor(cartSubtotal);
 
   switch (offer.discountType) {
-    case "percentage":
-      return round2(eligSub * (offer.discountValue / 100));
+    case "percentage": {
+      const raw = round2(eligSub * (offer.discountValue / 100));
+      return offer.maxCap != null ? Math.min(raw, offer.maxCap) : raw;
+    }
     case "fixed":
       return round2(Math.min(offer.discountValue, eligSub));
     case "freeDelivery":
@@ -355,6 +366,7 @@ export async function getEligiblePromos(
       discountValue: offer.discountValue,
       discountAmount,
       minOrderValue: offer.minOrderValue,
+      eligibleCategories: offer.eligibleCategories ?? [],
       badge: offer.badge,
       emoji: offer.emoji,
       color: offer.color,

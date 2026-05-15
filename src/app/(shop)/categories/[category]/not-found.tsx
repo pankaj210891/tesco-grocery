@@ -14,7 +14,7 @@ export default function CategoryNotFound() {
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link
           href="/categories"
-          className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors"
+          className="px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors"
         >
           Browse all categories
         </Link>

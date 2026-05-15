@@ -49,11 +49,11 @@ function Field({
 
 const inputCls = (hasError?: boolean) =>
   cn(
-    "w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
+    "w-full px-3.5 py-2.5 text-base md:text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
     "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white",
     hasError
       ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-      : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100"
+      : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15"
   );
 
 function loadRazorpayScript(): Promise<boolean> {
@@ -152,7 +152,8 @@ export default function CheckoutPageContent() {
       return {
         fullName: selectedAddress.fullName,
         email:    data.email,
-        phone:    selectedAddress.phone.replace(/\D/g, "").slice(0, 10),
+        // Always use form value — applyAddress() syncs it, and user may edit after selection
+        phone:    data.phone,
         address:  selectedAddress.line1 + (selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""),
         city:     selectedAddress.city,
         postcode: selectedAddress.postcode,
@@ -205,7 +206,7 @@ export default function CheckoutPageContent() {
           email:   delivery.email,
           contact: delivery.phone,
         },
-        theme: { color: "#00539F" },
+        theme: { color: "#FCA311" },
         handler: async (response: {
           razorpay_payment_id: string;
           razorpay_order_id:   string;
@@ -294,13 +295,15 @@ export default function CheckoutPageContent() {
 
   if (!user || !token) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <div className="inline-flex bg-blue-50 rounded-full p-5 mb-5">
-          <ShoppingCart className="h-12 w-12 text-blue-300" aria-hidden />
+      <div className="max-w-lg mx-auto px-4 py-24 text-center">
+        <div className="w-20 h-20 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-6">
+          <ShoppingCart className="h-9 w-9 text-[#FCA311]" aria-hidden />
         </div>
         <h1 className="text-xl font-black text-gray-900 dark:text-white mb-2">Sign in to checkout</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">You need to be signed in to place an order.</p>
-        <Link href="/login" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed">
+          You need to be signed in to place an order.
+        </p>
+        <Link href="/login" className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
           Sign in
         </Link>
       </div>
@@ -309,13 +312,15 @@ export default function CheckoutPageContent() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <div className="inline-flex bg-gray-100 rounded-full p-5 mb-5">
-          <ShoppingCart className="h-12 w-12 text-gray-400" aria-hidden />
+      <div className="max-w-lg mx-auto px-4 py-24 text-center">
+        <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-6">
+          <ShoppingCart className="h-9 w-9 text-gray-400 dark:text-gray-500" aria-hidden />
         </div>
-        <h1 className="text-xl font-black text-gray-900 mb-2">Your cart is empty</h1>
-        <p className="text-gray-500 text-sm mb-6">Add some items before checking out.</p>
-        <Link href="/products" className="px-6 py-2.5 bg-[#00539F] text-white font-semibold rounded-xl text-sm hover:bg-[#003B7A] transition-colors">
+        <h1 className="text-xl font-black text-gray-900 dark:text-white mb-2">Your cart is empty</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed">
+          Add some items before checking out.
+        </p>
+        <Link href="/products" className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#FCA311] text-white font-semibold rounded-xl text-sm hover:bg-[#E8920A] transition-colors">
           Browse products
         </Link>
       </div>
@@ -324,28 +329,40 @@ export default function CheckoutPageContent() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-8">Checkout</h1>
+      {/* ── Page header ── */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Checkout</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {items.reduce((s, i) => s + i.quantity, 0)} items · Complete your order below
+        </p>
+      </div>
 
       <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ── Left column ───────────────────────────────────── */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-5">
 
-            {/* Delivery section */}
-            <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-                <MapPin className="h-5 w-5 text-[#00539F]" aria-hidden />
-                Delivery details
-              </h2>
+            {/* ── Section 1: Delivery details ── */}
+            <section className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <div className="w-7 h-7 rounded-full bg-[#FCA311] flex items-center justify-center shrink-0">
+                  <span className="text-white text-xs font-black">1</span>
+                </div>
+                <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-[#FCA311]" aria-hidden />
+                  Delivery Details
+                </h2>
+              </div>
 
+              <div className="p-5">
               {user && savedAddresses.length > 0 && (
-                <div className="mb-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 flex items-center justify-between gap-3">
+                <div className="mb-5 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 flex items-center justify-between gap-3">
                   <div className="text-sm text-gray-700 dark:text-gray-300 min-w-0">
                     {selectedAddress ? (
                       <>
                         <p className="font-semibold truncate">{selectedAddress.fullName}</p>
-                        <p className="text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-gray-500 dark:text-gray-400 truncate text-xs mt-0.5">
                           {selectedAddress.line1}, {selectedAddress.city}, {selectedAddress.postcode}
                         </p>
                       </>
@@ -356,9 +373,9 @@ export default function CheckoutPageContent() {
                   <button
                     type="button"
                     onClick={() => setShowAddressModal(true)}
-                    className="shrink-0 text-xs font-semibold text-[#00539F] hover:underline"
+                    className="shrink-0 text-xs font-bold text-[#FCA311] hover:underline whitespace-nowrap"
                   >
-                    Change
+                    Change address
                   </button>
                 </div>
               )}
@@ -401,7 +418,7 @@ export default function CheckoutPageContent() {
                 </Field>
 
                 <div className="sm:col-span-2">
-                  <Field label="Address" error={errors.address}>
+                  <Field label="Street address" error={errors.address}>
                     <input
                       type="text"
                       autoComplete="street-address"
@@ -416,62 +433,76 @@ export default function CheckoutPageContent() {
                   <input
                     type="text"
                     autoComplete="address-level2"
-                    placeholder="London"
+                    placeholder="Mumbai"
                     className={inputCls(!!errors.city)}
                     {...register("city")}
                   />
                 </Field>
 
-                <Field label="Postcode" error={errors.postcode}>
+                <Field label="Postcode / PIN" error={errors.postcode}>
                   <input
                     type="text"
                     autoComplete="postal-code"
-                    placeholder="SW1A 1AA"
+                    placeholder="400001"
                     className={cn(inputCls(!!errors.postcode), "uppercase")}
                     {...register("postcode")}
                   />
                 </Field>
               </div>
+              </div>
             </section>
 
-            {/* Payment method section */}
-            <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-              <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-5">
-                <CreditCard className="h-5 w-5 text-[#00539F]" aria-hidden />
-                Payment method
-              </h2>
+            {/* ── Section 2: Payment ── */}
+            <section className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <div className="w-7 h-7 rounded-full bg-[#FCA311] flex items-center justify-center shrink-0">
+                  <span className="text-white text-xs font-black">2</span>
+                </div>
+                <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-[#FCA311]" aria-hidden />
+                  Payment Method
+                </h2>
+              </div>
 
-              <PaymentMethodSelector
-                value={paymentMethod ?? ""}
-                onChange={(m) => setValue("paymentMethod", m, { shouldValidate: true })}
-                error={errors.paymentMethod}
-              />
+              <div className="p-5">
+                <PaymentMethodSelector
+                  value={paymentMethod ?? ""}
+                  onChange={(m) => setValue("paymentMethod", m, { shouldValidate: true })}
+                  error={errors.paymentMethod}
+                />
 
-              {paymentMethod === "razorpay" && (
-                <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-green-400 shrink-0" />
-                  256-bit SSL secured — your card details are never stored by us
-                </p>
-              )}
-              {paymentMethod === "cod" && (
-                <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
-                  Please keep the exact amount ready at delivery. COD orders are confirmed immediately.
-                </p>
-              )}
+                {paymentMethod === "razorpay" && (
+                  <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-400 shrink-0" />
+                    256-bit SSL secured — your card details are never stored by us
+                  </p>
+                )}
+                {paymentMethod === "cod" && (
+                  <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+                    Please keep the exact amount ready at delivery. COD orders are confirmed immediately.
+                  </p>
+                )}
+              </div>
             </section>
           </div>
 
           {/* ── Right column (sticky) ──────────────────────── */}
-          <div className="lg:col-span-5 lg:sticky lg:top-24">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-5">
-              <OrderReview items={items} />
-              <div className="border-t border-gray-100 dark:border-gray-700 pt-5">
-                <CheckoutPricingSummary
-                  subtotal={totalPrice}
-                  postcode={postcodeValue}
-                  isSubmitting={isSubmitting}
-                  paymentMethod={paymentMethod}
-                />
+          <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-4">
+            {/* Order summary card */}
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <h3 className="font-bold text-gray-900 dark:text-white text-sm">Order Summary</h3>
+              </div>
+              <div className="p-5 space-y-5">
+                <OrderReview items={items} />
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-5">
+                  <CheckoutPricingSummary
+                    subtotal={totalPrice}
+                    postcode={postcodeValue}
+                    isSubmitting={isSubmitting}
+                    paymentMethod={paymentMethod}
+                  />
+                </div>
               </div>
             </div>
           </div>

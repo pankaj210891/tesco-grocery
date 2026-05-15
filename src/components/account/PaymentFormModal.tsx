@@ -21,11 +21,11 @@ type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
 const inputCls = (hasError?: boolean) =>
   cn(
-    "w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
+    "w-full px-3.5 py-2.5 text-base md:text-sm border rounded-xl outline-none transition-colors bg-white dark:bg-gray-800",
     "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white",
     hasError
       ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-      : "border-gray-300 dark:border-gray-600 focus:border-[#00539F] focus:ring-2 focus:ring-blue-100"
+      : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15"
   );
 
 function Field({
@@ -163,7 +163,7 @@ export default function PaymentFormModal({ onClose, onSave }: PaymentFormModalPr
             <input
               type="checkbox"
               {...register("isDefault")}
-              className="accent-[#00539F] h-4 w-4"
+              className="accent-[#FCA311] h-4 w-4"
             />
             Set as default payment method
           </label>
@@ -183,7 +183,7 @@ export default function PaymentFormModal({ onClose, onSave }: PaymentFormModalPr
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 bg-[#00539F] text-white text-sm font-semibold rounded-xl hover:bg-[#003B7A] disabled:opacity-60 transition-colors"
+              className="flex-1 py-2.5 bg-[#FCA311] text-white text-sm font-semibold rounded-xl hover:bg-[#E8920A] disabled:opacity-60 transition-colors"
             >
               {isSubmitting ? "Saving…" : "Add card"}
             </button>
