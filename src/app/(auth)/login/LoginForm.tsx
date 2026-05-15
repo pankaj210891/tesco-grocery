@@ -14,6 +14,19 @@ import { useAuthStore } from "@/store/auth.store";
 import { usePendingAction } from "@/hooks/usePendingAction";
 import AuthFormField from "@/components/auth/AuthFormField";
 
+const ROLE_DESTINATIONS: Record<string, string> = {
+  admin:    "/admin",
+  vendor:   "/vendor",
+  customer: "/",
+};
+
+function resolveDestination(role: string, explicitRedirect: string | null): string {
+  // Honor an explicit redirect (e.g. user was sent to /login from a protected page)
+  if (explicitRedirect && explicitRedirect !== "/") return explicitRedirect;
+  // Fall back to role-based home
+  return ROLE_DESTINATIONS[role] ?? "/";
+}
+
 export default function LoginForm() {
   const router              = useRouter();
   const searchParams        = useSearchParams();
@@ -21,7 +34,7 @@ export default function LoginForm() {
   const executePendingAction = usePendingAction();
   const [showPw, setShowPw] = useState(false);
 
-  const redirect = searchParams.get("redirect") ?? "/";
+  const explicitRedirect = searchParams.get("redirect");
 
   const {
     register,
@@ -32,10 +45,11 @@ export default function LoginForm() {
   async function onSubmit(data: LoginFormData) {
     try {
       const { data: json } = await axios.post("/api/auth/login", data);
-      setAuth(json.data.user, json.data.token);
-      toast.success(`Welcome back, ${json.data.user.name.split(" ")[0]}!`);
+      const user = json.data.user;
+      setAuth(user, json.data.token);
+      toast.success(`Welcome back, ${user.name.split(" ")[0]}!`);
       await executePendingAction(json.data.token);
-      router.push(redirect);
+      router.push(resolveDestination(user.role, explicitRedirect));
     } catch (err) {
       const msg = axios.isAxiosError(err)
         ? err.response?.data?.error ?? "Login failed. Please check your credentials."
