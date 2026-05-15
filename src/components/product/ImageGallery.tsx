@@ -19,7 +19,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const count = images.length;
-  const src = images[selected] ?? "/images/placeholder-product.png";
+  const src = images[selected] ?? "/images/placeholder-product.webp";
 
   const go = useCallback((dir: 1 | -1) => {
     setSelected((i) => (i + dir + count) % count);

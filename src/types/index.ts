@@ -51,6 +51,7 @@ export interface Category {
   name:         string;
   slug:         string;
   emoji:        string;
+  image:        string;
   description:  string;
   color:        string;
   textColor:    string;

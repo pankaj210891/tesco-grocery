@@ -94,7 +94,7 @@ export default function VendorProductsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                        <Image src={p.images[0] ?? "/images/placeholder-product.png"} alt={p.name} fill className="object-contain p-1" />
+                        <Image src={p.images[0] ?? "/images/placeholder-product.webp"} alt={p.name} fill className="object-contain p-1" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[180px]">{p.name}</p>

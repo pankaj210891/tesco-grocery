@@ -53,7 +53,7 @@ function expand(row: RawRow): ProductSeed {
     description:   row.d,
     price:         toINR(row.p),
     ...(row.o ? { originalPrice: toINR(row.o) } : {}),
-    images:        productImages(row.n, row.c),
+    images:        productImages(row.n),
     category:      CATEGORY_NAME_MAP[row.c] ?? row.c,
     brand:         row.b,
     unit:          row.u,

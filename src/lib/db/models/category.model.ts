@@ -5,6 +5,7 @@ const CategorySchema = new Schema(
     name:         { type: String, required: true, unique: true, trim: true },
     slug:         { type: String, required: true, unique: true, lowercase: true, trim: true },
     emoji:        { type: String, default: "📦" },
+    image:        { type: String, default: "" },
     description:  { type: String, default: "" },
     color:        { type: String, default: "bg-gray-50" },
     textColor:    { type: String, default: "text-gray-700" },
