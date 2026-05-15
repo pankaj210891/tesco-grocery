@@ -147,27 +147,14 @@ export default function CheckoutPageContent() {
     }))
   , [items]);
 
-  const buildDelivery = useCallback((data: CheckoutFormData) => {
-    if (selectedAddress) {
-      return {
-        fullName: selectedAddress.fullName,
-        email:    data.email,
-        // Always use form value — applyAddress() syncs it, and user may edit after selection
-        phone:    data.phone,
-        address:  selectedAddress.line1 + (selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""),
-        city:     selectedAddress.city,
-        postcode: selectedAddress.postcode,
-      };
-    }
-    return {
-      fullName: data.fullName,
-      email:    data.email,
-      phone:    data.phone,
-      address:  data.address,
-      city:     data.city,
-      postcode: data.postcode,
-    };
-  }, [selectedAddress]);
+  const buildDelivery = useCallback((data: CheckoutFormData) => ({
+    fullName: data.fullName,
+    email:    data.email,
+    phone:    data.phone,
+    address:  data.address,
+    city:     data.city,
+    postcode: data.postcode,
+  }), []);
 
   async function handleRazorpay(data: CheckoutFormData) {
     const scriptLoaded = await loadRazorpayScript();

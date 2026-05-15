@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
 import { createOrder } from "@/services/order.service";
+import { sendOrderConfirmation } from "@/services/email.service";
 
 const deliverySchema = z.object({
   fullName: z.string().min(2),
@@ -71,6 +72,20 @@ export async function POST(req: Request) {
       result.orderId,
       validated.discount,
     );
+
+    try {
+      await sendOrderConfirmation(delivery.email, {
+        orderNumber:     result.orderNumber,
+        customerName:    delivery.fullName,
+        items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+        total:           validated.total,
+        paymentMethod:   "Cash on Delivery",
+        deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
+      });
+      console.log("[cod] Order confirmation email sent to", delivery.email);
+    } catch (emailErr) {
+      console.error("[cod] Failed to send order confirmation email:", emailErr);
+    }
 
     return Response.json({
       success: true,

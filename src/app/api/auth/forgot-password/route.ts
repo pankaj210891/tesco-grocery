@@ -2,8 +2,10 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import UserModel from "@/lib/db/models/user.model";
+import { sendPasswordReset } from "@/services/email.service";
 
-const RESET_EXPIRES_MS = 60 * 60 * 1000; // 1 hour
+const RESET_EXPIRES_MS  = 60 * 60 * 1000; // 1 hour
+const OTP_EXPIRES_MIN   = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,6 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const token   = crypto.randomBytes(32).toString("hex");
+    const otp     = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
     const expires = new Date(Date.now() + RESET_EXPIRES_MS);
 
     await UserModel.updateOne(
@@ -33,12 +36,20 @@ export async function POST(req: NextRequest) {
       { passwordResetToken: token, passwordResetExpires: expires },
     );
 
-    // In production, send an email with the reset link.
-    // For this demo, the token is returned in the response so it can be tested.
+    try {
+      await sendPasswordReset(email, {
+        customerName: user.name as string,
+        otp,
+        expiresInMin: OTP_EXPIRES_MIN,
+      });
+      console.log("[forgot-password] Reset OTP email sent to", email);
+    } catch (emailErr) {
+      console.error("[forgot-password] Failed to send reset email:", emailErr);
+    }
+
     return NextResponse.json({
       success: true,
-      message: "If an account with that email exists, a reset link has been sent.",
-      // demo only — remove in production:
+      message: "If an account with that email exists, a reset OTP has been sent.",
       resetToken: token,
       resetUrl:   `/reset-password?token=${token}`,
     });

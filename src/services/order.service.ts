@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/db/mongoose";
 import OrderModel, { type OrderDoc } from "@/lib/db/models/order.model";
-import type { Order, PaymentMethodType, PaymentStatus } from "@/types";
+import type { Order, PaymentMethodType, PaymentStatus, RefundStatus } from "@/types";
 
 export interface OrderItem {
   productId: string;
@@ -82,6 +82,10 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     paymentStatus: (doc.paymentStatus ?? "pending") as PaymentStatus,
     razorpayOrderId:   doc.razorpayOrderId ?? undefined,
     razorpayPaymentId: doc.razorpayPaymentId ?? undefined,
+    cancellationReason:  (doc as unknown as { cancellationReason?: string }).cancellationReason  ?? undefined,
+    cancellationComment: (doc as unknown as { cancellationComment?: string }).cancellationComment ?? undefined,
+    refundId:     (doc as unknown as { refundId?: string }).refundId      ?? undefined,
+    refundStatus: (doc as unknown as { refundStatus?: string }).refundStatus as RefundStatus | undefined,
     createdAt:   doc.createdAt.toISOString(),
   };
 }
@@ -100,9 +104,9 @@ export async function getOrdersByUserId(
   const query: Record<string, unknown> = { userId };
   if (dateFilter?.from || dateFilter?.to) {
     const range: Record<string, Date> = {};
-    // Expect YYYY-MM-DD strings; build clean UTC day boundaries (00:00:00 / 23:59:59)
-    if (dateFilter.from) range.$gte = new Date(`${dateFilter.from}T00:00:00.000Z`);
-    if (dateFilter.to)   range.$lte = new Date(`${dateFilter.to}T23:59:59.999Z`);
+    // YYYY-MM-DD strings from client; interpret as IST (UTC+05:30) day boundaries
+    if (dateFilter.from) range.$gte = new Date(`${dateFilter.from}T00:00:00+05:30`);
+    if (dateFilter.to)   range.$lte = new Date(`${dateFilter.to}T23:59:59.999+05:30`);
     query.createdAt = range;
   }
 
@@ -126,4 +130,44 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
   const orderNumber = generateOrderNumber();
   const doc = await OrderModel.create({ ...input, orderNumber });
   return { orderId: doc._id.toString(), orderNumber: doc.orderNumber };
+}
+
+export const CANCELLABLE_STATUSES = ["pending", "processing"] as const;
+
+export async function cancelOrder(
+  orderNumber: string,
+  userId:      string,
+  reason?:     string,
+  comment?:    string,
+): Promise<Order | null> {
+  await connectDB();
+  const doc = await OrderModel.findOneAndUpdate(
+    { orderNumber, userId, status: { $in: CANCELLABLE_STATUSES } },
+    {
+      status: "cancelled",
+      ...(reason  && { cancellationReason: reason }),
+      ...(comment && { cancellationComment: comment }),
+    },
+    { new: true },
+  ).lean();
+  if (!doc) return null;
+  return toOrder(doc as unknown as OrderDoc & { _id: { toString(): string }; createdAt: Date });
+}
+
+export async function setOrderRefund(
+  orderNumber: string,
+  refundId:    string,
+  status:      RefundStatus,
+): Promise<void> {
+  await connectDB();
+  const update: Record<string, unknown> = { refundId, refundStatus: status };
+  if (status === "processed") update.paymentStatus = "refunded";
+  await OrderModel.updateOne({ orderNumber }, update);
+}
+
+export async function getOrderByRefundId(refundId: string): Promise<Order | null> {
+  await connectDB();
+  const doc = await OrderModel.findOne({ refundId }).lean();
+  if (!doc) return null;
+  return toOrder(doc as unknown as OrderDoc & { _id: { toString(): string }; createdAt: Date });
 }
