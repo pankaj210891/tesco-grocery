@@ -41,12 +41,21 @@ const OrderSchema = new Schema(
     },
     paymentStatus: {
       type:    String,
-      enum:    ["pending", "paid", "failed"],
+      enum:    ["pending", "paid", "failed", "refunded"],
       default: "pending",
     },
     razorpayOrderId:   String,
     razorpayPaymentId: String,
     razorpaySignature: String,
+    // ── Cancellation ──────────────────────────────────────────────────────────
+    cancellationReason:  String,
+    cancellationComment: String,
+    // ── Refund ────────────────────────────────────────────────────────────────
+    refundId: String,
+    refundStatus: {
+      type: String,
+      enum: ["initiated", "processed", "failed"],
+    },
   },
   { timestamps: true }
 );

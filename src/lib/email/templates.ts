@@ -145,6 +145,57 @@ export function welcomeTemplate(d: WelcomeData): { subject: string; html: string
   return { subject: `Welcome to ${LOGO_TEXT}!`, html };
 }
 
+export interface OrderCancellationData {
+  orderNumber:  string;
+  customerName: string;
+  total:        number;
+  reason?:      string;
+  comment?:     string;
+  isRefundable: boolean;
+}
+
+export interface RefundConfirmedData {
+  orderNumber:  string;
+  customerName: string;
+  total:        number;
+}
+
+export function orderCancellationTemplate(d: OrderCancellationData): { subject: string; html: string } {
+  const reasonBlock = (d.reason || d.comment)
+    ? `<div style="margin:16px 0;padding:14px 16px;background:#fef2f2;border-left:4px solid #ef4444;border-radius:6px;font-size:14px;color:#374151">
+        ${d.reason  ? `<p style="margin:0 0 4px"><strong>Reason:</strong> ${d.reason}</p>` : ""}
+        ${d.comment ? `<p style="margin:0"><strong>Note:</strong> ${d.comment}</p>`         : ""}
+       </div>`
+    : "";
+
+  const refundBlock = d.isRefundable
+    ? `<p>Since you paid online, a <strong>full refund of ₹${d.total.toFixed(2)}</strong> has been initiated to your original payment method. It will reflect within <strong>5–7 business days</strong>.</p>`
+    : `<p>This was a Cash on Delivery order, so no payment was collected — nothing further is required on your end.</p>`;
+
+  const html = base(
+    "Order Cancelled",
+    `<h2>Your Order Has Been Cancelled</h2>
+     <p>Hi ${d.customerName},</p>
+     <p>Your order <strong>${d.orderNumber}</strong> has been successfully cancelled.</p>
+     ${reasonBlock}
+     ${refundBlock}
+     <p>We're sorry to see you go. If you have any questions, please reach out to our support team.</p>`,
+  );
+  return { subject: `Order ${d.orderNumber} Cancelled`, html };
+}
+
+export function refundConfirmedTemplate(d: RefundConfirmedData): { subject: string; html: string } {
+  const html = base(
+    "Refund Confirmed",
+    `<h2>Refund Processed Successfully</h2>
+     <p>Hi ${d.customerName},</p>
+     <p>Great news! Your refund of <strong>₹${d.total.toFixed(2)}</strong> for order <strong>${d.orderNumber}</strong> has been successfully processed.</p>
+     <p>The amount should appear in your account within 1–3 business days depending on your bank.</p>
+     <p>Thank you for shopping with us — we hope to serve you again soon.</p>`,
+  );
+  return { subject: `Refund Confirmed for Order ${d.orderNumber}`, html };
+}
+
 export function passwordResetTemplate(d: PasswordResetData): { subject: string; html: string } {
   const html = base(
     "Password Reset OTP",

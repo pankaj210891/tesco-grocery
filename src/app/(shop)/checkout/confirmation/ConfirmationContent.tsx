@@ -19,13 +19,13 @@ export default function ConfirmationContent() {
   const NEXT_STEPS = isCOD
     ? [
         { icon: Package, title: "Order confirmed",       desc: "Your order has been received and is being prepared." },
-        { icon: Clock,   title: "Out for delivery soon", desc: "We'll send you a delivery update by email." },
+        { icon: Clock,   title: "Out for delivery soon", desc: "We'll keep you updated at every step via email." },
         { icon: Truck,   title: "Pay on delivery",       desc: "Keep the exact cash amount ready when your order arrives." },
       ]
     : [
-        { icon: Package,  title: "Order confirmed",  desc: "Your payment was successful and the order is being prepared." },
-        { icon: Clock,    title: "Processing",        desc: "We'll begin packing your order shortly." },
-        { icon: ShoppingBag, title: "On its way",    desc: "You'll receive a delivery update by email." },
+        { icon: Package,     title: "Payment successful", desc: "Your payment was confirmed and the order is being prepared." },
+        { icon: Clock,       title: "Order processing",   desc: "We'll begin packing your items shortly." },
+        { icon: ShoppingBag, title: "Out for delivery",   desc: "You'll receive a shipping update by email once dispatched." },
       ];
 
   return (
@@ -139,21 +139,30 @@ export default function ConfirmationContent() {
           </div>
         </div>
 
-        {/* ── Order tracking placeholder ── */}
-        <div className="bg-gradient-to-r from-[#FCA311]/5 to-indigo-500/5 dark:from-blue-900/20 dark:to-indigo-900/20 border border-[#FCA311]/20 dark:border-blue-800/40 rounded-2xl px-5 py-4 mb-8 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#FCA311]/10 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
-            <Package className="h-4 w-4 text-[#FCA311] dark:text-amber-400" />
+        {/* ── Order tracking + cancellation note ── */}
+        <div className="space-y-3 mb-8">
+          <div className="bg-gradient-to-r from-[#FCA311]/5 to-indigo-500/5 dark:from-blue-900/20 dark:to-indigo-900/20 border border-[#FCA311]/20 dark:border-blue-800/40 rounded-2xl px-5 py-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#FCA311]/10 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+              <Package className="h-4 w-4 text-[#FCA311] dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Track your order</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">View live status in My Account → Order History.</p>
+            </div>
+            <Link
+              href="/account"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
+            >
+              View <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Order tracking</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Track your order status in My Account → Order History.</p>
+          <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700 rounded-2xl px-5 py-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              Need to cancel? You can cancel a <span className="font-semibold text-gray-700 dark:text-gray-300">pending</span> or <span className="font-semibold text-gray-700 dark:text-gray-300">processing</span> order from your{" "}
+              <Link href="/account" className="text-[#FCA311] dark:text-amber-400 font-semibold hover:underline">Order History</Link>.
+              {!isCOD && " Online payments are fully refunded."}
+            </p>
           </div>
-          <Link
-            href="/account"
-            className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
-          >
-            View <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
 
         {/* ── CTAs ── */}

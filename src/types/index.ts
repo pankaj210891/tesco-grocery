@@ -149,7 +149,8 @@ export interface OrderLineItem {
 }
 
 export type PaymentMethodType = "razorpay" | "cod";
-export type PaymentStatus    = "pending" | "paid" | "failed";
+export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded";
+export type RefundStatus     = "initiated" | "processed" | "failed";
 
 export interface Order {
   _id:         string;
@@ -174,6 +175,10 @@ export interface Order {
   paymentStatus:  PaymentStatus;
   razorpayOrderId?:   string;
   razorpayPaymentId?: string;
+  cancellationReason?:  string;
+  cancellationComment?: string;
+  refundId?:     string;
+  refundStatus?: RefundStatus;
   createdAt:   string;
 }
 
