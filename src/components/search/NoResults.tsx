@@ -25,14 +25,14 @@ interface NoResultsProps {
 export default function NoResults({ query }: NoResultsProps) {
   return (
     <div className="flex flex-col items-center text-center py-16 max-w-lg mx-auto">
-      <div className="bg-gray-100 rounded-full p-5 mb-5">
-        <SearchX className="h-12 w-12 text-gray-400" aria-hidden />
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-5 mb-5">
+        <SearchX className="h-12 w-12 text-gray-400 dark:text-gray-500" aria-hidden />
       </div>
 
-      <h2 className="text-xl font-black text-gray-800 mb-2">
+      <h2 className="text-xl font-black text-gray-800 dark:text-gray-100 mb-2">
         No results for &ldquo;{query}&rdquo;
       </h2>
-      <p className="text-gray-500 text-sm mb-6">
+      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
         We couldn&apos;t find anything matching your search. Here are some
         suggestions:
       </p>
@@ -40,7 +40,7 @@ export default function NoResults({ query }: NoResultsProps) {
       {/* Tips */}
       <ul className="text-left space-y-1.5 mb-8 w-full max-w-xs">
         {TIPS.map((tip) => (
-          <li key={tip} className="flex items-start gap-2 text-sm text-gray-600">
+          <li key={tip} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
             <span className="text-[#FCA311] font-bold mt-0.5 shrink-0">·</span>
             {tip}
           </li>
@@ -49,7 +49,7 @@ export default function NoResults({ query }: NoResultsProps) {
 
       {/* Popular categories */}
       <div className="w-full">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
           Browse popular categories
         </p>
         <div className="flex flex-wrap justify-center gap-2">
@@ -57,7 +57,7 @@ export default function NoResults({ query }: NoResultsProps) {
             <Link
               key={cat}
               href={`/categories/${slugify(cat)}`}
-              className="px-4 py-1.5 border border-gray-200 rounded-full text-sm text-gray-700 hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
+              className="px-4 py-1.5 border border-gray-200 dark:border-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
             >
               {cat}
             </Link>
