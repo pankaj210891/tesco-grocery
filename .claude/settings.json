@@ -1,5 +1,22 @@
 {
   "permissions": {
-    "allow": ["Bash", "Skill(git-workflow)", "Skill(git-workflow:*)"]
+    "allow": [
+      "Bash",
+      "Skill(git-workflow)",
+      "Skill(git-workflow:*)",
+      "Skill(review)",
+      "Skill(review:*)",
+      "Skill(debugging)",
+      "Skill(debugging:*)",
+      "Skill(deploy)",
+      "Skill(deploy:*)"
+    ],
+    "deny": []
+  },
+  "project": {
+    "framework": "Next.js",
+    "language": "TypeScript",
+    "database": "MongoDB",
+    "testing": "Cypress"
   }
 }
