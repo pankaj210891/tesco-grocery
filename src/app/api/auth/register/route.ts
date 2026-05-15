@@ -1,5 +1,6 @@
 import { registerSchema } from "@/lib/validations/auth";
 import { registerUser } from "@/services/auth.service";
+import { sendWelcome } from "@/services/email.service";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,8 @@ export async function POST(req: Request) {
 
     const { name, email, password } = parsed.data;
     const { user, token } = await registerUser(name, email, password);
+
+    sendWelcome(email, { customerName: name });
 
     return Response.json({ success: true, data: { user, token } }, { status: 201 });
   } catch (err) {
