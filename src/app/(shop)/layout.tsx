@@ -1,5 +1,6 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import RoleGuard from "@/components/layout/RoleGuard";
 
 export default function ShopLayout({
   children,
@@ -7,10 +8,12 @@ export default function ShopLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
+    <RoleGuard>
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </div>
+    </RoleGuard>
   );
 }
