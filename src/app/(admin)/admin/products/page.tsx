@@ -6,6 +6,7 @@ import { Plus, Search, Pencil, Trash2, X, ChevronLeft, ChevronRight } from "luci
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth.store";
 import type { Product, ProductBadge } from "@/types";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PageData { products: Product[]; total: number; page: number; totalPages: number; }
 
@@ -30,6 +31,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState<"add" | "edit" | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
+  useScrollLock(modal !== null);
   const [form, setForm]       = useState({ ...EMPTY_FORM });
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");

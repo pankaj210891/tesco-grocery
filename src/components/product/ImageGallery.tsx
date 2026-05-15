@@ -56,7 +56,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                 aria-label={`View image ${i + 1}`}
                 aria-pressed={i === selected}
                 className={cn(
-                  "relative h-[72px] w-[72px] rounded-xl overflow-hidden border-2 transition-all duration-200",
+                  "relative h-[72px] w-[72px] rounded-xl overflow-hidden border-2 transition-colors transition-shadow duration-200",
                   i === selected
                     ? "border-[#FCA311] shadow-md"
                     : "border-gray-200 dark:border-gray-600 opacity-55 hover:opacity-100 hover:border-gray-400 dark:hover:border-gray-400",
@@ -108,7 +108,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                   onClick={() => setSelected(i)}
                   aria-label={`Go to image ${i + 1}`}
                   className={cn(
-                    "rounded-full transition-all duration-300",
+                    "rounded-full transition-[width,background-color] duration-300",
                     i === selected
                       ? "w-4 h-1.5 bg-[#FCA311]"
                       : "w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400",
@@ -130,7 +130,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
               aria-label={`View image ${i + 1}`}
               aria-pressed={i === selected}
               className={cn(
-                "relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all",
+                "relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border-2 transition-colors transition-shadow",
                 i === selected
                   ? "border-[#FCA311] shadow-sm"
                   : "border-gray-200 dark:border-gray-600 opacity-60 hover:opacity-100 hover:border-gray-400",

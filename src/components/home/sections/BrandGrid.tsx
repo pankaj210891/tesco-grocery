@@ -7,7 +7,7 @@ function BrandCard({ item }: { item: SectionItem }) {
   return (
     <Link href={href} className="flex-shrink-0 flex flex-col items-center gap-2 w-24 sm:w-28 group">
       <div
-        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl select-none shadow-sm group-hover:shadow-md transition-all duration-150 group-hover:scale-105"
+        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl select-none shadow-sm group-hover:shadow-md transition-shadow transition-transform duration-150 group-hover:scale-105"
         style={{ backgroundColor: item.color ?? "#F3F4F6" }}
         aria-hidden
       >

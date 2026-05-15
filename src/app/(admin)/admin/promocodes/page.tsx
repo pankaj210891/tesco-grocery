@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, Search, X, Check, Loader2, Tag, ChevronDown } fro
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PromoCode {
   _id:                string;
@@ -65,6 +66,7 @@ export default function AdminPromoCodesPage() {
   const [search,    setSearch]    = useState("");
   const [showForm,  setShowForm]  = useState(false);
   const [editing,   setEditing]   = useState<PromoCode | null>(null);
+  useScrollLock(showForm);
   const [form,      setForm]      = useState({ ...EMPTY_FORM });
   const [saving,    setSaving]    = useState(false);
   const [deleting,  setDeleting]  = useState<string | null>(null);

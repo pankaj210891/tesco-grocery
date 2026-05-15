@@ -26,7 +26,7 @@ export default function SectionHeader({
       {ctaLabel && ctaHref && (
         <Link
           href={ctaHref}
-          className="shrink-0 group flex items-center gap-1 text-sm font-bold transition-all mt-1 hover:underline"
+          className="shrink-0 group flex items-center gap-1 text-sm font-bold transition-colors mt-1 hover:underline"
           style={{ color: "#FCA311" }}
         >
           {ctaLabel}

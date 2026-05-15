@@ -87,7 +87,7 @@ export default function AdminDashboard() {
             { href: "/admin/vendors",  icon: Store,       color: "text-orange-600 dark:text-orange-400",bg: "bg-orange-50 dark:bg-orange-950/40",title: "Vendors", desc: "Approve and manage vendor stores and accounts" },
           ].map(({ href, icon: Icon, color, bg, title, desc }) => (
             <Link key={href} href={href}
-              className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+              className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-colors transition-shadow"
             >
               <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
                 <Icon className={`h-5 w-5 ${color}`} />
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
                 <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">{title}</p>
                 <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{desc}</p>
               </div>
-              <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+              <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-colors transition-transform shrink-0 mt-0.5" />
             </Link>
           ))}
         </div>

@@ -13,7 +13,9 @@ import { useAuthStore } from "@/store/auth.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
 import { cn } from "@/lib/utils/cn";
 import type { Address, PaymentMethodType } from "@/types";
+import type { AddressFormData } from "@/lib/validations/address";
 import AddressSelectModal from "./AddressSelectModal";
+import AddressFormModal from "@/components/account/AddressFormModal";
 import OrderReview from "./OrderReview";
 import CheckoutPricingSummary from "./CheckoutPricingSummary";
 import PaymentMethodSelector from "./PaymentMethodSelector";
@@ -78,6 +80,7 @@ export default function CheckoutPageContent() {
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAddressFormModal, setShowAddressFormModal] = useState(false);
 
   const {
     register,
@@ -133,6 +136,17 @@ export default function CheckoutPageContent() {
       setValue("city",     addr.city);
       setValue("postcode", addr.postcode);
     }
+  }
+
+  async function handleNewAddressSave(data: AddressFormData) {
+    const res = await axios.post<{ data: Address }>("/api/account/addresses", data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const newAddr = res.data.data;
+    setSavedAddresses((prev) => [...prev, newAddr]);
+    applyAddress(newAddr);
+    setShowAddressFormModal(false);
+    toast.success("Address added and selected");
   }
 
   const buildOrderItems = useCallback(() =>
@@ -501,8 +515,17 @@ export default function CheckoutPageContent() {
         <AddressSelectModal
           addresses={savedAddresses}
           selected={selectedAddress}
-          onSelect={applyAddress}
+          onSelect={(addr) => { applyAddress(addr); setShowAddressModal(false); }}
           onClose={() => setShowAddressModal(false)}
+          onAddNew={() => setShowAddressFormModal(true)}
+        />
+      )}
+
+      {showAddressFormModal && (
+        <AddressFormModal
+          mode="add"
+          onClose={() => setShowAddressFormModal(false)}
+          onSave={handleNewAddressSave}
         />
       )}
     </div>

@@ -6,7 +6,7 @@ function InfoCard({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="flex flex-col items-center text-center p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-150 group"
+      className="flex flex-col items-center text-center p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-colors transition-shadow duration-150 group"
     >
       {/* Emoji circle */}
       <div

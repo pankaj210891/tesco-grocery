@@ -98,7 +98,7 @@ export default function DateFilter({ filter, className, align = "left" }: Props)
         <button
           onClick={() => setOpen((o) => !o)}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all",
+            "flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-colors",
             isActive
               ? "border-[#FCA311] bg-[#FCA311]/5 text-[#FCA311] dark:border-blue-500 dark:bg-blue-500/10 dark:text-amber-400"
               : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600",

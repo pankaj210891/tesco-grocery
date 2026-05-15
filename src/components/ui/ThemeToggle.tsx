@@ -48,7 +48,7 @@ export default function ThemeToggle({ variant = "default" }: Props) {
             aria-label={label}
             aria-pressed={active}
             className={cn(
-              "p-1.5 rounded-full transition-all duration-150",
+              "p-1.5 rounded-full transition-colors duration-150",
               isNavbar
                 ? active
                   ? "bg-white text-[#FCA311] dark:bg-white dark:text-[#FCA311]"

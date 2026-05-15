@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
 import { addressSchema, type AddressFormData } from "@/lib/validations/address";
@@ -79,6 +80,8 @@ export default function AddressFormModal({
   });
 
   const label = useWatch({ control, name: "label" });
+
+  useScrollLock(true);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

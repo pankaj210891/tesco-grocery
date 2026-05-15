@@ -54,7 +54,7 @@ export default function NavArrow({
       disabled={disabled}
       aria-label={label ?? (direction === "prev" ? "Previous" : "Next")}
       className={cn(
-        "rounded-full flex items-center justify-center transition-all duration-200",
+        "rounded-full flex items-center justify-center transition-colors transition-shadow duration-200",
         sizes[size],
         v.base,
         disabled ? v.disabled : v.enabled,

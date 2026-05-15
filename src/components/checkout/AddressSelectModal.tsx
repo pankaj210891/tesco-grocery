@@ -3,12 +3,14 @@
 import { useEffect } from "react";
 import { X, MapPin, Check } from "lucide-react";
 import type { Address } from "@/types";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface AddressSelectModalProps {
   addresses: Address[];
   selected: Address | null;
   onSelect: (address: Address | null) => void;
   onClose: () => void;
+  onAddNew: () => void;
 }
 
 export default function AddressSelectModal({
@@ -16,7 +18,10 @@ export default function AddressSelectModal({
   selected,
   onSelect,
   onClose,
+  onAddNew,
 }: AddressSelectModalProps) {
+  useScrollLock(true);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -75,10 +80,10 @@ export default function AddressSelectModal({
 
           <li>
             <button
-              onClick={() => { onSelect(null); onClose(); }}
-              className="w-full text-left p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-600 hover:border-gray-400 transition-colors text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              onClick={onAddNew}
+              className="w-full text-left p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-600 hover:border-[#FCA311]/60 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors text-sm text-[#FCA311] font-semibold"
             >
-              Use a new address
+              + Add new address
             </button>
           </li>
         </ul>

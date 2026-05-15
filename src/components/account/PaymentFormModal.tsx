@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
@@ -73,6 +74,8 @@ export default function PaymentFormModal({ onClose, onSave }: PaymentFormModalPr
     resolver: zodResolver(paymentFormSchema),
     defaultValues: { cardNumber: "", cardholderName: "", expiry: "", cvv: "", isDefault: false },
   });
+
+  useScrollLock(true);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

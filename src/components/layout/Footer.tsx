@@ -99,11 +99,11 @@ export default function Footer() {
                   placeholder="Your email address"
                   required
                   aria-label="Email address for newsletter"
-                  className="flex-1 sm:w-64 h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/20 transition-all"
+                  className="flex-1 sm:w-64 h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/20 transition-colors"
                 />
                 <button
                   type="submit"
-                  className="h-11 px-5 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0 active:scale-95 hover:brightness-105"
+                  className="h-11 px-5 text-white text-sm font-bold rounded-xl transition-colors transition-transform flex items-center gap-1.5 shrink-0 active:scale-95 hover:brightness-105"
                   style={{ backgroundColor: AMBER }}
                 >
                   Subscribe
@@ -174,7 +174,7 @@ export default function Footer() {
                     key={label}
                     href={href}
                     aria-label={label}
-                    className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-white hover:border-[#FCA311] transition-all duration-200"
+                    className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-white hover:border-[#FCA311] transition-colors transition-shadow duration-200"
                     style={{}}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = AMBER; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = ""; }}

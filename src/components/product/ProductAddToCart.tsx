@@ -90,7 +90,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
           disabled={!product.inStock}
           className={cn(
             "flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl",
-            "text-base font-bold transition-all duration-200 active:scale-[0.98]",
+            "text-base font-bold transition-colors transition-shadow transition-transform duration-200 active:scale-[0.98]",
             product.inStock
               ? "bg-[#FCA311] text-white hover:bg-[#E8920A] shadow-sm hover:shadow-md"
               : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed",

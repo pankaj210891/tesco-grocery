@@ -77,7 +77,7 @@ export default function VendorDashboard() {
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Manage</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link href="/vendor/products"
-            className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+            className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-colors transition-shadow"
           >
             <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-950/40">
               <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -91,11 +91,11 @@ export default function VendorDashboard() {
                 </p>
               )}
             </div>
-            <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-colors transition-transform shrink-0 mt-0.5" />
           </Link>
 
           <Link href="/vendor/orders"
-            className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+            className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-colors transition-shadow"
           >
             <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-50 dark:bg-purple-950/40">
               <ShoppingBag className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -109,7 +109,7 @@ export default function VendorDashboard() {
                 </p>
               )}
             </div>
-            <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-colors transition-transform shrink-0 mt-0.5" />
           </Link>
         </div>
       </div>

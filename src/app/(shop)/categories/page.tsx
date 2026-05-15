@@ -36,7 +36,7 @@ export default async function CategoriesPage() {
               <Link
                 href={`/categories/${cat.slug}`}
                 className={cn(
-                  "group flex flex-col items-center text-center p-5 rounded-2xl border transition-all duration-200",
+                  "group flex flex-col items-center text-center p-5 rounded-2xl border transition-colors transition-shadow duration-200",
                   "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md",
                   "dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-500",
                   cat.color,
