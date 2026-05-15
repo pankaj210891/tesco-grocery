@@ -242,11 +242,6 @@ export default function Navbar() {
                           <p className="text-xs text-gray-500 dark:text-gray-400 break-all">{user.email}</p>
                         </div>
                       </div>
-                      {user.role !== "customer" && (
-                        <span className={cn("mt-2 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full capitalize", user.role === "admin" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400")}>
-                          {user.role}
-                        </span>
-                      )}
                     </div>
 
                     <div className="py-1">
