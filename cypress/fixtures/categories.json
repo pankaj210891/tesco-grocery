@@ -1,0 +1,70 @@
+{
+  "listResponse": {
+    "success": true,
+    "data": [
+      {
+        "_id": "cat001",
+        "name": "Fresh Food",
+        "slug": "fresh-food",
+        "productCount": 45,
+        "image": "/images/cat-fresh.webp"
+      },
+      {
+        "_id": "cat002",
+        "name": "Bakery",
+        "slug": "bakery",
+        "productCount": 18,
+        "image": "/images/cat-bakery.webp"
+      },
+      {
+        "_id": "cat003",
+        "name": "Frozen Food",
+        "slug": "frozen-food",
+        "productCount": 32,
+        "image": "/images/cat-frozen.webp"
+      },
+      {
+        "_id": "cat004",
+        "name": "Treats & Snacks",
+        "slug": "treats-snacks",
+        "productCount": 60,
+        "image": "/images/cat-snacks.webp"
+      },
+      {
+        "_id": "cat005",
+        "name": "Drinks",
+        "slug": "drinks",
+        "productCount": 28,
+        "image": "/images/cat-drinks.webp"
+      }
+    ]
+  },
+  "cartResponse": {
+    "success": true,
+    "data": {
+      "items": [
+        {
+          "product": {
+            "_id": "prod001",
+            "name": "Organic Full-Fat Milk 2L",
+            "slug": "organic-full-fat-milk-2l",
+            "price": 1.89,
+            "images": ["/images/milk.webp"],
+            "stock": 50
+          },
+          "quantity": 2
+        }
+      ],
+      "subtotal": 3.78,
+      "total": 3.78
+    }
+  },
+  "emptyCartResponse": {
+    "success": true,
+    "data": {
+      "items": [],
+      "subtotal": 0,
+      "total": 0
+    }
+  }
+}

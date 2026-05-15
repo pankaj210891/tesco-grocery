@@ -1,0 +1,83 @@
+{
+  "listResponse": {
+    "success": true,
+    "data": {
+      "products": [
+        {
+          "_id": "prod001",
+          "name": "Organic Full-Fat Milk 2L",
+          "slug": "organic-full-fat-milk-2l",
+          "price": 1.89,
+          "originalPrice": 2.29,
+          "images": ["/images/milk.webp"],
+          "category": {
+            "_id": "cat001",
+            "name": "Fresh Food",
+            "slug": "fresh-food"
+          },
+          "brand": "Lakeland Dairy",
+          "stock": 50,
+          "rating": 4.5,
+          "reviewCount": 120,
+          "badge": "sale",
+          "isActive": true
+        },
+        {
+          "_id": "prod002",
+          "name": "Sourdough Loaf 800g",
+          "slug": "sourdough-loaf-800g",
+          "price": 2.5,
+          "originalPrice": null,
+          "images": ["/images/sourdough.webp"],
+          "category": { "_id": "cat002", "name": "Bakery", "slug": "bakery" },
+          "brand": "Artisan Bakes",
+          "stock": 30,
+          "rating": 4.8,
+          "reviewCount": 87,
+          "badge": "bestseller",
+          "isActive": true
+        },
+        {
+          "_id": "prod003",
+          "name": "Free Range Eggs 12 Pack",
+          "slug": "free-range-eggs-12-pack",
+          "price": 3.25,
+          "originalPrice": null,
+          "images": ["/images/eggs.webp"],
+          "category": {
+            "_id": "cat001",
+            "name": "Fresh Food",
+            "slug": "fresh-food"
+          },
+          "brand": "Happy Hens",
+          "stock": 0,
+          "rating": 4.7,
+          "reviewCount": 203,
+          "badge": "outOfStock",
+          "isActive": true
+        }
+      ],
+      "total": 3,
+      "page": 1,
+      "totalPages": 1,
+      "limit": 12
+    }
+  },
+  "singleProduct": {
+    "_id": "prod001",
+    "name": "Organic Full-Fat Milk 2L",
+    "slug": "organic-full-fat-milk-2l",
+    "description": "Rich, creamy organic full-fat milk sourced from free-range cows.",
+    "price": 1.89,
+    "originalPrice": 2.29,
+    "images": ["/images/milk.webp", "/images/milk-2.webp"],
+    "category": { "_id": "cat001", "name": "Fresh Food", "slug": "fresh-food" },
+    "brand": "Lakeland Dairy",
+    "stock": 50,
+    "rating": 4.5,
+    "reviewCount": 120,
+    "badge": "sale",
+    "isActive": true,
+    "nutritionInfo": { "calories": 63, "fat": 3.6, "protein": 3.4 }
+  }
+}
