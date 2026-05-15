@@ -189,6 +189,128 @@ npm run generate-images  # Generate all WebP product/category images via sharp
 
 ---
 
+## Testing with Cypress
+
+Cypress is the primary testing framework. Both **end-to-end (E2E)** and **component** tests are included.
+
+### Prerequisites
+
+- The Next.js development server must be running on `http://localhost:3000` for E2E tests.
+- No database is required — all API calls are intercepted by `cy.intercept()` during tests.
+
+### Running Tests
+
+#### Interactive mode (Cypress Test Runner UI)
+
+Opens the Cypress Launchpad where you can choose E2E or Component testing and watch tests execute in a real browser.
+
+```bash
+# Start the dev server in one terminal
+npm run dev
+
+# Open Cypress in another terminal
+npm run cypress:open
+```
+
+#### Headless mode — E2E only
+
+Runs E2E specs in a headless Chrome browser. Requires the dev server to be running.
+
+```bash
+npm run dev &                  # start dev server in background
+npm run cypress:run:e2e        # run all E2E specs
+```
+
+#### Headless mode — Component only
+
+Runs component specs in isolation (no dev server needed).
+
+```bash
+npm run cypress:run:component
+```
+
+#### Headless mode — All specs
+
+Runs both E2E and component specs.
+
+```bash
+npm run cypress:run
+```
+
+#### CI mode (server starts automatically)
+
+Uses `start-server-and-test` to start the production server, wait for it to be ready, run E2E specs, and shut the server down.
+
+```bash
+npm run build          # build first
+npm run cypress:ci     # starts server + runs E2E + stops server
+```
+
+### Test Structure
+
+```
+cypress/
+├── e2e/                        # End-to-end specs (run against the live dev server)
+│   ├── navigation.cy.ts        # Navbar, page routing, search bar, mobile menu
+│   ├── auth.cy.ts              # Login, register, forgot password flows + validation
+│   ├── products.cy.ts          # Product listing, detail page, search results
+│   ├── cart.cy.ts              # Cart page, add-to-cart, empty state, checkout redirect
+│   └── theme.cy.ts             # Dark mode toggle, localStorage persistence
+├── component/                  # Isolated component specs (no server required)
+│   ├── Button.cy.tsx           # Variants, sizes, loading, disabled, click handler
+│   ├── Badge.cy.tsx            # Variant labels, custom label, styling
+│   └── ThemeToggle.cy.tsx      # Mode switching, aria-pressed, dark class side-effect
+├── fixtures/                   # Static JSON used by cy.intercept()
+│   ├── user.json               # Mock auth responses (login, register)
+│   ├── products.json           # Mock product list and detail responses
+│   └── categories.json         # Mock category list and cart responses
+├── support/
+│   ├── commands.ts             # Custom commands: cy.loginByApi(), cy.logoutByStorage()
+│   ├── e2e.ts                  # E2E support entry (imports commands, sets up listeners)
+│   └── component.ts            # Component support entry (imports globals.css)
+└── tsconfig.json               # Cypress-scoped TypeScript config
+```
+
+### Test Coverage Summary
+
+| Area           | Type      | # Tests | Key Scenarios                                                            |
+| -------------- | --------- | ------- | ------------------------------------------------------------------------ |
+| Navigation     | E2E       | 14      | Navbar links, search, hamburger menu, page titles                        |
+| Authentication | E2E       | 17      | Login/register validation, mocked API login/register, error toasts       |
+| Products       | E2E       | 12      | Listing, detail page, search results, sort/filter UI                     |
+| Cart           | E2E       | 12      | Empty state, add-to-cart, quantity controls, checkout redirect           |
+| Theme          | E2E       | 11      | Toggle modes, aria-pressed, localStorage persistence, reload persistence |
+| Button         | Component | 13      | All variants/sizes, fullWidth, loading, disabled, click handler          |
+| Badge          | Component | 9       | All variants, custom label, className, uppercase styling                 |
+| ThemeToggle    | Component | 12      | Render, mode switching, aria-pressed, dark class side-effect             |
+| **Total**      |           | **100** |                                                                          |
+
+### Custom Commands
+
+| Command                          | Description                                                                                                            |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `cy.loginByApi(email, password)` | POST to `/api/auth/login` and write the token directly to `localStorage` — avoids a UI login round-trip in every test. |
+| `cy.logoutByStorage()`           | Removes the `prakash-auth` localStorage entry (equivalent to logout).                                                  |
+
+### Environment Variables for Tests
+
+Override the default test credentials by creating `cypress.env.json` (git-ignored) in the project root:
+
+```json
+{
+  "TEST_USER_EMAIL": "rahul.mehta@example.com",
+  "TEST_USER_PASSWORD": "Prakash@123",
+  "TEST_ADMIN_EMAIL": "priya.sharma@example.com",
+  "TEST_ADMIN_PASSWORD": "Prakash@123"
+}
+```
+
+These credentials are used by `cy.loginByApi()` for tests that require authenticated state.
+
+> **Note on API mocking:** All E2E tests use `cy.intercept()` to stub API responses. This means they do not require a running MongoDB database and produce deterministic results in CI. To test against a real database, remove the `cy.intercept()` calls in the relevant test files.
+
+---
+
 ## Project Structure
 
 ```

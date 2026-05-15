@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["cypress", "@testing-library/cypress"],
+    "isolatedModules": false,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../node_modules/cypress/types/index.d.ts"
+  ],
+  "exclude": ["../node_modules"]
+}
