@@ -5,6 +5,7 @@ import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import ScrollRestorer from "@/components/layout/ScrollRestorer";
+import NetworkStatus from "@/components/layout/NetworkStatus";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -59,6 +60,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <ScrollRestorer />
+          <NetworkStatus />
           {children}
           <Toaster position="top-right" richColors duration={2000} />
         </ThemeProvider>
