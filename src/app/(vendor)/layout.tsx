@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import VendorSidebar from "@/components/vendor/VendorSidebar";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = { title: { template: "%s | Vendor — Prakash", default: "Vendor Portal — Prakash" } };
+export const metadata: Metadata = { title: { template: `%s | Vendor — ${siteConfig.shortName}`, default: `Vendor Portal — ${siteConfig.shortName}` } };
 
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
   return (
