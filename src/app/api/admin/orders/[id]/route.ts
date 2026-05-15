@@ -25,16 +25,24 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (!order) return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
 
     if (order.delivery?.email) {
-      sendOrderStatus(order.delivery.email, {
-        orderNumber:  order.orderNumber,
-        customerName: order.delivery.fullName,
-        newStatus:    status,
-        total:        order.total,
-      });
+      try {
+        await sendOrderStatus(order.delivery.email, {
+          orderNumber:  order.orderNumber,
+          customerName: order.delivery.fullName,
+          newStatus:    status,
+          total:        order.total,
+        });
+        console.log("[orders] Status email sent to", order.delivery.email);
+      } catch (emailErr) {
+        console.error("[orders] Failed to send status email:", emailErr);
+      }
+    } else {
+      console.warn("[orders] No delivery email on order", order.orderNumber);
     }
 
     return NextResponse.json({ success: true, data: order });
-  } catch {
+  } catch (err) {
+    console.error("[orders] Failed to update order status:", err);
     return NextResponse.json({ success: false, error: "Failed to update order" }, { status: 500 });
   }
 }

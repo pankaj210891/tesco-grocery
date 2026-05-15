@@ -36,11 +36,16 @@ export async function POST(req: NextRequest) {
       { passwordResetToken: token, passwordResetExpires: expires },
     );
 
-    sendPasswordReset(email, {
-      customerName: user.name as string,
-      otp,
-      expiresInMin: OTP_EXPIRES_MIN,
-    });
+    try {
+      await sendPasswordReset(email, {
+        customerName: user.name as string,
+        otp,
+        expiresInMin: OTP_EXPIRES_MIN,
+      });
+      console.log("[forgot-password] Reset OTP email sent to", email);
+    } catch (emailErr) {
+      console.error("[forgot-password] Failed to send reset email:", emailErr);
+    }
 
     return NextResponse.json({
       success: true,

@@ -102,14 +102,19 @@ export async function POST(req: Request) {
       validated.discount,
     );
 
-    sendOrderConfirmation(delivery.email, {
-      orderNumber:     result.orderNumber,
-      customerName:    delivery.fullName,
-      items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-      total:           validated.total,
-      paymentMethod:   "Razorpay",
-      deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
-    });
+    try {
+      await sendOrderConfirmation(delivery.email, {
+        orderNumber:     result.orderNumber,
+        customerName:    delivery.fullName,
+        items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+        total:           validated.total,
+        paymentMethod:   "Razorpay",
+        deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
+      });
+      console.log("[razorpay] Order confirmation email sent to", delivery.email);
+    } catch (emailErr) {
+      console.error("[razorpay] Failed to send order confirmation email:", emailErr);
+    }
 
     return Response.json({
       success: true,

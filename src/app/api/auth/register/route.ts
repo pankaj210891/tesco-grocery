@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const { name, email, password } = parsed.data;
     const { user, token } = await registerUser(name, email, password);
 
-    sendWelcome(email, { customerName: name });
+    await sendWelcome(email, { customerName: name });
 
     return Response.json({ success: true, data: { user, token } }, { status: 201 });
   } catch (err) {
