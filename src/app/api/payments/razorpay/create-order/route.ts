@@ -49,9 +49,10 @@ export async function POST(req: Request) {
 
     const rzp   = getRazorpay();
     const order = await rzp.orders.create({
-      amount:   amountInPaise,
-      currency: "INR",
-      receipt:  `rcpt_${Date.now()}`,
+      amount:          amountInPaise,
+      currency:        "INR",
+      payment_capture: true,   // auto-capture on payment so refunds work
+      receipt:         `rcpt_${Date.now()}`,
       notes: {
         userId:    userId ?? "",
         promoCode: validated.promoCode ?? "",
