@@ -2,10 +2,14 @@ import { transporter, FROM_ADDRESS } from "@/lib/email/mailer";
 import {
   orderConfirmationTemplate,
   orderStatusTemplate,
+  orderCancellationTemplate,
+  refundConfirmedTemplate,
   welcomeTemplate,
   passwordResetTemplate,
   type OrderConfirmationData,
   type OrderStatusData,
+  type OrderCancellationData,
+  type RefundConfirmedData,
   type WelcomeData,
   type PasswordResetData,
 } from "@/lib/email/templates";
@@ -35,5 +39,15 @@ export async function sendWelcome(to: string, data: WelcomeData): Promise<void> 
 
 export async function sendPasswordReset(to: string, data: PasswordResetData): Promise<void> {
   const { subject, html } = passwordResetTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendOrderCancellation(to: string, data: OrderCancellationData): Promise<void> {
+  const { subject, html } = orderCancellationTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendRefundConfirmed(to: string, data: RefundConfirmedData): Promise<void> {
+  const { subject, html } = refundConfirmedTemplate(data);
   await send(to, subject, html);
 }

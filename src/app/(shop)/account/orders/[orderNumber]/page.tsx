@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt } from "lucide-react";
+import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -12,6 +12,15 @@ import { formatPrice } from "@/lib/utils/format";
 import OrderTimeline from "@/components/account/OrderTimeline";
 import type { Order } from "@/types";
 import { use } from "react";
+
+const CANCEL_REASONS = [
+  "Changed my mind",
+  "Ordered by mistake",
+  "Found a better price elsewhere",
+  "Delivery time too long",
+  "Item out of stock concern",
+  "Other",
+];
 
 const STATUS_STYLES: Record<Order["status"], string> = {
   pending:    "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
@@ -37,9 +46,14 @@ export default function OrderDetailPage({
   const hydrated        = useHydrated();
   const { user, token } = useAuthStore();
 
-  const [order,   setOrder]   = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const [order,         setOrder]         = useState<Order | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState("");
+  const [showCancel,    setShowCancel]    = useState(false);
+  const [cancelReason,  setCancelReason]  = useState("");
+  const [cancelComment, setCancelComment] = useState("");
+  const [cancelling,    setCancelling]    = useState(false);
+  const [cancelError,   setCancelError]   = useState("");
 
   useEffect(() => {
     if (!hydrated) return;
@@ -93,7 +107,30 @@ export default function OrderDetailPage({
 
   if (!order) return null;
 
-  const isCOD = order.paymentMethod === "cod";
+  const isCOD       = order.paymentMethod === "cod";
+  const isCancellable = order.status === "pending" || order.status === "processing";
+
+  async function handleCancelConfirm() {
+    if (!order) return;
+    setCancelling(true);
+    setCancelError("");
+    try {
+      const { data: json } = await axios.post(
+        `/api/account/orders/${order.orderNumber}/cancel`,
+        { reason: cancelReason || undefined, comment: cancelComment.trim() || undefined },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setOrder(json.data);
+      setShowCancel(false);
+      setCancelReason("");
+      setCancelComment("");
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+      setCancelError(msg ?? "Failed to cancel order. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
@@ -112,12 +149,55 @@ export default function OrderDetailPage({
           <h1 className="text-xl font-black text-gray-900 dark:text-white">{order.orderNumber}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(order.createdAt)}</p>
         </div>
-        <span className={`self-start sm:self-auto inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border capitalize ${STATUS_STYLES[order.status]}`}>
-          {order.status}
-        </span>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border capitalize ${STATUS_STYLES[order.status]}`}>
+            {order.status}
+          </span>
+          {isCancellable && (
+            <button
+              onClick={() => { setShowCancel(true); setCancelError(""); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            >
+              <XCircle className="h-4 w-4" aria-hidden />
+              Cancel Order
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-5">
+
+        {/* Cancellation info */}
+        {order.status === "cancelled" && (order.cancellationReason || order.cancellationComment) && (
+          <section className="bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-800/30 p-5">
+            <h2 className="flex items-center gap-2 font-black text-red-700 dark:text-red-400 mb-3 text-sm uppercase tracking-wide">
+              <XCircle className="h-4 w-4" aria-hidden />
+              Cancellation Details
+            </h2>
+            {order.cancellationReason && (
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-semibold">Reason:</span> {order.cancellationReason}
+              </p>
+            )}
+            {order.cancellationComment && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <span className="font-semibold">Note:</span> {order.cancellationComment}
+              </p>
+            )}
+            {order.refundStatus && (
+              <p className="text-sm mt-2">
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Refund status: </span>
+                <span className={`font-semibold capitalize ${
+                  order.refundStatus === "processed" ? "text-green-600 dark:text-green-400"
+                  : order.refundStatus === "failed"  ? "text-red-600 dark:text-red-400"
+                  : "text-amber-600 dark:text-amber-400"
+                }`}>
+                  {order.refundStatus}
+                </span>
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Order tracking timeline */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
@@ -262,6 +342,88 @@ export default function OrderDetailPage({
         </section>
 
       </div>
+
+      {/* ── Cancel Order Modal ── */}
+      {showCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-white">Cancel Order</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Are you sure you want to cancel <span className="font-semibold">{order.orderNumber}</span>?
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCancel(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <XCircle className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                Reason <span className="font-normal text-gray-400">(optional)</span>
+              </label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400"
+              >
+                <option value="">Select a reason…</option>
+                {CANCEL_REASONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Comment */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                Additional comments <span className="font-normal text-gray-400">(optional)</span>
+              </label>
+              <textarea
+                value={cancelComment}
+                onChange={(e) => setCancelComment(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="Tell us more…"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+              />
+              <p className="text-xs text-gray-400 text-right mt-0.5">{cancelComment.length}/500</p>
+            </div>
+
+            {cancelError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{cancelError}</p>
+            )}
+
+            {!isCOD && (
+              <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-3 py-2.5">
+                Your payment of <strong>{formatPrice(order.total)}</strong> will be refunded to your original payment method within 5–7 business days.
+              </p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setShowCancel(false)}
+                disabled={cancelling}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Keep Order
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                disabled={cancelling}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+              >
+                {cancelling ? "Cancelling…" : "Yes, Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
