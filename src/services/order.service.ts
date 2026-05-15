@@ -100,9 +100,9 @@ export async function getOrdersByUserId(
   const query: Record<string, unknown> = { userId };
   if (dateFilter?.from || dateFilter?.to) {
     const range: Record<string, Date> = {};
-    // Expect YYYY-MM-DD strings; build clean UTC day boundaries (00:00:00 / 23:59:59)
-    if (dateFilter.from) range.$gte = new Date(`${dateFilter.from}T00:00:00.000Z`);
-    if (dateFilter.to)   range.$lte = new Date(`${dateFilter.to}T23:59:59.999Z`);
+    // YYYY-MM-DD strings from client; interpret as IST (UTC+05:30) day boundaries
+    if (dateFilter.from) range.$gte = new Date(`${dateFilter.from}T00:00:00+05:30`);
+    if (dateFilter.to)   range.$lte = new Date(`${dateFilter.to}T23:59:59.999+05:30`);
     query.createdAt = range;
   }
 

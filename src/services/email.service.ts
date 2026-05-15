@@ -1,0 +1,39 @@
+import { transporter, FROM_ADDRESS } from "@/lib/email/mailer";
+import {
+  orderConfirmationTemplate,
+  orderStatusTemplate,
+  welcomeTemplate,
+  passwordResetTemplate,
+  type OrderConfirmationData,
+  type OrderStatusData,
+  type WelcomeData,
+  type PasswordResetData,
+} from "@/lib/email/templates";
+
+async function send(to: string, subject: string, html: string): Promise<void> {
+  try {
+    await transporter.sendMail({ from: FROM_ADDRESS, to, subject, html });
+  } catch (err) {
+    console.error("[email] Failed to send email to", to, err);
+  }
+}
+
+export async function sendOrderConfirmation(to: string, data: OrderConfirmationData): Promise<void> {
+  const { subject, html } = orderConfirmationTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendOrderStatus(to: string, data: OrderStatusData): Promise<void> {
+  const { subject, html } = orderStatusTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendWelcome(to: string, data: WelcomeData): Promise<void> {
+  const { subject, html } = welcomeTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendPasswordReset(to: string, data: PasswordResetData): Promise<void> {
+  const { subject, html } = passwordResetTemplate(data);
+  await send(to, subject, html);
+}

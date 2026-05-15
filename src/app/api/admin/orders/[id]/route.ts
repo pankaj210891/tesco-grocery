@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
+import { sendOrderStatus } from "@/services/email.service";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -22,6 +23,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const order = await OrderModel.findByIdAndUpdate(id, { status }, { new: true });
     if (!order) return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
+
+    if (order.delivery?.email) {
+      sendOrderStatus(order.delivery.email, {
+        orderNumber:  order.orderNumber,
+        customerName: order.delivery.fullName,
+        newStatus:    status,
+        total:        order.total,
+      });
+    }
 
     return NextResponse.json({ success: true, data: order });
   } catch {

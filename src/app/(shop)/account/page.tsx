@@ -25,6 +25,10 @@ const STATUS_STYLES: Record<Order["status"], string> = {
   cancelled:  "bg-red-50    dark:bg-red-900/20    text-red-700    dark:text-red-400    border-red-200    dark:border-red-800/40",
 };
 
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function StatusBadge({ status }: { status: Order["status"] }) {
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border capitalize ${STATUS_STYLES[status]}`}>
@@ -66,8 +70,8 @@ export default function AccountPage() {
 
   const dateFilter = useDateFilter("all");
 
-  const fromParam = dateFilter.range.from ? dateFilter.range.from.toISOString().slice(0, 10) : "";
-  const toParam   = dateFilter.range.to   ? dateFilter.range.to.toISOString().slice(0, 10)   : "";
+  const fromParam = dateFilter.range.from ? localDateStr(dateFilter.range.from) : "";
+  const toParam   = dateFilter.range.to   ? localDateStr(dateFilter.range.to)   : "";
 
   const currentFilterKey = `${fromParam}|${toParam}`;
   const filterLoading    = !!(fromParam || toParam) && fetchedFilterKey !== currentFilterKey;

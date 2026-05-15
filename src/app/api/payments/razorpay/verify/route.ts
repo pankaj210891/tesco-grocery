@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
 import { createOrder } from "@/services/order.service";
+import { sendOrderConfirmation } from "@/services/email.service";
 
 const deliverySchema = z.object({
   fullName: z.string().min(2),
@@ -100,6 +101,15 @@ export async function POST(req: Request) {
       result.orderId,
       validated.discount,
     );
+
+    sendOrderConfirmation(delivery.email, {
+      orderNumber:     result.orderNumber,
+      customerName:    delivery.fullName,
+      items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      total:           validated.total,
+      paymentMethod:   "Razorpay",
+      deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
+    });
 
     return Response.json({
       success: true,
