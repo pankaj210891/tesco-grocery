@@ -8,8 +8,6 @@ const WishlistSchema = new Schema(
   { timestamps: true }
 );
 
-WishlistSchema.index({ userId: 1 });
-
 export type WishlistDoc = InferSchemaType<typeof WishlistSchema> & {
   _id:       mongoose.Types.ObjectId;
   createdAt: Date;

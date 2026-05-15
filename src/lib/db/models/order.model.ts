@@ -60,7 +60,6 @@ const OrderSchema = new Schema(
   { timestamps: true }
 );
 
-OrderSchema.index({ orderNumber: 1 });
 OrderSchema.index({ userId: 1 });
 
 export type OrderDoc = InferSchemaType<typeof OrderSchema> & {

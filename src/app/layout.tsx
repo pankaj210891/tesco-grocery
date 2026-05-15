@@ -40,6 +40,22 @@ export default function RootLayout({
      * ThemeProvider toggling the "dark" class on <html> during hydration.
      */
     <html lang="en" className={inter.variable} suppressHydrationWarning>
+      {/*
+       * Blocking script — runs synchronously before first paint.
+       * Reads the stored theme from localStorage and applies the "dark" class
+       * immediately so there is no flash of wrong theme on refresh.
+       * Logic mirrors ThemeProvider:
+       *   "dark"            → dark
+       *   "light"           → light
+       *   "system" / unset  → follow OS preference
+       */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('prakash-theme'),p=window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.classList.toggle('dark',t==='dark'||(t!=='light'&&p))}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body>
         <ThemeProvider>
           <ScrollRestorer />
