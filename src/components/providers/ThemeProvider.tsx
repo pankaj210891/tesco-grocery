@@ -22,11 +22,6 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "prakash-theme";
 
-function readStoredTheme(): Theme {
-  if (typeof window === "undefined") return "system";
-  return (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? "system";
-}
-
 function getSystemPreference(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -42,20 +37,20 @@ export function useTheme(): ThemeContextValue {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   /*
-   * Lazy initializer: on the server this returns "system" (window is undefined);
-   * on the client it reads from localStorage. The resulting hydration mismatch
-   * on <html class="dark|..."> is suppressed by suppressHydrationWarning on
-   * the root <html> element in layout.tsx.
+   * Always initialise with "system" so the server and client produce identical
+   * HTML during hydration. The real stored preference is applied in the mount
+   * effect below, after React has safely taken over the DOM.
+   * The blocking <script> in layout.tsx handles the visual class so there is
+   * no flash of wrong theme before the effect runs.
    */
-  const [theme, setThemeState] = useState<Theme>(readStoredTheme);
+  const [theme, setThemeState] = useState<Theme>("system");
 
-  // Hydration fix: lazy initializer returns "system" on SSR (window undefined).
-  // After hydration React keeps that server state — re-read localStorage on mount.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (stored && stored !== theme) setThemeState(stored);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setThemeState(stored);
+    }
   }, []);
 
   const setTheme = useCallback((next: Theme) => {
@@ -63,18 +58,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, next);
   }, []);
 
-  /*
-   * Sync the DOM class whenever theme state changes.
-   * This effect only mutates the external DOM — it never calls setState,
-   * which satisfies the react-hooks/set-state-in-effect lint rule.
-   */
+  /* Sync the DOM class whenever theme state changes. */
   useEffect(() => {
-    const resolved =
-      theme === "system" ? getSystemPreference() : theme;
+    const resolved = theme === "system" ? getSystemPreference() : theme;
     document.documentElement.classList.toggle("dark", resolved === "dark");
   }, [theme]);
 
-  /* Re-sync DOM when the OS preference changes (relevant only for "system") */
+  /* Re-sync DOM when the OS preference changes (only relevant for "system"). */
   useEffect(() => {
     if (theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -84,10 +74,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
 
-  /* resolvedTheme is derived — no extra state needed */
   const resolvedTheme = useMemo<ResolvedTheme>(
     () => (theme === "system" ? getSystemPreference() : theme),
-    [theme]
+    [theme],
   );
 
   return (
