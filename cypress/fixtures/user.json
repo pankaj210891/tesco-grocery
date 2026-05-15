@@ -1,0 +1,42 @@
+{
+  "customer": {
+    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+    "name": "Test Customer",
+    "email": "customer@example.com",
+    "role": "customer"
+  },
+  "admin": {
+    "id": "64f1a2b3c4d5e6f7a8b9c0d2",
+    "name": "Test Admin",
+    "email": "admin@example.com",
+    "role": "admin"
+  },
+  "loginResponse": {
+    "success": true,
+    "data": {
+      "user": {
+        "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+        "name": "Test Customer",
+        "email": "customer@example.com",
+        "role": "customer"
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token"
+    }
+  },
+  "loginErrorResponse": {
+    "success": false,
+    "error": "Invalid email or password"
+  },
+  "registerResponse": {
+    "success": true,
+    "data": {
+      "user": {
+        "id": "64f1a2b3c4d5e6f7a8b9c0d3",
+        "name": "New User",
+        "email": "newuser@example.com",
+        "role": "customer"
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.token"
+    }
+  }
+}
