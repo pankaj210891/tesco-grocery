@@ -56,10 +56,23 @@ export async function POST(
       console.error("[cancel] Razorpay refund skipped: missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET");
     } else {
       try {
-        const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+        const razorpay   = new Razorpay({ key_id: keyId, key_secret: keySecret });
+        const amountPaise = Math.round(order.total * 100);
+
+        // Capture the payment first — required before refunding.
+        // Payments created without payment_capture:1 are in "authorized" state.
+        // If already captured this throws; we ignore that specific error.
+        try {
+          await razorpay.payments.capture(order.razorpayPaymentId, amountPaise, "INR");
+          console.log("[cancel] Payment captured before refund:", order.razorpayPaymentId);
+        } catch (captureErr) {
+          const capObj = captureErr as { error?: { code?: string; description?: string } };
+          // "BAD_REQUEST_ERROR" with "already captured" description is fine — proceed to refund
+          console.log("[cancel] Capture step:", capObj?.error?.description ?? JSON.stringify(captureErr));
+        }
 
         const refund = await razorpay.payments.refund(order.razorpayPaymentId, {
-          amount: Math.round(order.total * 100),
+          amount: amountPaise,
         });
 
         await setOrderRefund(orderNumber, refund.id, "initiated");
