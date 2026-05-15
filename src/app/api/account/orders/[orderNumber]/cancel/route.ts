@@ -66,8 +66,11 @@ export async function POST(
         refundInitiated = true;
         console.log("[cancel] Razorpay refund initiated:", refund.id, "for payment:", order.razorpayPaymentId);
       } catch (refundErr) {
-        refundError = refundErr instanceof Error ? refundErr.message : String(refundErr);
-        console.error("[cancel] Razorpay refund initiation failed:", refundErr);
+        const errObj = refundErr as { error?: { description?: string; code?: string }; statusCode?: number };
+        refundError = errObj?.error?.description
+          ?? errObj?.error?.code
+          ?? (refundErr instanceof Error ? refundErr.message : JSON.stringify(refundErr));
+        console.error("[cancel] Razorpay refund initiation failed:", JSON.stringify(refundErr));
       }
     }
   }
