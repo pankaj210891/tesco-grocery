@@ -83,8 +83,7 @@ function CardCarousel({ images, alt, href }: { images: string[]; alt: string; hr
   return (
     <Link
       href={href}
-      className="block relative overflow-hidden bg-gray-50 dark:bg-gray-800/60"
-      style={{ aspectRatio: "1 / 1" }}
+      className="block relative w-full aspect-square overflow-hidden bg-gray-50 dark:bg-gray-800/60"
       tabIndex={-1}
       aria-hidden
       onMouseEnter={() => setHovered(true)}
