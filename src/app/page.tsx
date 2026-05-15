@@ -11,7 +11,7 @@ import { getAllCategories } from "@/services/category.service";
 import { getProducts } from "@/services/product.service";
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} — Fresh Food & Groceries Online`,
+  title:       `${siteConfig.name} — ${siteConfig.tagline}`,
   description: siteConfig.description,
 };
 

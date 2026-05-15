@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = { title: { template: "%s | Admin — Prakash", default: "Admin — Prakash" } };
+export const metadata: Metadata = { title: { template: `%s | Admin — ${siteConfig.shortName}`, default: `Admin — ${siteConfig.shortName}` } };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
