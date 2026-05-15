@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingBag, ArrowLeft, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store/auth.store";
@@ -57,9 +57,6 @@ export default function VendorSidebar() {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Vendor Panel</p>
             <NavLinks pathname={pathname} onClose={() => setOpen(false)} />
             <div className="mt-auto pt-4 border-t border-white/10 space-y-1">
-              <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white">
-                <ArrowLeft className="h-4 w-4" /> Back to Shop
-              </Link>
               <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10">
                 <LogOut className="h-4 w-4" /> Logout
               </button>
@@ -76,9 +73,6 @@ export default function VendorSidebar() {
         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-4 mb-1">Navigation</p>
         <NavLinks pathname={pathname} onClose={() => setOpen(false)} />
         <div className="mt-auto pt-4 border-t border-white/10 space-y-1">
-          <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white">
-            <ArrowLeft className="h-4 w-4" /> Back to Shop
-          </Link>
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10">
             <LogOut className="h-4 w-4" /> Logout
           </button>

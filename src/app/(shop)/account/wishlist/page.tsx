@@ -22,7 +22,7 @@ function WishlistItem({ product }: { product: Product }) {
   }
 
   return (
-    <li className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors">
+    <li className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors sm:flex-row sm:items-center sm:gap-4">
       <Link href={`/products/${product.slug}`} className="shrink-0">
         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
           <Image
@@ -35,7 +35,7 @@ function WishlistItem({ product }: { product: Product }) {
         </div>
       </Link>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 text-center sm:text-left">
         <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">{product.category}</p>
         <Link href={`/products/${product.slug}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors line-clamp-2">
           {product.name}
@@ -44,7 +44,7 @@ function WishlistItem({ product }: { product: Product }) {
         <p className="text-base font-black text-gray-900 dark:text-white mt-1">{formatPrice(product.price)}</p>
       </div>
 
-      <div className="flex flex-col items-end gap-2 shrink-0">
+      <div className="flex flex-col items-center gap-2 shrink-0 sm:items-end">
         <WishlistButton product={product} />
         <button
           onClick={handleAddToCart}
@@ -98,7 +98,7 @@ export default function WishlistPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-16">
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-2 mb-8 justify-center sm:justify-start">
         <Heart className="h-6 w-6 text-red-500 fill-red-500" />
         <h1 className="text-2xl font-black text-gray-900 dark:text-white">
           Wishlist

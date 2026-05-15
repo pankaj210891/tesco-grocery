@@ -13,7 +13,6 @@ import {
   LogOut,
   Heart,
   Store,
-  LayoutDashboard,
   MapPin,
   HelpCircle,
   Tag,
@@ -251,19 +250,6 @@ export default function Navbar() {
                     </div>
 
                     <div className="py-1">
-                      {user.role === "admin" && (
-                        <Link href="/admin" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors">
-                          <LayoutDashboard className="h-4 w-4" /> Admin Panel
-                        </Link>
-                      )}
-                      {user.role === "vendor" && (
-                        <Link href="/vendor" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors">
-                          <Store className="h-4 w-4" /> Vendor Portal
-                        </Link>
-                      )}
-                      {(user.role === "admin" || user.role === "vendor") && (
-                        <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
-                      )}
                       <Link href="/account" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <User className="h-4 w-4" /> My Account
                       </Link>
