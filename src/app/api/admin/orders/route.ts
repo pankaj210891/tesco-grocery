@@ -3,37 +3,37 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
+import { AdminOrderQuerySchema } from "@/lib/validations/admin-filters";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
 
+  const parsed = AdminOrderQuerySchema.safeParse(
+    Object.fromEntries(new URL(req.url).searchParams),
+  );
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: parsed.error.issues[0]?.message ?? "Invalid query" },
+      { status: 400 },
+    );
+  }
+
+  const { page, limit, status, q, vendorId, dateFrom, dateTo } = parsed.data;
+
   try {
     await connectDB();
-    const { searchParams } = new URL(req.url);
-    const page     = Math.max(1, Number(searchParams.get("page") ?? 1));
-    const limit    = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const status   = searchParams.get("status")   ?? "";
-    const dateFrom = searchParams.get("dateFrom") ?? "";
-    const dateTo   = searchParams.get("dateTo")   ?? "";
-    const q        = searchParams.get("q")        ?? "";
-    const userId   = searchParams.get("userId")   ?? "";
-    const vendorId = searchParams.get("vendorId") ?? "";
 
     const filter: Record<string, unknown> = {};
 
-    if (status && status !== "all") filter.status = status;
+    if (status) filter.status = status;
 
     if (q) {
       filter.$or = [
-        { orderNumber:        { $regex: q, $options: "i" } },
+        { orderNumber:         { $regex: q, $options: "i" } },
         { "delivery.fullName": { $regex: q, $options: "i" } },
-        { "delivery.email":   { $regex: q, $options: "i" } },
+        { "delivery.email":    { $regex: q, $options: "i" } },
       ];
-    }
-
-    if (userId && mongoose.isValidObjectId(userId)) {
-      filter.userId = new mongoose.Types.ObjectId(userId);
     }
 
     if (vendorId && mongoose.isValidObjectId(vendorId)) {
@@ -42,10 +42,9 @@ export async function GET(req: NextRequest) {
 
     if (dateFrom || dateTo) {
       const dateFilter: Record<string, Date> = {};
-      if (dateFrom) dateFilter.$gte = new Date(dateFrom);
+      if (dateFrom) dateFilter.$gte = new Date(`${dateFrom}T00:00:00.000Z`);
       if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
+        const end = new Date(`${dateTo}T23:59:59.999Z`);
         dateFilter.$lte = end;
       }
       filter.createdAt = dateFilter;

@@ -21,7 +21,11 @@
       "Skill(mongoose)",
       "Skill(mongoose:*)",
       "Skill(testing)",
-      "Skill(testing:*)"
+      "Skill(testing:*)",
+      "Skill(security)",
+      "Skill(security:*)",
+      "Skill(resume-pending-task)",
+      "Skill(resume-pending-task:*)"
     ],
     "deny": []
   },

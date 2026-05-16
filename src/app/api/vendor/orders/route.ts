@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { orders: filtered, total, page, totalPages: Math.ceil(total / limit) },
+      data: { data: filtered, total, page, totalPages: Math.ceil(total / limit) },
     });
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch orders" }, { status: 500 });

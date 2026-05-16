@@ -2,18 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
+import { Plus, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { ProductsTable } from "@/components/common/ProductsTable";
 import type { Product, ProductBadge } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PageData { products: Product[]; total: number; page: number; totalPages: number; }
 
-const BADGE_COLORS: Record<string, string> = {
-  NEW: "bg-blue-100 text-blue-700", HOT: "bg-red-100 text-red-700",
-  LIMITED: "bg-orange-100 text-orange-700", ORGANIC: "bg-green-100 text-green-700", EXCLUSIVE: "bg-purple-100 text-purple-700",
-};
 
 const EMPTY = { name:"", slug:"", description:"", price:"", originalPrice:"", category:"", brand:"", unit:"", images:"", tags:"", badge:"" as ProductBadge | "", inStock: true };
 function slugify(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
@@ -21,17 +17,25 @@ function slugify(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-")
 export default function VendorProductsPage() {
   const { user, token } = useAuthStore();
   const router = useRouter();
-  const [data, setData]       = useState<PageData | null>(null);
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal]     = useState<"add" | "edit" | null>(null);
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm]       = useState({ ...EMPTY });
+  const [data, setData]             = useState<PageData | null>(null);
+  const [page, setPage]             = useState(1);
+  const [loading, setLoading]       = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [modal, setModal]           = useState<"add" | "edit" | null>(null);
+  const [editing, setEditing]       = useState<Product | null>(null);
+  const [form, setForm]             = useState({ ...EMPTY });
   useScrollLock(modal !== null);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
 
   const authHeader = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json() as Promise<{ success: boolean; data: { name: string }[] }>)
+      .then((j) => { if (j.success) setCategories(j.data.map((c) => c.name)); })
+      .catch(() => { /* non-critical */ });
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,53 +86,17 @@ export default function VendorProductsPage() {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
-              <tr>{["Product","Category","Price","Badge","Stock","Actions"].map((h) => <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>)}</tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {loading ? Array.from({ length: 4 }).map((_, i) => <tr key={i}><td colSpan={6} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>)
-              : data?.products.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">No products yet. Add your first product!</td></tr>
-              : data?.products.map((p) => (
-                <tr key={p._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                        <Image src={p.images[0] ?? "/images/placeholder-product.webp"} alt={p.name} fill className="object-contain p-1" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[180px]">{p.name}</p>
-                        <p className="text-xs text-gray-400">{p.brand}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.category}</td>
-                  <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">₹{p.price.toFixed(0)}</td>
-                  <td className="px-4 py-3">{p.badge ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${BADGE_COLORS[p.badge] ?? ""}`}>{p.badge}</span> : <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
-                  <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${p.inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>{p.inStock ? "In Stock" : "Out"}</span></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1a7a4a] hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors"><Pencil className="h-4 w-4" /></button>
-                      <button onClick={() => handleDelete(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"><Trash2 className="h-4 w-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {data && data.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
-            <span className="text-gray-500">Page {data.page} of {data.totalPages}</span>
-            <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-              <button disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-            </div>
-          </div>
-        )}
-      </div>
+      <ProductsTable
+        products={data?.products ?? []}
+        loading={loading}
+        page={page}
+        totalPages={data?.totalPages ?? 1}
+        total={data?.total ?? 0}
+        onPageChange={setPage}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+        variant="vendor"
+      />
 
       {/* Modal */}
       {modal && (
@@ -140,7 +108,7 @@ export default function VendorProductsPage() {
             </div>
             <div className="p-6 space-y-4">
               {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{error}</p>}
-              {(["name","description","category","brand","unit"] as const).map((field) => (
+              {(["name","description"] as const).map((field) => (
                 <div key={field}>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1 capitalize">{field}</label>
                   {field === "description" ? (
@@ -148,6 +116,24 @@ export default function VendorProductsPage() {
                   ) : (
                     <input type="text" value={form[field]} onChange={(e) => { const val = e.target.value; setForm((f) => ({ ...f, [field]: val, ...(field === "name" && !editing ? { slug: slugify(val) } : {}) })); }} className="w-full px-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]" />
                   )}
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full px-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+                  data-testid="product-category-select"
+                >
+                  <option value="">Select category…</option>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {(["brand","unit"] as const).map((field) => (
+                <div key={field}>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1 capitalize">{field}</label>
+                  <input type="text" value={form[field]} onChange={(e) => { const val = e.target.value; setForm((f) => ({ ...f, [field]: val })); }} className="w-full px-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]" />
                 </div>
               ))}
               <div>

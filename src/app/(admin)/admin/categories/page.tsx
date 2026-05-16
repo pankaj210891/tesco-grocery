@@ -36,6 +36,7 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
+  const [isActive,   setIsActive]   = useState<"" | "true" | "false">("");
   const [showForm,   setShowForm]   = useState(false);
   const [editing,    setEditing]    = useState<Category | null>(null);
   useScrollLock(showForm);
@@ -54,15 +55,17 @@ export default function AdminCategoriesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs  = search ? `?q=${encodeURIComponent(search)}` : "";
-      const res = await fetch(`/api/admin/categories${qs}`, { headers: authHeader });
+      const qs = new URLSearchParams();
+      if (search)   qs.set("q",        search);
+      if (isActive) qs.set("isActive", isActive);
+      const res  = await fetch(`/api/admin/categories${qs.size ? `?${qs}` : ""}`, { headers: authHeader });
       const json = await res.json() as { success: boolean; data: Category[] };
       if (json.success) setCategories(json.data);
     } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, token]);
+  }, [search, isActive, token]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
@@ -137,21 +140,42 @@ export default function AdminCategoriesPage() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search categories…"
-          className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-[#0F4C75]"
-        />
-        {search && (
-          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      {/* Search + Status filter */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search categories…"
+            className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-[#0F4C75]"
+            data-testid="category-search"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Status tabs */}
+        <div className="flex gap-1" data-testid="category-status-filters">
+          {([["", "All"], ["true", "Active"], ["false", "Inactive"]] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setIsActive(val)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                isActive === val
+                  ? "bg-[#0F4C75] text-white"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+              data-testid={`category-status-${val || "all"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}

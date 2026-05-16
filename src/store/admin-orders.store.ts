@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Order, AdminVendorStats } from "@/types";
+import type { Order, OrderDetail, AdminVendorStats } from "@/types";
 
 interface PageMeta {
   total:      number;
@@ -12,7 +12,6 @@ interface AdminOrderFilters {
   q:        string;
   dateFrom: string;
   dateTo:   string;
-  userId:   string;
   vendorId: string;
 }
 
@@ -23,35 +22,51 @@ interface AdminOrdersState {
   loading:  boolean;
   filters:  AdminOrderFilters;
 
+  // Order detail + refund
+  selectedOrderId:    string | null;
+  orderDetail:        OrderDetail | null;
+  orderDetailLoading: boolean;
+  refundLoading:      boolean;
+
   setOrders:  (orders: Order[], meta: PageMeta) => void;
   setPage:    (page: number) => void;
   setLoading: (v: boolean) => void;
   setFilter:  (partial: Partial<AdminOrderFilters>) => void;
   resetFilters: () => void;
   updateOrderStatus: (id: string, status: string) => void;
+
+  setSelectedOrderId:    (id: string | null) => void;
+  setOrderDetail:        (order: OrderDetail | null) => void;
+  setOrderDetailLoading: (v: boolean) => void;
+  setRefundLoading:      (v: boolean) => void;
+  applyRefundToDetail:   (updated: OrderDetail) => void;
 }
 
 interface AdminAnalyticsState {
-  topVendors:         AdminVendorStats[];
-  analyticsLoading:   boolean;
-  setTopVendors:      (data: AdminVendorStats[]) => void;
+  topVendors:          AdminVendorStats[];
+  analyticsLoading:    boolean;
+  setTopVendors:       (data: AdminVendorStats[]) => void;
   setAnalyticsLoading: (v: boolean) => void;
 }
 
 const DEFAULT_META: PageMeta = { total: 0, page: 1, totalPages: 1 };
 const DEFAULT_FILTERS: AdminOrderFilters = {
-  status: "all", q: "", dateFrom: "", dateTo: "", userId: "", vendorId: "",
+  status: "all", q: "", dateFrom: "", dateTo: "", vendorId: "",
 };
 
 type AdminOrdersStore = AdminOrdersState & AdminAnalyticsState;
 
 export const useAdminOrdersStore = create<AdminOrdersStore>((set) => ({
-  // Orders
   orders:  [],
   meta:    DEFAULT_META,
   page:    1,
   loading: false,
   filters: DEFAULT_FILTERS,
+
+  selectedOrderId:    null,
+  orderDetail:        null,
+  orderDetailLoading: false,
+  refundLoading:      false,
 
   setOrders:  (orders, meta) => set({ orders, meta }),
   setPage:    (page)         => set({ page }),
@@ -65,7 +80,12 @@ export const useAdminOrdersStore = create<AdminOrdersStore>((set) => ({
       ),
     })),
 
-  // Analytics
+  setSelectedOrderId:    (id)      => set({ selectedOrderId: id }),
+  setOrderDetail:        (order)   => set({ orderDetail: order }),
+  setOrderDetailLoading: (v)       => set({ orderDetailLoading: v }),
+  setRefundLoading:      (v)       => set({ refundLoading: v }),
+  applyRefundToDetail:   (updated) => set({ orderDetail: updated }),
+
   topVendors:          [],
   analyticsLoading:    false,
   setTopVendors:       (data) => set({ topVendors: data }),
