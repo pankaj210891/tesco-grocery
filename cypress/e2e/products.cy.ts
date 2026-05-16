@@ -1037,3 +1037,5 @@ describe("Products — Combined Exact Filters", () => {
     cy.url().should("include", "discount=25");
   });
 });
+
+export {};

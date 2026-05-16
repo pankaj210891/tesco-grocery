@@ -70,20 +70,21 @@ const FILTER_META_STUB = {
   data: { brands: ["Apple", "Samsung"], subcategories: ["Smartphones", "Feature Phones"] },
 };
 
-function loginAdmin() {
-  cy.window().then((win) => {
-    win.localStorage.setItem(
-      "prakash-auth",
-      JSON.stringify({ state: ADMIN_AUTH, version: 0 }),
-    );
-  });
+function stubAdminAuth(win: Window) {
+  win.localStorage.setItem(
+    "prakash-auth",
+    JSON.stringify({ state: { ...ADMIN_AUTH, hasHydrated: true }, version: 0 }),
+  );
+}
+
+function visitAsAdmin(url: string) {
+  cy.visit(url, { onBeforeLoad: stubAdminAuth });
 }
 
 // ── Admin Category Attributes Tests ───────────────────────────────────────────
 
 describe("Admin Category Attributes Management", () => {
   beforeEach(() => {
-    loginAdmin();
     cy.intercept("GET", "/api/admin/category-attributes", {
       statusCode: 200,
       body: {
@@ -94,21 +95,21 @@ describe("Admin Category Attributes Management", () => {
   });
 
   it("loads the category attributes page", () => {
-    cy.visit("/admin/category-attributes");
+    visitAsAdmin("/admin/category-attributes");
     cy.wait("@getCategoryAttrs");
     cy.contains("Category Attributes").should("be.visible");
     cy.get("[data-testid='add-category-attr-btn']").should("be.visible");
   });
 
   it("shows existing category attribute schemas", () => {
-    cy.visit("/admin/category-attributes");
+    visitAsAdmin("/admin/category-attributes");
     cy.wait("@getCategoryAttrs");
     cy.get("[data-testid='cat-attr-row-mobiles']").should("exist");
     cy.contains("Mobiles").should("be.visible");
   });
 
   it("opens add category schema modal", () => {
-    cy.visit("/admin/category-attributes");
+    visitAsAdmin("/admin/category-attributes");
     cy.wait("@getCategoryAttrs");
     cy.get("[data-testid='add-category-attr-btn']").click();
     cy.get("[data-testid='cat-attr-category']").should("be.visible");
@@ -117,7 +118,7 @@ describe("Admin Category Attributes Management", () => {
   });
 
   it("adds a new attribute to the form", () => {
-    cy.visit("/admin/category-attributes");
+    visitAsAdmin("/admin/category-attributes");
     cy.wait("@getCategoryAttrs");
     cy.get("[data-testid='add-category-attr-btn']").click();
     cy.get("[data-testid='cat-attr-category']").type("oats");
@@ -133,7 +134,7 @@ describe("Admin Category Attributes Management", () => {
       body: { success: true, data: { _id: "new1", category: "oats", label: "Oats", isActive: true, attributes: [], createdAt: "", updatedAt: "" } },
     }).as("createCatAttr");
 
-    cy.visit("/admin/category-attributes");
+    visitAsAdmin("/admin/category-attributes");
     cy.wait("@getCategoryAttrs");
     cy.get("[data-testid='add-category-attr-btn']").click();
     cy.get("[data-testid='cat-attr-category']").type("oats");
@@ -148,7 +149,7 @@ describe("Admin Category Attributes Management", () => {
       body: { success: true, message: "Deleted" },
     }).as("deleteCatAttr");
 
-    cy.visit("/admin/category-attributes");
+    visitAsAdmin("/admin/category-attributes");
     cy.wait("@getCategoryAttrs");
     cy.on("window:confirm", () => true);
     cy.get("[data-testid='delete-cat-attr-mobiles']").click();
@@ -296,8 +297,6 @@ describe("Dynamic FilterBar — Mobile Drawer", () => {
 
 describe("Admin Product Form — Dynamic Attribute Fields", () => {
   beforeEach(() => {
-    loginAdmin();
-
     cy.intercept("GET", "/api/admin/products*", {
       statusCode: 200,
       body: { success: true, data: { products: [], total: 0, page: 1, totalPages: 1 } },
@@ -324,7 +323,7 @@ describe("Admin Product Form — Dynamic Attribute Fields", () => {
   });
 
   it("renders dynamic attribute fields when category changes to Mobiles", () => {
-    cy.visit("/admin/products");
+    visitAsAdmin("/admin/products");
     cy.wait("@getAdminProducts");
     cy.get("[data-testid='add-product-btn']").click();
     cy.get("[data-testid='product-category-select']").select("Mobiles");
@@ -334,7 +333,7 @@ describe("Admin Product Form — Dynamic Attribute Fields", () => {
   });
 
   it("renders boolean attribute as checkbox", () => {
-    cy.visit("/admin/products");
+    visitAsAdmin("/admin/products");
     cy.wait("@getAdminProducts");
     cy.get("[data-testid='add-product-btn']").click();
     cy.get("[data-testid='product-category-select']").select("Mobiles");
@@ -348,7 +347,7 @@ describe("Admin Product Form — Dynamic Attribute Fields", () => {
       body: { success: true, data: null },
     }).as("getOatsCatAttrs");
 
-    cy.visit("/admin/products");
+    visitAsAdmin("/admin/products");
     cy.wait("@getAdminProducts");
     cy.get("[data-testid='add-product-btn']").click();
     cy.get("[data-testid='product-category-select']").select("Mobiles");
@@ -393,3 +392,5 @@ describe("Dynamic Filters — URL Param Persistence", () => {
     cy.url().should("include", "ram").and("include", "storage");
   });
 });
+
+export {};

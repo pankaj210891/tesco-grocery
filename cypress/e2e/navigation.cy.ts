@@ -8,16 +8,42 @@
 
 describe("Navigation", () => {
   beforeEach(() => {
-    /* Stub the homepage data endpoints so the server component renders
-     * without a live MongoDB connection during CI. */
+    /* Stub all data endpoints so the page renders without a live database.
+     * Inline bodies are used instead of fixtures to guarantee the exact
+     * { success, data } shape the app expects. */
     cy.intercept("GET", "/api/homepage/**", { body: { success: true, data: [] } }).as("homepage");
+
     cy.intercept("GET", "/api/categories*", {
-      fixture: "categories.json",
       statusCode: 200,
+      body: {
+        success: true,
+        data: [
+          { _id: "cat001", name: "Fresh Food",      slug: "fresh-food",   productCount: 45 },
+          { _id: "cat002", name: "Bakery",           slug: "bakery",        productCount: 18 },
+          { _id: "cat003", name: "Frozen Food",      slug: "frozen-food",   productCount: 32 },
+          { _id: "cat004", name: "Treats & Snacks",  slug: "treats-snacks", productCount: 60 },
+          { _id: "cat005", name: "Drinks",           slug: "drinks",        productCount: 28 },
+        ],
+      },
     }).as("categories");
+
     cy.intercept("GET", "/api/products*", {
-      fixture: "products.json",
       statusCode: 200,
+      body: {
+        success: true,
+        data: {
+          products: [
+            {
+              _id: "prod001", name: "Organic Full-Fat Milk 2L",
+              slug: "organic-full-fat-milk-2l", price: 1.89,
+              images: ["/images/placeholder.webp"], category: "Fresh Food",
+              brand: "Lakeland Dairy", inStock: true, rating: 4.5,
+              reviewCount: 120, badge: "sale",
+            },
+          ],
+          total: 1, page: 1, totalPages: 1, limit: 12,
+        },
+      },
     }).as("products");
 
     cy.visit("/");

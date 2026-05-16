@@ -397,3 +397,5 @@ describe("Admin Products — API Validation", () => {
     });
   });
 });
+
+export {};

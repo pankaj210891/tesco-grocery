@@ -531,3 +531,5 @@ describe("Promo Codes Page — Status Filter", () => {
     cy.wait("@allPromos");
   });
 });
+
+export {};

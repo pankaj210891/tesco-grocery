@@ -319,3 +319,5 @@ describe("Admin Products — Vendor Validation (API)", () => {
     });
   });
 });
+
+export {};

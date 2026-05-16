@@ -1,26 +1,68 @@
-// Admin vendors – status tabs, date filter, URL persistence, and filter chips
+/// <reference types="cypress" />
+
+/*
+ * E2E — Admin Vendors: status tabs, date filter, URL persistence, filter chips.
+ * Uses stub-based auth (onBeforeLoad) — no real login or cy.session().
+ */
+
+const ADMIN_AUTH = {
+  user: { _id: "admin001", name: "Admin", email: "admin@test.com", role: "admin", status: "active" },
+  token: "fake-admin-token",
+};
+
+const CUSTOMER_AUTH = {
+  user: { _id: "cust001", name: "Customer", email: "customer@test.com", role: "customer", status: "active" },
+  token: "fake-customer-token",
+};
+
+const VENDORS_STUB = {
+  success: true,
+  data: {
+    vendors: [
+      {
+        _id: "v1",
+        businessName: "Fresh Farms",
+        email: "fresh@farms.com",
+        status: "active",
+        createdAt: "2024-01-01T00:00:00.000Z",
+      },
+    ],
+    total: 1,
+    page: 1,
+    totalPages: 1,
+  },
+};
+
+function stubAdminAuth(win: Window) {
+  win.localStorage.setItem(
+    "prakash-auth",
+    JSON.stringify({ state: { ...ADMIN_AUTH, hasHydrated: true }, version: 0 }),
+  );
+}
+
+function stubCustomerAuth(win: Window) {
+  win.localStorage.setItem(
+    "prakash-auth",
+    JSON.stringify({ state: { ...CUSTOMER_AUTH, hasHydrated: true }, version: 0 }),
+  );
+}
+
+function interceptVendors(body = VENDORS_STUB) {
+  cy.intercept("GET", "/api/admin/vendors*", body).as("getVendors");
+}
+
+function visitVendors(qs = "") {
+  cy.visit(`/admin/vendors${qs ? `?${qs}` : ""}`, { onBeforeLoad: stubAdminAuth });
+}
 
 describe("Admin Vendors – Filters & URL Sync", () => {
-  const adminEmail    = "admin@example.com";
-  const adminPassword = "password123";
-
-  function loginAsAdmin() {
-    cy.session("admin", () => {
-      cy.visit("/login");
-      cy.get('[data-testid="email-input"]').type(adminEmail);
-      cy.get('[data-testid="password-input"]').type(adminPassword);
-      cy.get('[data-testid="login-btn"]').click();
-      cy.url().should("not.include", "/login");
-    });
-  }
-
   beforeEach(() => {
-    loginAsAdmin();
-    cy.visit("/admin/vendors");
+    interceptVendors();
+    visitVendors();
     cy.get('[data-testid="vendor-status-tabs"]', { timeout: 10000 }).should("be.visible");
   });
 
-  // ─── Status tabs ───────────────────────────────────────────────────────────
+  /* ── Status tabs ─────────────────────────────────────────────────────────── */
 
   it("renders All, Active, Pending, Suspended status tabs", () => {
     cy.get('[data-testid="vendor-status-all"]').should("exist");
@@ -61,7 +103,7 @@ describe("Admin Vendors – Filters & URL Sync", () => {
     cy.wait("@vendorApi").its("request.url").should("include", "status=active");
   });
 
-  // ─── Search ────────────────────────────────────────────────────────────────
+  /* ── Search ──────────────────────────────────────────────────────────────── */
 
   it("typing in search updates URL search param", () => {
     cy.get('[data-testid="vendor-search"]').type("Fresh");
@@ -74,7 +116,7 @@ describe("Admin Vendors – Filters & URL Sync", () => {
     cy.wait("@vendorApi").its("request.url").should("include", "TestVendor");
   });
 
-  // ─── Date filter ───────────────────────────────────────────────────────────
+  /* ── Date filter ─────────────────────────────────────────────────────────── */
 
   it("opens date filter panel on button click", () => {
     cy.get('[data-testid="date-filter-btn"]').click();
@@ -122,14 +164,14 @@ describe("Admin Vendors – Filters & URL Sync", () => {
     cy.url().should("not.include", "dateTo=");
   });
 
-  // ─── Active filter chips ───────────────────────────────────────────────────
+  /* ── Active filter chips ─────────────────────────────────────────────────── */
 
   it("shows filter chips when filters are active", () => {
     cy.get('[data-testid="vendor-status-active"]').click();
     cy.get('[data-testid="active-vendor-filters"]').should("be.visible");
   });
 
-  it("removes status chip clears the status filter", () => {
+  it("removing status chip clears the status filter", () => {
     cy.get('[data-testid="vendor-status-active"]').click();
     cy.get('[data-testid="active-vendor-filters"]').within(() => {
       cy.get('button[aria-label*="Remove"]').first().click();
@@ -137,10 +179,11 @@ describe("Admin Vendors – Filters & URL Sync", () => {
     cy.get('[data-testid="vendor-status-all"]').should("have.class", "bg-[#0F4C75]");
   });
 
-  // ─── URL persistence ────────────────────────────────────────────────────────
+  /* ── URL persistence ─────────────────────────────────────────────────────── */
 
   it("restores filters from URL on page load", () => {
-    cy.visit("/admin/vendors?status=active");
+    interceptVendors();
+    visitVendors("status=active");
     cy.get('[data-testid="vendor-status-tabs"]', { timeout: 10000 }).should("be.visible");
     cy.get('[data-testid="vendor-status-active"]').should("have.class", "bg-[#0F4C75]");
   });
@@ -151,16 +194,13 @@ describe("Admin Vendors – Filters & URL Sync", () => {
     cy.url().should("not.include", "status=");
   });
 
-  // ─── RBAC ──────────────────────────────────────────────────────────────────
+  /* ── RBAC ────────────────────────────────────────────────────────────────── */
 
   it("redirects non-admin to home", () => {
-    cy.session("non-admin-vendors", () => {
-      cy.visit("/login");
-      cy.get('[data-testid="email-input"]').type("customer@example.com");
-      cy.get('[data-testid="password-input"]').type("password123");
-      cy.get('[data-testid="login-btn"]').click();
-    });
-    cy.visit("/admin/vendors");
+    cy.intercept("GET", "/api/admin/vendors*", VENDORS_STUB).as("getVendors");
+    cy.visit("/admin/vendors", { onBeforeLoad: stubCustomerAuth });
     cy.url().should("not.include", "/admin");
   });
 });
+
+export {};

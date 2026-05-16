@@ -825,3 +825,5 @@ describe("Admin — Combined Order Filters Sanity", () => {
     cy.get("[data-testid='clear-marketplace-filters']").should("exist");
   });
 });
+
+export {};
