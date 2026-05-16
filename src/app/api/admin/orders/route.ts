@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
@@ -12,20 +13,31 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page     = Math.max(1, Number(searchParams.get("page") ?? 1));
     const limit    = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const status   = searchParams.get("status") ?? "";
+    const status   = searchParams.get("status")   ?? "";
     const dateFrom = searchParams.get("dateFrom") ?? "";
     const dateTo   = searchParams.get("dateTo")   ?? "";
-
-    const q = searchParams.get("q") ?? "";
+    const q        = searchParams.get("q")        ?? "";
+    const userId   = searchParams.get("userId")   ?? "";
+    const vendorId = searchParams.get("vendorId") ?? "";
 
     const filter: Record<string, unknown> = {};
+
     if (status && status !== "all") filter.status = status;
+
     if (q) {
       filter.$or = [
-        { orderNumber: { $regex: q, $options: "i" } },
+        { orderNumber:        { $regex: q, $options: "i" } },
         { "delivery.fullName": { $regex: q, $options: "i" } },
-        { "delivery.email": { $regex: q, $options: "i" } },
+        { "delivery.email":   { $regex: q, $options: "i" } },
       ];
+    }
+
+    if (userId && mongoose.isValidObjectId(userId)) {
+      filter.userId = new mongoose.Types.ObjectId(userId);
+    }
+
+    if (vendorId && mongoose.isValidObjectId(vendorId)) {
+      filter["items.vendorId"] = new mongoose.Types.ObjectId(vendorId);
     }
 
     if (dateFrom || dateTo) {

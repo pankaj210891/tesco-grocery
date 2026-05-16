@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import ProductModel from "@/lib/db/models/product.model";
@@ -11,12 +12,19 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
+    if (!mongoose.isValidObjectId(auth.vendorId)) {
+      return NextResponse.json({ success: false, error: "Invalid vendor" }, { status: 400 });
+    }
+
+    const vendorObjectId = new mongoose.Types.ObjectId(auth.vendorId);
+
     const [totalProducts, inStockProducts, outOfStockProducts, totalOrders, pendingOrders] = await Promise.all([
-      ProductModel.countDocuments({ vendorId: auth.vendorId }),
-      ProductModel.countDocuments({ vendorId: auth.vendorId, inStock: true }),
-      ProductModel.countDocuments({ vendorId: auth.vendorId, inStock: false }),
-      OrderModel.countDocuments({ "items.vendorId": auth.vendorId }),
-      OrderModel.countDocuments({ "items.vendorId": auth.vendorId, status: "pending" }),
+      ProductModel.countDocuments({ vendorId: vendorObjectId }),
+      ProductModel.countDocuments({ vendorId: vendorObjectId, inStock: true }),
+      ProductModel.countDocuments({ vendorId: vendorObjectId, inStock: false }),
+      // Use indexed items.vendorId field for efficient lookup
+      OrderModel.countDocuments({ "items.vendorId": vendorObjectId }),
+      OrderModel.countDocuments({ "items.vendorId": vendorObjectId, status: "pending" }),
     ]);
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
-export type ProductBadge = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type ProductBadge  = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type ProductStatus = "pending" | "approved" | "rejected";
 export type DeliveryOption = "express" | "standard" | "collection";
 export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";
 
@@ -24,6 +25,7 @@ export interface Product {
   deliveryOptions?: DeliveryOption[];
   vendorId?: string | null;
   vendorName?: string | null;
+  status?: ProductStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,12 +155,14 @@ export interface Vendor {
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 export interface OrderLineItem {
-  productId: string;
-  name:      string;
-  slug:      string;
-  price:     number;
-  quantity:  number;
-  image:     string;
+  productId:  string;
+  vendorId?:  string | null;
+  vendorName?: string | null;
+  name:       string;
+  slug:       string;
+  price:      number;
+  quantity:   number;
+  image:      string;
 }
 
 export type PaymentMethodType = "razorpay" | "cod";
@@ -365,6 +369,60 @@ export interface HomepageSection {
   ctaHref?:  string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Marketplace Analytics ────────────────────────────────────────────────────
+
+export interface VendorAnalytics {
+  totalRevenue:   number;
+  totalOrders:    number;
+  pendingOrders:  number;
+  totalProducts:  number;
+  topProducts: Array<{
+    name:     string;
+    slug:     string;
+    revenue:  number;
+    quantity: number;
+  }>;
+  revenueByMonth: Array<{ month: string; revenue: number }>;
+}
+
+export interface AdminVendorStats {
+  vendorId:      string;
+  vendorName:    string;
+  totalProducts: number;
+  totalOrders:   number;
+  totalRevenue:  number;
+  status:        string;
+}
+
+export interface AdminDashboardStats {
+  totalProducts:    number;
+  totalOrders:      number;
+  pendingOrders:    number;
+  processingOrders: number;
+  totalUsers:       number;
+  totalVendors:     number;
+  totalRevenue:     number;
+  recentOrders: Array<{
+    _id:          string;
+    orderNumber:  string;
+    delivery:     { fullName: string };
+    total:        number;
+    status:       string;
+    createdAt:    string;
+  }>;
+  lowStock:    Array<{ _id: string; name: string; category: string }>;
+  topVendors:  AdminVendorStats[];
+}
+
+// ─── Paginated results ────────────────────────────────────────────────────────
+
+export interface PaginatedResult<T> {
+  data:       T[];
+  total:      number;
+  page:       number;
+  totalPages: number;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

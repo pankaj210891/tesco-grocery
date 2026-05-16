@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
 
     const [
       totalProducts,
+      pendingProducts,
       totalOrders,
       pendingOrders,
       processingOrders,
@@ -23,8 +24,10 @@ export async function GET(req: NextRequest) {
       revenueResult,
       recentOrders,
       lowStock,
+      topVendorRevenue,
     ] = await Promise.all([
       ProductModel.countDocuments(),
+      ProductModel.countDocuments({ status: "pending" }),
       OrderModel.countDocuments(),
       OrderModel.countDocuments({ status: "pending" }),
       OrderModel.countDocuments({ status: "processing" }),
@@ -38,7 +41,25 @@ export async function GET(req: NextRequest) {
         .sort({ createdAt: -1 })
         .limit(8)
         .lean(),
-      ProductModel.find({ inStock: false }).limit(10).select("name slug images price category").lean(),
+      ProductModel.find({ inStock: false })
+        .limit(10)
+        .select("name slug images price category")
+        .lean(),
+      // Top 5 vendors by revenue
+      OrderModel.aggregate<{ vendorId: string; vendorName: string; revenue: number }>([
+        { $unwind: "$items" },
+        { $match: { "items.vendorId": { $ne: null } } },
+        {
+          $group: {
+            _id:        "$items.vendorId",
+            vendorName: { $first: "$items.vendorName" },
+            revenue:    { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+          },
+        },
+        { $sort: { revenue: -1 } },
+        { $limit: 5 },
+        { $project: { _id: 0, vendorId: { $toString: "$_id" }, vendorName: 1, revenue: 1 } },
+      ]),
     ]);
 
     const totalRevenue = revenueResult[0]?.total ?? 0;
@@ -47,6 +68,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         totalProducts,
+        pendingProducts,
         totalOrders,
         pendingOrders,
         processingOrders,
@@ -55,6 +77,7 @@ export async function GET(req: NextRequest) {
         totalRevenue,
         recentOrders,
         lowStock,
+        topVendorRevenue,
       },
     });
   } catch {
