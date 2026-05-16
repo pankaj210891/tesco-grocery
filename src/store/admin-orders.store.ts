@@ -12,7 +12,6 @@ interface AdminOrderFilters {
   q:        string;
   dateFrom: string;
   dateTo:   string;
-  userId:   string;
   vendorId: string;
 }
 
@@ -32,21 +31,20 @@ interface AdminOrdersState {
 }
 
 interface AdminAnalyticsState {
-  topVendors:         AdminVendorStats[];
-  analyticsLoading:   boolean;
-  setTopVendors:      (data: AdminVendorStats[]) => void;
+  topVendors:          AdminVendorStats[];
+  analyticsLoading:    boolean;
+  setTopVendors:       (data: AdminVendorStats[]) => void;
   setAnalyticsLoading: (v: boolean) => void;
 }
 
 const DEFAULT_META: PageMeta = { total: 0, page: 1, totalPages: 1 };
 const DEFAULT_FILTERS: AdminOrderFilters = {
-  status: "all", q: "", dateFrom: "", dateTo: "", userId: "", vendorId: "",
+  status: "all", q: "", dateFrom: "", dateTo: "", vendorId: "",
 };
 
 type AdminOrdersStore = AdminOrdersState & AdminAnalyticsState;
 
 export const useAdminOrdersStore = create<AdminOrdersStore>((set) => ({
-  // Orders
   orders:  [],
   meta:    DEFAULT_META,
   page:    1,
@@ -65,7 +63,6 @@ export const useAdminOrdersStore = create<AdminOrdersStore>((set) => ({
       ),
     })),
 
-  // Analytics
   topVendors:          [],
   analyticsLoading:    false,
   setTopVendors:       (data) => set({ topVendors: data }),

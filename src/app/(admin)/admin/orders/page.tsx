@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ChevronDown, Calendar, X, Search, Store, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, X, Search, Store } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { formatPrice } from "@/lib/utils/format";
 import type { Order, Vendor } from "@/types";
 
@@ -18,60 +19,31 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled:  "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
 };
 
-const DATE_PRESETS = [
-  { label: "Today",        getValue: () => { const d = today(); return { from: d, to: d }; } },
-  { label: "Yesterday",    getValue: () => { const d = daysAgo(1); return { from: d, to: d }; } },
-  { label: "Last 7 days",  getValue: () => ({ from: daysAgo(6), to: today() }) },
-  { label: "Last 30 days", getValue: () => ({ from: daysAgo(29), to: today() }) },
-  { label: "This month",   getValue: () => ({ from: firstOfMonth(), to: today() }) },
-] as const;
-
-function today()      { return new Date().toISOString().slice(0, 10); }
-function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
-function firstOfMonth() { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); }
-
 export default function AdminOrdersPage() {
   const { user, token } = useAuthStore();
   const router = useRouter();
 
-  const [data, setData]             = useState<PageData | null>(null);
-  const [page, setPage]             = useState(1);
-  const [status, setStatus]         = useState<typeof STATUSES[number]>("all");
-  const [loading, setLoading]       = useState(true);
-  const [updating, setUpdating]     = useState<string | null>(null);
-  const [dateFrom, setDateFrom]     = useState("");
-  const [dateTo, setDateTo]         = useState("");
-  const [tempFrom, setTempFrom]     = useState("");
-  const [tempTo, setTempTo]         = useState("");
-  const [showDateFilter, setShowDateFilter] = useState(false);
-  const [search, setSearch]         = useState("");
-  // Marketplace filters
-  const [vendorId, setVendorId]     = useState("");
-  const [userId, setUserId]         = useState("");
-  const [vendors, setVendors]       = useState<Pick<Vendor, "_id" | "name">[]>([]);
+  const [data, setData]         = useState<PageData | null>(null);
+  const [page, setPage]         = useState(1);
+  const [status, setStatus]     = useState<typeof STATUSES[number]>("all");
+  const [loading, setLoading]   = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo,   setDateTo]   = useState("");
+  const [search,   setSearch]   = useState("");
+  const [vendorId, setVendorId] = useState("");
+  const [vendors,  setVendors]  = useState<Pick<Vendor, "_id" | "name">[]>([]);
 
-  const dateFilterRef = useRef<HTMLDivElement>(null);
-  const authHeader    = { Authorization: `Bearer ${token}` };
+  const authHeader = { Authorization: `Bearer ${token}` };
 
-  // Load vendor list for filter dropdown
   useEffect(() => {
     if (!token) return;
-    fetch("/api/admin/vendors?limit=50", { headers: authHeader })
+    fetch("/api/admin/vendors?limit=100", { headers: authHeader })
       .then((r) => r.json() as Promise<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>)
       .then((j) => { if (j.success) setVendors(j.data.vendors); })
       .catch(() => { /* non-critical */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (dateFilterRef.current && !dateFilterRef.current.contains(e.target as Node)) {
-        setShowDateFilter(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,17 +52,16 @@ export default function AdminOrdersPage() {
     if (dateFrom) qs.set("dateFrom", dateFrom);
     if (dateTo)   qs.set("dateTo",   dateTo);
     if (vendorId) qs.set("vendorId", vendorId);
-    if (userId)   qs.set("userId",   userId);
     fetch(`/api/admin/orders?${qs}`, { headers: authHeader })
       .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
       .then((j) => { if (j.success) setData(j.data); })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, token, dateFrom, dateTo, search, vendorId, userId]);
+  }, [page, status, token, dateFrom, dateTo, search, vendorId]);
 
   useEffect(() => {
-    if (!user)                { router.push("/login"); return; }
-    if (user.role !== "admin") { router.push("/");     return; }
+    if (!user)                 { router.push("/login"); return; }
+    if (user.role !== "admin") { router.push("/");      return; }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [user, router, load]);
@@ -109,31 +80,14 @@ export default function AdminOrdersPage() {
         return {
           ...prev,
           orders: prev.orders.map((o) =>
-            o._id === id ? { ...o, status: newStatus as Order["status"] } : o
+            o._id === id ? { ...o, status: newStatus as Order["status"] } : o,
           ),
         };
       });
     }
   }
 
-  function applyPreset(from: string, to: string) {
-    setDateFrom(from); setDateTo(to); setPage(1); setShowDateFilter(false);
-  }
-
-  function applyCustomDates() {
-    setDateFrom(tempFrom); setDateTo(tempTo); setPage(1); setShowDateFilter(false);
-  }
-
-  function clearDates() {
-    setDateFrom(""); setDateTo(""); setTempFrom(""); setTempTo(""); setPage(1);
-  }
-
-  function clearMarketplaceFilters() {
-    setVendorId(""); setUserId(""); setPage(1);
-  }
-
-  const hasDateFilter        = !!dateFrom || !!dateTo;
-  const hasMarketplaceFilter = !!vendorId || !!userId;
+  const hasVendorFilter = !!vendorId;
 
   return (
     <div className="space-y-6">
@@ -190,76 +144,20 @@ export default function AdminOrdersPage() {
           </select>
         </div>
 
-        {/* User ID filter */}
-        <div className="flex items-center gap-1.5">
-          <User className="h-4 w-4 text-gray-400" />
-          <input
-            value={userId}
-            onChange={(e) => { setUserId(e.target.value.trim()); setPage(1); }}
-            placeholder="User ID…"
-            className="w-36 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
-            data-testid="order-user-filter"
-          />
-        </div>
+        {/* Reusable date filter */}
+        <AdminDateFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onApply={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }}
+          onClear={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+        />
 
-        {/* Date filter */}
-        <div className="relative" ref={dateFilterRef}>
+        {/* Clear vendor filter */}
+        {hasVendorFilter && (
           <button
-            onClick={() => showDateFilter ? setShowDateFilter(false) : (() => { setTempFrom(dateFrom); setTempTo(dateTo); setShowDateFilter(true); })()}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-              hasDateFilter
-                ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300"
-                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300"
-            }`}
-          >
-            <Calendar className="h-3.5 w-3.5" />
-            {hasDateFilter ? `${dateFrom || "—"} → ${dateTo || "—"}` : "Date filter"}
-          </button>
-
-          {showDateFilter && (
-            <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 min-w-[280px]">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick select</p>
-              <div className="grid grid-cols-2 gap-1.5 mb-4">
-                {DATE_PRESETS.map((p) => {
-                  const { from, to } = p.getValue();
-                  return (
-                    <button key={p.label} onClick={() => applyPreset(from, to)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-left bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[11px] text-gray-400 mb-0.5 block">From</label>
-                  <input type="date" value={tempFrom} onChange={(e) => setTempFrom(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-400" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-gray-400 mb-0.5 block">To</label>
-                  <input type="date" value={tempTo} min={tempFrom} onChange={(e) => setTempTo(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-400" />
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button onClick={applyCustomDates} className="flex-1 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">Apply</button>
-                {hasDateFilter && (
-                  <button onClick={() => { clearDates(); setShowDateFilter(false); }}
-                    className="px-3 py-1.5 text-xs font-semibold border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Clear marketplace filters */}
-        {hasMarketplaceFilter && (
-          <button onClick={clearMarketplaceFilters}
+            onClick={() => { setVendorId(""); setPage(1); }}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/40 hover:bg-red-100 transition-colors"
-            data-testid="clear-marketplace-filters"
+            data-testid="clear-vendor-filter"
           >
             <X className="h-3 w-3" /> Clear filters
           </button>
@@ -285,11 +183,8 @@ export default function AdminOrdersPage() {
               ) : data?.orders.length === 0 ? (
                 <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">No orders found</td></tr>
               ) : data?.orders.map((order) => {
-                // Collect unique vendor names from order items
                 const orderVendors = [...new Set(
-                  order.items
-                    .filter((i) => i.vendorName)
-                    .map((i) => i.vendorName as string),
+                  order.items.filter((i) => i.vendorName).map((i) => i.vendorName as string),
                 )];
                 return (
                   <tr key={order._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="order-row">
@@ -333,7 +228,7 @@ export default function AdminOrdersPage() {
                         <select
                           disabled={updating === order._id}
                           defaultValue=""
-                          onChange={(e) => { if (e.target.value) updateStatus(order._id, e.target.value); }}
+                          onChange={(e) => { if (e.target.value) void updateStatus(order._id, e.target.value); }}
                           className="appearance-none pl-3 pr-7 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none disabled:opacity-50 cursor-pointer"
                           data-testid={`order-status-update-${order._id}`}
                         >

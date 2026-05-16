@@ -11,12 +11,15 @@ export async function GET(req: NextRequest) {
   await connectDB();
   const sp     = req.nextUrl.searchParams;
   const search = sp.get("q")?.trim() ?? "";
-  const active = sp.get("active");
+  const status = sp.get("status");  // "active" | "expired" | "inactive"
 
   const query: Record<string, unknown> = {};
   if (search) query.code = { $regex: search, $options: "i" };
-  if (active === "true")  query.isActive = true;
-  if (active === "false") query.isActive = false;
+
+  const now = new Date();
+  if (status === "active")   { query.isActive = true;  query.expiresAt = { $gte: now }; }
+  if (status === "expired")  { query.expiresAt = { $lt: now }; }
+  if (status === "inactive") { query.isActive = false; }
 
   const docs = await Offer.find(query).sort({ order: 1, createdAt: -1 }).lean();
   return NextResponse.json({ success: true, data: docs });
