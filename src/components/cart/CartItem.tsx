@@ -2,23 +2,50 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, Bookmark, Truck, Zap, Store, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { formatPrice } from "@/lib/utils/format";
-import type { CartItem as CartItemType } from "@/types";
+import { cn } from "@/lib/utils/cn";
+import type { CartItem as CartItemType, DeliveryOption } from "@/types";
 
 interface CartItemProps {
   item: CartItemType;
 }
 
-const AMBER = "#FCA311";
+function DeliveryBadge({ options }: { options?: DeliveryOption[] }) {
+  if (!options?.length) return null;
+  if (options.includes("express")) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-md">
+        <Zap className="h-2.5 w-2.5" />
+        Express delivery
+      </span>
+    );
+  }
+  if (options.includes("collection")) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-md">
+        <Store className="h-2.5 w-2.5" />
+        Collection available
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40 px-1.5 py-0.5 rounded-md">
+      <Truck className="h-2.5 w-2.5" />
+      Standard delivery
+    </span>
+  );
+}
+
+const AMBER      = "#FCA311";
 const AMBER_DARK = "#E8920A";
 
 export default function CartItem({ item }: CartItemProps) {
-  const { updateQuantity, removeItem } = useCartStore();
-  const token = useAuthStore((s) => s.token) ?? "";
+  const { updateQuantity, removeItem, saveForLater } = useCartStore();
+  const token   = useAuthStore((s) => s.token) ?? "";
   const { product, quantity } = item;
 
   function handleQtyChange(newQty: number) {
@@ -34,14 +61,22 @@ export default function CartItem({ item }: CartItemProps) {
     toast.success(`${product.name} removed from cart`);
   }
 
+  function handleSaveForLater() {
+    if (!token) { toast.error("Sign in to save items"); return; }
+    void saveForLater(product._id, token);
+    toast.success(`${product.name} saved for later`);
+  }
+
   const lineTotal = product.price * quantity;
-  const discount =
-    product.originalPrice && product.originalPrice > product.price
-      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-      : null;
+  const discount  = product.originalPrice && product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : null;
 
   return (
-    <article className="group flex gap-4 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+    <article
+      data-testid="cart-item"
+      className="group flex gap-4 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+    >
       {/* ── Product Image ── */}
       <Link
         href={`/products/${product.slug}`}
@@ -62,10 +97,15 @@ export default function CartItem({ item }: CartItemProps) {
             {discount}% off
           </span>
         )}
+        {!product.inStock && (
+          <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 flex items-center justify-center">
+            <span className="text-[9px] font-black text-red-600 uppercase tracking-wide">Out of stock</span>
+          </div>
+        )}
       </Link>
 
       {/* ── Content ── */}
-      <div className="flex-1 min-w-0 flex flex-col gap-2">
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         {/* Top row: name + remove */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -75,42 +115,79 @@ export default function CartItem({ item }: CartItemProps) {
             >
               {product.name}
             </Link>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
               {product.brand && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">{product.brand}</p>
               )}
               {product.unit && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">· {product.unit}</p>
               )}
+              {product.vendorName && (
+                <p className="text-xs text-[#FCA311] font-medium">· {product.vendorName}</p>
+              )}
             </div>
           </div>
           <button
             onClick={handleRemove}
             aria-label={`Remove ${product.name}`}
-            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Bottom row: qty + price */}
+        {/* Delivery & stock badges */}
+        <div className="flex flex-wrap gap-1.5">
+          {!product.inStock ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-md">
+              <AlertCircle className="h-2.5 w-2.5" />
+              Out of stock
+            </span>
+          ) : (
+            <DeliveryBadge options={product.deliveryOptions} />
+          )}
+        </div>
+
+        {/* Price row */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-gray-900 dark:text-white">
+            {formatPrice(product.price)}
+          </span>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <span className="text-xs text-gray-400 line-through">
+              {formatPrice(product.originalPrice)}
+            </span>
+          )}
+        </div>
+
+        {/* Bottom row: qty + line total + save-for-later */}
         <div className="flex items-center justify-between gap-3 mt-auto">
           {/* Quantity stepper */}
           <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden h-8">
             <button
               onClick={() => handleQtyChange(quantity - 1)}
               aria-label="Decrease quantity"
-              className="w-8 h-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-r border-gray-200 dark:border-gray-600 disabled:opacity-40"
+              data-testid="qty-decrease"
+              className={cn(
+                "w-8 h-full flex items-center justify-center text-gray-500 dark:text-gray-400 transition-colors border-r border-gray-200 dark:border-gray-600",
+                quantity <= 1
+                  ? "opacity-40 cursor-not-allowed"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-700"
+              )}
               disabled={quantity <= 1}
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="w-10 h-full flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white tabular-nums bg-white dark:bg-gray-800 select-none">
+            <span
+              data-testid="qty-value"
+              className="w-10 h-full flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white tabular-nums bg-white dark:bg-gray-800 select-none"
+            >
               {quantity}
             </span>
             <button
               onClick={() => handleQtyChange(quantity + 1)}
               aria-label="Increase quantity"
+              data-testid="qty-increase"
               className="w-8 h-full flex items-center justify-center transition-colors border-l border-gray-200 dark:border-gray-600 text-white"
               style={{ backgroundColor: AMBER }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = AMBER_DARK; }}
@@ -120,16 +197,29 @@ export default function CartItem({ item }: CartItemProps) {
             </button>
           </div>
 
-          {/* Price */}
-          <div className="text-right">
-            <p className="font-black text-gray-900 dark:text-white text-base tracking-tight">
-              {formatPrice(lineTotal)}
-            </p>
-            {quantity > 1 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                {formatPrice(product.price)} each
+          <div className="flex items-center gap-3">
+            {/* Save for later */}
+            <button
+              onClick={handleSaveForLater}
+              aria-label={`Save ${product.name} for later`}
+              data-testid="save-for-later"
+              className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors flex items-center gap-1 font-medium"
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Save</span>
+            </button>
+
+            {/* Line total */}
+            <div className="text-right">
+              <p className="font-black text-gray-900 dark:text-white text-base tracking-tight">
+                {formatPrice(lineTotal)}
               </p>
-            )}
+              {quantity > 1 && (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  {formatPrice(product.price)} each
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
