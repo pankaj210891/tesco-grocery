@@ -6,12 +6,16 @@ import {
   refundConfirmedTemplate,
   welcomeTemplate,
   passwordResetTemplate,
+  vendorInviteTemplate,
+  vendorApprovedTemplate,
   type OrderConfirmationData,
   type OrderStatusData,
   type OrderCancellationData,
   type RefundConfirmedData,
   type WelcomeData,
   type PasswordResetData,
+  type VendorInviteData,
+  type VendorApprovedData,
 } from "@/lib/email/templates";
 
 async function send(to: string, subject: string, html: string): Promise<void> {
@@ -49,5 +53,15 @@ export async function sendOrderCancellation(to: string, data: OrderCancellationD
 
 export async function sendRefundConfirmed(to: string, data: RefundConfirmedData): Promise<void> {
   const { subject, html } = refundConfirmedTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendVendorInvite(to: string, data: VendorInviteData): Promise<void> {
+  const { subject, html } = vendorInviteTemplate(data);
+  await send(to, subject, html);
+}
+
+export async function sendVendorApproved(to: string, data: VendorApprovedData): Promise<void> {
+  const { subject, html } = vendorApprovedTemplate(data);
   await send(to, subject, html);
 }

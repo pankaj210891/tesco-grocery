@@ -152,6 +152,19 @@ export interface Vendor {
   createdAt:   string;
 }
 
+export type VendorInviteStatus = "pending" | "accepted" | "expired";
+
+export interface VendorInvite {
+  _id:          string;
+  email:        string;
+  businessName: string;
+  contactName:  string;
+  status:       VendorInviteStatus;
+  expiresAt:    string;
+  invitedBy:    string;
+  createdAt:    string;
+}
+
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 export interface OrderLineItem {

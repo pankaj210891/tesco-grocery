@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import {
   useAdminVendorsStore,
@@ -11,9 +11,10 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import type { Vendor, VendorStatus } from "@/types";
+import type { Vendor, VendorStatus, VendorInvite } from "@/types";
 
 interface PageData { vendors: Vendor[]; total: number; page: number; totalPages: number; }
+interface InvitePageData { invites: VendorInvite[]; total: number; }
 
 const STATUS_COLORS: Record<string, string> = {
   active:    "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
@@ -74,6 +75,13 @@ function AdminVendorsPageInner() {
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError]   = useState("");
 
+  // Invite vendor modal
+  const [inviteModal,   setInviteModal]   = useState(false);
+  const [inviteForm,    setInviteForm]    = useState({ email: "", businessName: "", contactName: "" });
+  const [inviteSaving,  setInviteSaving]  = useState(false);
+  const [inviteError,   setInviteError]   = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState("");
+
   // View/Edit vendor modal
   const [viewVendor, setViewVendor] = useState<Vendor | null>(null);
   const [editMode, setEditMode]     = useState(false);
@@ -81,13 +89,26 @@ function AdminVendorsPageInner() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError]   = useState("");
 
-  useScrollLock(addModal || viewVendor !== null);
+  useScrollLock(addModal || inviteModal || viewVendor !== null);
+
+  // ── Bug 2 fix: guard load + URL-sync until URL→store init completes ─────────
+  // On mount three effects fire synchronously in order. Without this guard the
+  // Store→URL effect runs first (with empty initial state) and wipes the URL
+  // params before the URL→Store effect has a chance to read them.
+  const [filterReady, setFilterReady] = useState(false);
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<"vendors" | "invites">("vendors");
+
+  // ── Invite list ───────────────────────────────────────────────────────────────
+  const [inviteData,        setInviteData]        = useState<InvitePageData | null>(null);
+  const [inviteListLoading, setInviteListLoading] = useState(false);
 
   const debouncedSearch = useDebounce(filters.search, 350);
 
   const authHeader = { Authorization: `Bearer ${token}` };
 
-  // Sync store from URL on mount
+  // Sync store from URL on mount — must run before any load or URL-write
   useEffect(() => {
     const p: Partial<AdminVendorFilters> = {
       search:   searchParams.get("search")   ?? "",
@@ -98,6 +119,8 @@ function AdminVendorsPageInner() {
     setFilter(p);
     const pg = Number(searchParams.get("page") ?? 1);
     if (pg > 1) setPage(pg);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilterReady(true); // unblock load + URL sync after this render
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -115,24 +138,35 @@ function AdminVendorsPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, debouncedSearch, filters.status, filters.dateFrom, filters.dateTo, token]);
 
+  const loadInvites = useCallback(async () => {
+    setInviteListLoading(true);
+    fetch("/api/admin/vendors/invite", { headers: authHeader })
+      .then((r) => r.json() as Promise<{ success: boolean; data: InvitePageData }>)
+      .then((j) => { if (j.success) setInviteData(j.data); })
+      .finally(() => setInviteListLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   useEffect(() => {
     if (!user)                 { router.push("/login"); return; }
     if (user.role !== "admin") { router.push("/");      return; }
   }, [user, router]);
 
   useEffect(() => {
-    if (!user || user.role !== "admin") return;
+    if (!filterReady || !user || user.role !== "admin") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [load, user]);
+    void loadInvites();
+  }, [load, loadInvites, user, filterReady]);
 
-  // Sync URL when filters change
+  // Sync URL when filters change — skip until filterReady to avoid wiping URL on mount
   useEffect(() => {
+    if (!filterReady) return;
     const qs = buildQS(filters, page);
     const url = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
     router.replace(url, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
+  }, [filters, page, filterReady]);
 
   async function handleAddSave() {
     setAddSaving(true); setAddError("");
@@ -171,6 +205,24 @@ function AdminVendorsPageInner() {
     setEditMode(false);
   }
 
+  async function handleInviteSave() {
+    if (!inviteForm.email.trim())        { setInviteError("Email is required"); return; }
+    if (!inviteForm.businessName.trim()) { setInviteError("Business name is required"); return; }
+    if (!inviteForm.contactName.trim())  { setInviteError("Contact name is required"); return; }
+    setInviteSaving(true); setInviteError(""); setInviteSuccess("");
+    const res  = await fetch("/api/admin/vendors/invite", {
+      method: "POST",
+      headers: { ...authHeader, "Content-Type": "application/json" },
+      body: JSON.stringify(inviteForm),
+    });
+    const json = await res.json() as { success: boolean; error?: string; message?: string };
+    setInviteSaving(false);
+    if (!json.success) { setInviteError(json.error ?? "Failed to send invite"); return; }
+    setInviteSuccess(json.message ?? `Invite sent to ${inviteForm.email}`);
+    setInviteForm({ email: "", businessName: "", contactName: "" });
+    void loadInvites(); // refresh invite list immediately
+  }
+
   async function updateStatus(id: string, status: VendorStatus) {
     setUpdating(id);
     await fetch(`/api/admin/vendors/${id}`, {
@@ -195,36 +247,59 @@ function AdminVendorsPageInner() {
     setEditError("");
   }
 
+  const filteredInvites = (inviteData?.invites ?? []).filter((inv) => {
+    if (!filters.search) return true;
+    const q = filters.search.toLowerCase();
+    return (
+      inv.email.toLowerCase().includes(q) ||
+      inv.businessName.toLowerCase().includes(q) ||
+      inv.contactName.toLowerCase().includes(q)
+    );
+  });
+
   const inputCls = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]";
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+
+      {/* ── Page header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Vendors</h1>
-        <button
-          onClick={() => { setAddForm({ ...EMPTY_FORM }); setAddError(""); setAddModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg hover:bg-[#0A3352] transition-colors"
-          data-testid="add-vendor-btn"
-        >
-          <Plus className="h-4 w-4" /> Add Vendor
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => { setInviteForm({ email: "", businessName: "", contactName: "" }); setInviteError(""); setInviteSuccess(""); setInviteModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#14532d] text-white text-sm font-semibold rounded-lg hover:bg-[#0f3d20] transition-colors"
+            data-testid="invite-vendor-btn"
+          >
+            <Mail className="h-4 w-4" /> Invite Vendor
+          </button>
+          <button
+            onClick={() => { setAddForm({ ...EMPTY_FORM }); setAddError(""); setAddModal(true); }}
+            disabled={activeTab === "invites"}
+            title={activeTab === "invites" ? "Switch to Vendors tab to add a vendor" : undefined}
+            className={`flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg transition-colors ${
+              activeTab === "invites" ? "opacity-40 cursor-not-allowed" : "hover:bg-[#0A3352]"
+            }`}
+            data-testid="add-vendor-btn"
+          >
+            <Plus className="h-4 w-4" /> Add Vendor
+          </button>
+        </div>
       </div>
 
-      {/* Filter bar */}
+      {/* ── Filter bar — search always active; status/date disabled on Invites tab ── */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
-        {/* Row 1: Search + Clear */}
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <div className="relative flex-1 min-w-[160px] max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <input
               value={filters.search}
               onChange={(e) => setFilter({ search: e.target.value })}
-              placeholder="Search name, email, city…"
+              placeholder={activeTab === "invites" ? "Search invites…" : "Search name, email, city…"}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
               data-testid="vendor-search"
             />
           </div>
-
           {hasActiveFilters(filters) && (
             <button
               onClick={resetFilters}
@@ -236,10 +311,13 @@ function AdminVendorsPageInner() {
           )}
         </div>
 
-        {/* Row 2: Status tabs + Date filter */}
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Status tabs */}
-          <div className="flex gap-1" data-testid="vendor-status-tabs">
+        <div
+          className={`flex flex-wrap gap-2 items-center transition-opacity ${
+            activeTab === "invites" ? "opacity-40 pointer-events-none select-none" : ""
+          }`}
+          title={activeTab === "invites" ? "Status and date filters apply to the Vendors tab" : undefined}
+        >
+          <div className="flex flex-wrap gap-1" data-testid="vendor-status-tabs">
             {STATUS_TABS.map((s) => (
               <button
                 key={s}
@@ -255,8 +333,6 @@ function AdminVendorsPageInner() {
               </button>
             ))}
           </div>
-
-          {/* Date filter */}
           <AdminDateFilter
             dateFrom={filters.dateFrom}
             dateTo={filters.dateTo}
@@ -266,7 +342,6 @@ function AdminVendorsPageInner() {
           />
         </div>
 
-        {/* Active filter chips */}
         {hasActiveFilters(filters) && (
           <div className="flex flex-wrap gap-1.5 pt-1" data-testid="active-vendor-filters">
             {filters.search && (
@@ -282,71 +357,310 @@ function AdminVendorsPageInner() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 360px)" }}>
-        <div className="overflow-auto flex-1">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
-              <tr>
-                {["Vendor", "Owner", "City", "Email", "Status", "Joined", "Actions"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
-                ))
-              ) : data?.vendors.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
-              ) : data?.vendors.map((v) => (
-                <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{v.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{v.slug}</p>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{v.ownerName}</td>
-                  <td className="px-4 py-3 text-gray-500">{v.city || "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{v.email}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => openView(v)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
-                        title="View details"
-                        data-testid={`view-vendor-${v._id}`}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      {v.status !== "active" && (
-                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50" data-testid={`approve-vendor-${v._id}`}>Approve</button>
-                      )}
-                      {v.status === "active" && (
-                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50" data-testid={`suspend-vendor-${v._id}`}>Suspend</button>
-                      )}
-                      <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30" data-testid={`delete-vendor-${v._id}`}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ── Tabbed card ─────────────────────────────────────────────────────── */}
+      <div
+        className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
+        style={{ height: "max(360px, calc(100vh - 320px))" }}
+      >
+        {/* Tab strip — overflow-x-auto so tabs stay readable on narrow screens */}
+        <div className="flex border-b border-gray-100 dark:border-gray-800 shrink-0 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("vendors")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === "vendors"
+                ? "border-[#0F4C75] text-[#0F4C75] dark:text-blue-400 dark:border-blue-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+            data-testid="tab-vendors"
+          >
+            Vendors
+            {data && (
+              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                activeTab === "vendors"
+                  ? "bg-blue-100 text-[#0F4C75] dark:bg-blue-900/40 dark:text-blue-300"
+                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+              }`}>
+                {data.total}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("invites")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === "invites"
+                ? "border-[#14532d] text-[#14532d] dark:text-green-400 dark:border-green-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+            data-testid="tab-invites"
+          >
+            Pending Invites
+            {inviteData && inviteData.total > 0 && (
+              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                activeTab === "invites"
+                  ? "bg-green-100 text-[#14532d] dark:bg-green-900/40 dark:text-green-300"
+                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+              }`}>
+                {inviteData.total}
+              </span>
+            )}
+          </button>
         </div>
-        {data && data.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
-            <span className="text-gray-500" data-testid="vendor-pagination-info">Page {data.page} of {data.totalPages} · {data.total} vendors</span>
-            <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-              <button disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+
+        {/* ── Vendors tab ─────────────────────────────────────────────────── */}
+        {activeTab === "vendors" && (
+          <>
+            <div className="overflow-auto flex-1">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Vendor</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">City</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden lg:table-cell">Joined</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                  {loading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
+                    ))
+                  ) : data?.vendors.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
+                  ) : data?.vendors.map((v) => (
+                    <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{v.name}</p>
+                        <p className="text-xs text-gray-400 font-mono">{v.slug}</p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.ownerName}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{v.city || "—"}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{v.email}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 whitespace-nowrap hidden lg:table-cell">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => openView(v)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                            title="View details"
+                            data-testid={`view-vendor-${v._id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          {v.status !== "active" && (
+                            <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50" data-testid={`approve-vendor-${v._id}`}>Approve</button>
+                          )}
+                          {v.status === "active" && (
+                            <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50" data-testid={`suspend-vendor-${v._id}`}>Suspend</button>
+                          )}
+                          <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30" data-testid={`delete-vendor-${v._id}`}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+
+            {data && data.totalPages > 1 && (
+              <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm shrink-0">
+                <span className="text-gray-500" data-testid="vendor-pagination-info">Page {data.page} of {data.totalPages} · {data.total} vendors</span>
+                <div className="flex gap-2">
+                  <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                  <button disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Invites tab ─────────────────────────────────────────────────── */}
+        {activeTab === "invites" && (
+          <div className="overflow-auto flex-1">
+            {inviteListLoading ? (
+              <div className="px-4 py-4 space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : !inviteData || inviteData.invites.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
+                <Mail className="h-8 w-8 opacity-40" />
+                <p className="text-sm">No invites sent yet</p>
+                <button
+                  onClick={() => { setInviteForm({ email: "", businessName: "", contactName: "" }); setInviteError(""); setInviteSuccess(""); setInviteModal(true); }}
+                  className="text-sm font-semibold text-[#14532d] hover:underline"
+                >
+                  Send your first invite
+                </button>
+              </div>
+            ) : (
+              <table className="w-full text-sm min-w-[520px]">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Business</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Contact</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">Sent</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Expires</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                  {filteredInvites.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No invites match your search</td></tr>
+                  ) : filteredInvites.map((inv) => {
+                    const expired     = inv.status === "expired" || new Date(inv.expiresAt) < new Date();
+                    const accepted    = inv.status === "accepted";
+                    const statusLabel = accepted ? "accepted" : expired ? "expired" : "pending";
+                    const statusCls   = accepted
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                      : expired
+                        ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300";
+                    return (
+                      <tr key={inv._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="invite-row">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.email}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{inv.businessName}</td>
+                        <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{inv.contactName}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${statusCls}`}>{statusLabel}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
+                          {new Date(inv.createdAt).toLocaleDateString("en-GB")}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden sm:table-cell">
+                          {expired || accepted ? "—" : new Date(inv.expiresAt).toLocaleDateString("en-GB")}
+                        </td>
+                        <td className="px-4 py-3">
+                          {!accepted && (
+                            <button
+                              onClick={() => {
+                                setInviteForm({ email: inv.email, businessName: inv.businessName, contactName: inv.contactName });
+                                setInviteError(""); setInviteSuccess(""); setInviteModal(true);
+                              }}
+                              className="text-xs px-2 py-1 rounded-lg font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-300 whitespace-nowrap"
+                              data-testid={`resend-invite-${inv._id}`}
+                            >
+                              Resend
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>
+
+      {/* Invite Vendor Modal */}
+      {inviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h2 className="font-bold text-gray-900 dark:text-gray-100">Invite Vendor</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Send an onboarding email with a secure invite link</p>
+              </div>
+              <button onClick={() => setInviteModal(false)}><X className="h-5 w-5 text-gray-400" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              {inviteError && (
+                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{inviteError}</p>
+              )}
+              {inviteSuccess ? (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-[#14532d]" />
+                  </div>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">Invite Sent!</p>
+                  <p className="text-sm text-gray-500">{inviteSuccess}</p>
+                  <p className="text-xs text-gray-400">The vendor will receive an email with a link valid for 72 hours.</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Vendor Email *</label>
+                    <input
+                      type="email"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="vendor@example.com"
+                      className={inputCls}
+                      data-testid="invite-vendor-email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Business Name *</label>
+                    <input
+                      type="text"
+                      value={inviteForm.businessName}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, businessName: e.target.value }))}
+                      placeholder="e.g. Fresh Farms Co."
+                      className={inputCls}
+                      data-testid="invite-vendor-business-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Contact Name *</label>
+                    <input
+                      type="text"
+                      value={inviteForm.contactName}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, contactName: e.target.value }))}
+                      placeholder="Person receiving the invite"
+                      className={inputCls}
+                      data-testid="invite-vendor-contact-name"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+                    An email with a secure 72-hour onboarding link will be sent to the vendor. They will set up their account and store — no password required from you.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="px-6 pb-6 flex gap-3 justify-end">
+              {inviteSuccess ? (
+                <>
+                  <button
+                    onClick={() => { setInviteSuccess(""); setInviteForm({ email: "", businessName: "", contactName: "" }); }}
+                    className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    Send Another
+                  </button>
+                  <button
+                    onClick={() => setInviteModal(false)}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-[#14532d] rounded-lg hover:bg-[#0f3d20]"
+                  >
+                    Done
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setInviteModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
+                  <button
+                    onClick={() => void handleInviteSave()}
+                    disabled={inviteSaving}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-[#14532d] rounded-lg hover:bg-[#0f3d20] disabled:opacity-50 flex items-center gap-2"
+                    data-testid="invite-vendor-send-btn"
+                  >
+                    {inviteSaving ? "Sending…" : <><Mail className="h-4 w-4" /> Send Invite</>}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Vendor Modal */}
       {addModal && (
