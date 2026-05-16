@@ -29,13 +29,24 @@ export default defineConfig({
       TEST_ADMIN_EMAIL: "admin@example.com",
       TEST_ADMIN_PASSWORD: "AdminPassword1",
     },
+    setupNodeEvents(on) {
+      on("before:browser:launch", (browser, launchOptions) => {
+        if (browser.family === "chromium" || browser.name === "electron") {
+          launchOptions.args.push("--disable-dev-shm-usage");
+          launchOptions.args.push("--disable-gpu");
+          launchOptions.args.push("--no-sandbox");
+          launchOptions.args.push("--disable-features=IsolateOrigins,site-per-process");
+        }
+        return launchOptions;
+      });
+    },
   },
 
   /* ── Component ────────────────────────────────────────────────── */
   component: {
     devServer: {
-      framework: "next",
-      bundler: "webpack",
+      framework: "react",
+      bundler: "vite",
     },
     specPattern: "cypress/component/**/*.cy.tsx",
     supportFile: "cypress/support/component.ts",

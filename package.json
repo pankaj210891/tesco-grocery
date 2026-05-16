@@ -3,8 +3,10 @@
   "version": "1.11.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
@@ -52,6 +54,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
     "cypress": "^13.17.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.5",
@@ -60,6 +63,7 @@
     "prettier": "^3.8.3",
     "start-server-and-test": "^3.0.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^6.4.2"
   }
 }

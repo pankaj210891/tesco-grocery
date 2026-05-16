@@ -5,13 +5,13 @@
  */
 
 import "./commands";
+import "../../src/app/globals.css";
 
-import { mount } from "cypress/react";
+import { mount } from "cypress/react18";
 
 /*
- * Register cy.mount() so component specs can mount React components.
- * The framework preset (next/webpack in cypress.config.ts) wires up
- * Next.js context automatically.
+ * Register cy.mount() for React 19 component testing via Vite.
+ * Uses the react18 entry-point which covers React 18 and 19.
  */
 Cypress.Commands.add("mount", mount);
 
@@ -24,3 +24,5 @@ declare global {
     }
   }
 }
+
+export {};
