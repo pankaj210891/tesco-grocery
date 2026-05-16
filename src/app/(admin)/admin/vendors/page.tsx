@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil } from "lucide-react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
-import type { Vendor, VendorStatus } from "@/types";
+import {
+  useAdminVendorsStore,
+  type AdminVendorFilters,
+} from "@/store/admin-vendors.store";
+import { useDebounce } from "@/hooks/useDebounce";
+import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import type { Vendor, VendorStatus } from "@/types";
 
 interface PageData { vendors: Vendor[]; total: number; page: number; totalPages: number; }
 
@@ -14,6 +20,8 @@ const STATUS_COLORS: Record<string, string> = {
   pending:   "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
   suspended: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300",
 };
+
+const STATUS_TABS = ["", "active", "pending", "suspended"] as const;
 
 const EMPTY_FORM = {
   name: "", slug: "", description: "", email: "", phone: "",
@@ -34,14 +42,30 @@ function vendorToForm(v: Vendor): VendorForm {
   };
 }
 
-export default function AdminVendorsPage() {
+function buildQS(filters: AdminVendorFilters, page: number): URLSearchParams {
+  const qs = new URLSearchParams();
+  if (page > 1)          qs.set("page",     String(page));
+  if (filters.search)    qs.set("search",   filters.search);
+  if (filters.status)    qs.set("status",   filters.status);
+  if (filters.dateFrom)  qs.set("dateFrom", filters.dateFrom);
+  if (filters.dateTo)    qs.set("dateTo",   filters.dateTo);
+  return qs;
+}
+
+function hasActiveFilters(f: AdminVendorFilters): boolean {
+  return !!(f.search || f.status || f.dateFrom || f.dateTo);
+}
+
+function AdminVendorsPageInner() {
   const { user, token } = useAuthStore();
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { page, filters, setPage, setFilter, resetFilters } = useAdminVendorsStore();
 
   const [data, setData]         = useState<PageData | null>(null);
-  const [page, setPage]         = useState(1);
   const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
 
   // Add vendor modal
@@ -59,25 +83,56 @@ export default function AdminVendorsPage() {
 
   useScrollLock(addModal || viewVendor !== null);
 
+  const debouncedSearch = useDebounce(filters.search, 350);
+
   const authHeader = { Authorization: `Bearer ${token}` };
+
+  // Sync store from URL on mount
+  useEffect(() => {
+    const p: Partial<AdminVendorFilters> = {
+      search:   searchParams.get("search")   ?? "",
+      status:   searchParams.get("status")   ?? "",
+      dateFrom: searchParams.get("dateFrom") ?? "",
+      dateTo:   searchParams.get("dateTo")   ?? "",
+    };
+    setFilter(p);
+    const pg = Number(searchParams.get("page") ?? 1);
+    if (pg > 1) setPage(pg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const qs = new URLSearchParams({ page: String(page), limit: "20" });
-    if (search) qs.set("q", search);
+    if (debouncedSearch)    qs.set("q",        debouncedSearch);
+    if (filters.status)     qs.set("status",   filters.status);
+    if (filters.dateFrom)   qs.set("dateFrom", filters.dateFrom);
+    if (filters.dateTo)     qs.set("dateTo",   filters.dateTo);
     fetch(`/api/admin/vendors?${qs}`, { headers: authHeader })
       .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
       .then((j) => { if (j.success) setData(j.data); })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, token, search]);
+  }, [page, debouncedSearch, filters.status, filters.dateFrom, filters.dateTo, token]);
 
   useEffect(() => {
-    if (!user) { router.push("/login"); return; }
-    if (user.role !== "admin") { router.push("/"); return; }
+    if (!user)                 { router.push("/login"); return; }
+    if (user.role !== "admin") { router.push("/");      return; }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user || user.role !== "admin") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [user, router, load]);
+  }, [load, user]);
+
+  // Sync URL when filters change
+  useEffect(() => {
+    const qs = buildQS(filters, page);
+    const url = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
+    router.replace(url, { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, page]);
 
   async function handleAddSave() {
     setAddSaving(true); setAddError("");
@@ -143,7 +198,7 @@ export default function AdminVendorsPage() {
   const inputCls = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Vendors</h1>
         <button
@@ -155,18 +210,80 @@ export default function AdminVendorsPage() {
         </button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search name, email, city…"
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
-          data-testid="vendor-search"
-        />
+      {/* Filter bar */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
+        {/* Row 1: Search + Clear */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              value={filters.search}
+              onChange={(e) => setFilter({ search: e.target.value })}
+              placeholder="Search name, email, city…"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+              data-testid="vendor-search"
+            />
+          </div>
+
+          {hasActiveFilters(filters) && (
+            <button
+              onClick={resetFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 transition-colors"
+              data-testid="clear-vendor-filters"
+            >
+              <RotateCcw className="h-4 w-4" /> Clear
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: Status tabs + Date filter */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Status tabs */}
+          <div className="flex gap-1" data-testid="vendor-status-tabs">
+            {STATUS_TABS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter({ status: s })}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
+                  filters.status === s
+                    ? "bg-[#0F4C75] text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+                data-testid={`vendor-status-${s || "all"}`}
+              >
+                {s || "All"}
+              </button>
+            ))}
+          </div>
+
+          {/* Date filter */}
+          <AdminDateFilter
+            dateFrom={filters.dateFrom}
+            dateTo={filters.dateTo}
+            label="Joined date"
+            onApply={(from, to) => setFilter({ dateFrom: from, dateTo: to })}
+            onClear={() => setFilter({ dateFrom: "", dateTo: "" })}
+          />
+        </div>
+
+        {/* Active filter chips */}
+        {hasActiveFilters(filters) && (
+          <div className="flex flex-wrap gap-1.5 pt-1" data-testid="active-vendor-filters">
+            {filters.search && (
+              <Chip label={`"${filters.search}"`} onRemove={() => setFilter({ search: "" })} />
+            )}
+            {filters.status && (
+              <Chip label={`Status: ${filters.status}`} onRemove={() => setFilter({ status: "" })} />
+            )}
+            {(filters.dateFrom || filters.dateTo) && (
+              <Chip label={`${filters.dateFrom || "…"} → ${filters.dateTo || "…"}`} onRemove={() => setFilter({ dateFrom: "", dateTo: "" })} />
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 280px)" }}>
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 360px)" }}>
         <div className="overflow-auto flex-1">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
@@ -182,7 +299,7 @@ export default function AdminVendorsPage() {
                   <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
                 ))
               ) : data?.vendors.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors yet</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
               ) : data?.vendors.map((v) => (
                 <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
                   <td className="px-4 py-3">
@@ -207,12 +324,12 @@ export default function AdminVendorsPage() {
                         <Eye className="h-4 w-4" />
                       </button>
                       {v.status !== "active" && (
-                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50">Approve</button>
+                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50" data-testid={`approve-vendor-${v._id}`}>Approve</button>
                       )}
                       {v.status === "active" && (
-                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50">Suspend</button>
+                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50" data-testid={`suspend-vendor-${v._id}`}>Suspend</button>
                       )}
-                      <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30">Delete</button>
+                      <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30" data-testid={`delete-vendor-${v._id}`}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -222,10 +339,10 @@ export default function AdminVendorsPage() {
         </div>
         {data && data.totalPages > 1 && (
           <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
-            <span className="text-gray-500">Page {data.page} of {data.totalPages}</span>
+            <span className="text-gray-500" data-testid="vendor-pagination-info">Page {data.page} of {data.totalPages} · {data.total} vendors</span>
             <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-              <button disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+              <button disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
             </div>
           </div>
         )}
@@ -387,5 +504,24 @@ export default function AdminVendorsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+      {label}
+      <button onClick={onRemove} className="hover:text-blue-900 dark:hover:text-blue-100" aria-label={`Remove ${label} filter`}>
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
+export default function AdminVendorsPage() {
+  return (
+    <Suspense>
+      <AdminVendorsPageInner />
+    </Suspense>
   );
 }

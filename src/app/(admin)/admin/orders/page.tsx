@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ChevronDown, X, Search, Store } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, X, Search, Store, Eye } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
+import { AdminOrderDetail } from "@/components/admin/AdminOrderDetail";
 import { formatPrice } from "@/lib/utils/format";
-import type { Order, Vendor } from "@/types";
+import type { Order, OrderDetail, Vendor } from "@/types";
 
 interface PageData { orders: Order[]; total: number; page: number; totalPages: number; }
 
@@ -28,6 +29,7 @@ export default function AdminOrdersPage() {
   const [status, setStatus]     = useState<typeof STATUSES[number]>("all");
   const [loading, setLoading]   = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo,   setDateTo]   = useState("");
   const [search,   setSearch]   = useState("");
@@ -170,7 +172,7 @@ export default function AdminOrdersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
               <tr>
-                {["Order", "Customer", "Vendor(s)", "Items", "Total", "Payment", "Date", "Status", "Update"].map((h) => (
+                {["Order", "Customer", "Vendor(s)", "Items", "Total", "Payment", "Date", "Status", "Update", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -240,6 +242,16 @@ export default function AdminOrdersPage() {
                         <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
                       </div>
                     </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => setSelectedOrderId(order._id)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                        title="View order details"
+                        data-testid={`view-order-${order._id}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -261,6 +273,24 @@ export default function AdminOrdersPage() {
           </div>
         )}
       </div>
+
+      {selectedOrderId && (
+        <AdminOrderDetail
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+          onUpdate={(updated: OrderDetail) => {
+            setData((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                orders: prev.orders.map((o) =>
+                  o._id === updated._id ? { ...o, paymentStatus: updated.paymentStatus, refundedAmount: updated.refundedAmount, refundStatus: updated.refundStatus } : o,
+                ),
+              };
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Search, ChevronLeft, ChevronRight, X, RotateCcw } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, X, RotateCcw, Eye } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import {
   useAdminUsersStore,
@@ -10,6 +10,7 @@ import {
 } from "@/store/admin-users.store";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
+import { AdminUserDetail } from "@/components/admin/AdminUserDetail";
 import type { User, UserRole } from "@/types";
 
 interface PageData { users: User[]; total: number; page: number; totalPages: number; }
@@ -49,6 +50,7 @@ function AdminUsersPageInner() {
   const [data, setData]       = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const debouncedSearch = useDebounce(filters.search, 350);
 
@@ -237,7 +239,7 @@ function AdminUsersPageInner() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
               <tr>
-                {["Name", "Email", "Role", "Status", "Joined", "Actions"].map((h) => (
+                {["Name", "Email", "Role", "Status", "Joined", "Actions", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -289,6 +291,16 @@ function AdminUsersPageInner() {
                       </div>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => setSelectedUserId(u._id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                      title="View user details"
+                      data-testid={`view-user-${u._id}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -321,6 +333,13 @@ function AdminUsersPageInner() {
           </div>
         )}
       </div>
+
+      {selectedUserId && (
+        <AdminUserDetail
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+        />
+      )}
     </div>
   );
 }
