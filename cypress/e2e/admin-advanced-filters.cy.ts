@@ -338,8 +338,9 @@ describe("Vendors Page — View/Edit Modal", () => {
   });
 
   it("shows error if save fails", () => {
-    cy.intercept("PUT", "/api/admin/vendors/v1", {
-      success: false, error: "Validation failed",
+    cy.intercept("PUT", "/api/admin/vendors/*", {
+      statusCode: 422,
+      body: { success: false, error: "Validation failed" },
     }).as("failedUpdate");
 
     cy.get(`[data-testid='view-vendor-v1']`).click();
@@ -411,13 +412,18 @@ describe("Categories Page — Status Filter", () => {
   });
 
   it("search and status filter work together", () => {
+    // Click the status tab first and let its API call settle (beforeEach intercept handles it).
+    // Setting up the combined assertion intercept beforehand causes expect() to throw on
+    // that first request (no q param yet), which prevents req.reply() from being called.
+    cy.get("[data-testid='category-status-true']").click();
+    cy.wait("@getCategories");
+
     cy.intercept("GET", "/api/admin/categories*", (req) => {
       expect(req.query).to.have.property("q");
       expect(req.query).to.have.property("isActive", "true");
       req.reply({ success: true, data: [CATEGORIES_PAGE_STUB.data[0]] });
     }).as("combinedFilter");
 
-    cy.get("[data-testid='category-status-true']").click();
     cy.get("[data-testid='category-search']").type("Da");
     cy.wait("@combinedFilter");
   });
@@ -509,13 +515,18 @@ describe("Promo Codes Page — Status Filter", () => {
   });
 
   it("search and status filter work together", () => {
+    // Click the status tab first and let its API call settle (beforeEach intercept handles it).
+    // Setting up the combined assertion intercept beforehand causes expect() to throw on
+    // that first request (no q param yet), which prevents req.reply() from being called.
+    cy.get("[data-testid='promo-status-active']").click();
+    cy.wait("@getPromos");
+
     cy.intercept("GET", "/api/admin/promocodes*", (req) => {
       expect(req.query).to.have.property("q", "SUMMER");
       expect(req.query).to.have.property("status", "active");
       req.reply({ success: true, data: [PROMOS_STUB.data[0]] });
     }).as("combinedFilter");
 
-    cy.get("[data-testid='promo-status-active']").click();
     cy.get("[data-testid='promo-search']").type("SUMMER");
     cy.wait("@combinedFilter");
   });
