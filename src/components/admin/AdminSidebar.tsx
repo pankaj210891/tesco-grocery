@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Store,
-  LogOut, Menu, X, FolderOpen, Tag,
+  LogOut, Menu, X, FolderOpen, Tag, Sliders,
 } from "lucide-react";
 import { useState } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -12,13 +12,14 @@ import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store/auth.store";
 
 const NAV = [
-  { href: "/admin",            label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/admin/products",   label: "Products",   icon: Package },
-  { href: "/admin/orders",     label: "Orders",     icon: ShoppingBag },
-  { href: "/admin/users",      label: "Users",      icon: Users },
-  { href: "/admin/vendors",    label: "Vendors",    icon: Store },
-  { href: "/admin/categories", label: "Categories", icon: FolderOpen },
-  { href: "/admin/promocodes", label: "Promo Codes",icon: Tag },
+  { href: "/admin",                      label: "Dashboard",          icon: LayoutDashboard },
+  { href: "/admin/products",             label: "Products",           icon: Package          },
+  { href: "/admin/orders",               label: "Orders",             icon: ShoppingBag      },
+  { href: "/admin/users",                label: "Users",              icon: Users            },
+  { href: "/admin/vendors",              label: "Vendors",            icon: Store            },
+  { href: "/admin/categories",           label: "Categories",         icon: FolderOpen       },
+  { href: "/admin/category-attributes",  label: "Product Attributes", icon: Sliders          },
+  { href: "/admin/promocodes",           label: "Promo Codes",        icon: Tag              },
 ];
 
 interface NavLinksProps { pathname: string; onClose: () => void; }

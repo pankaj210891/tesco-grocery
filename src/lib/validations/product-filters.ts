@@ -16,6 +16,9 @@ export const ProductFiltersSchema = z
     page:        z.coerce.number().int().min(1).optional(),
     limit:       z.coerce.number().int().min(1).max(100).optional(),
     slugs:       z.string().optional(),
+    // Dynamic attribute filters passed as attr[key]=value1,value2
+    // We capture the raw attrs JSON string from URL and parse it downstream
+    attrs:       z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Price filter is only valid when BOTH bounds are provided

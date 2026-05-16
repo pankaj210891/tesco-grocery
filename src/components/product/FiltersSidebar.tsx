@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp, SlidersHorizontal, Star } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -8,6 +8,8 @@ import { slugify } from "@/lib/utils/format";
 import { useFilterDraftStore } from "@/store/filter.store";
 import { useDebounce } from "@/hooks/useDebounce";
 import { RATING_OPTIONS, DISCOUNT_OPTIONS, DELIVERY_OPTIONS } from "@/constants";
+import { fetchDynamicFilters } from "@/services/dynamic-filters.api";
+import type { DynamicFilterGroup } from "@/types";
 
 interface FiltersSidebarProps {
   categories:    string[];
@@ -16,7 +18,6 @@ interface FiltersSidebarProps {
 }
 
 // ── Collapsible section ───────────────────────────────────────────────────────
-// All sections start collapsed by default; user can expand/collapse freely.
 
 function FilterSection({
   title,
@@ -42,6 +43,99 @@ function FilterSection({
       </button>
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
+  );
+}
+
+// ── Dynamic attribute filter section ─────────────────────────────────────────
+
+function DynamicAttrSection({
+  group,
+  activeValues,
+  onToggle,
+}: {
+  group: DynamicFilterGroup;
+  activeValues: string[];
+  onToggle: (key: string, value: string) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const LIMIT = 6;
+
+  if (group.type === "boolean") {
+    return (
+      <FilterSection title={group.label}>
+        <ul className="space-y-1" aria-label={`${group.label} filter`}>
+          {group.values.map(({ value, count }) => {
+            const label   = value === "true" ? "Yes" : "No";
+            const checked = activeValues.includes(value);
+            return (
+              <li key={value}>
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(group.key, value)}
+                    className="h-3.5 w-3.5 rounded accent-[#FCA311] cursor-pointer"
+                    aria-label={`${group.label}: ${label}`}
+                    data-testid={`attr-filter-${group.key}-${value}`}
+                  />
+                  <span className={cn(
+                    "text-sm transition-colors flex-1",
+                    checked ? "text-[#FCA311] dark:text-amber-400 font-medium" : "text-gray-600 dark:text-gray-300",
+                  )}>
+                    {label}
+                  </span>
+                  <span className="text-xs text-gray-400">({count})</span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </FilterSection>
+    );
+  }
+
+  const visible = showAll ? group.values : group.values.slice(0, LIMIT);
+
+  return (
+    <FilterSection title={group.label}>
+      <div className="max-h-48 overflow-y-auto overscroll-contain pr-1">
+        <ul className="space-y-1" aria-label={`${group.label} filter`}>
+          {visible.map(({ value, count }) => {
+            const checked = activeValues.includes(value);
+            return (
+              <li key={value}>
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(group.key, value)}
+                    className="h-3.5 w-3.5 rounded accent-[#FCA311] cursor-pointer shrink-0"
+                    aria-label={`${group.label}: ${value}`}
+                    data-testid={`attr-filter-${group.key}-${value}`}
+                  />
+                  <span className={cn(
+                    "text-sm truncate flex-1 transition-colors",
+                    checked ? "text-[#FCA311] dark:text-amber-400 font-medium" : "text-gray-600 dark:text-gray-300",
+                  )}>
+                    {value}
+                  </span>
+                  <span className="text-xs text-gray-400 shrink-0">({count})</span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {group.values.length > LIMIT && (
+        <button
+          onClick={() => setShowAll((s) => !s)}
+          className="mt-2 text-xs font-semibold text-[#FCA311] hover:underline"
+          data-testid={`toggle-show-all-${group.key}`}
+        >
+          {showAll ? "Show less" : `+${group.values.length - LIMIT} more`}
+        </button>
+      )}
+    </FilterSection>
   );
 }
 
@@ -71,13 +165,83 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
     [activeDeliveryParam],
   );
 
+  // ── Dynamic attribute filters from URL ─────────────────────────────────────
+  const activeAttrs: Record<string, string[]> = useMemo(() => {
+    const raw = searchParams.get("attrs");
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+      const result: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (Array.isArray(v)) result[k] = (v as unknown[]).map(String);
+        else if (typeof v === "string" && v) result[k] = [v];
+      }
+      return result;
+    } catch {
+      return {};
+    }
+  }, [searchParams]);
+
+  const hasActiveAttrs = Object.values(activeAttrs).some((v) => v.length > 0);
+
   const hasActive = !!(
     activeCategory || activeSubcategory || activeBrands.length ||
-    (minPrice && maxPrice) || inStock || activeRating || activeDiscount || activeDelivery.length
+    (minPrice && maxPrice) || inStock || activeRating || activeDiscount ||
+    activeDelivery.length || hasActiveAttrs
   );
 
+  // ── Dynamic filters fetch ───────────────────────────────────────────────────
+  const {
+    dynamicFilters, dynamicFiltersLoading, dynamicFiltersCacheKey,
+    setDynamicFilters, setDynamicFiltersLoading,
+  } = useFilterDraftStore();
+
+  const debouncedCategory = useDebounce(activeCategory ?? "", 300);
+  const debouncedQ        = useDebounce(searchParams.get("q") ?? "", 500);
+
+  const dynamicCacheKey = useMemo(() => {
+    return [
+      debouncedCategory,
+      debouncedQ,
+      activeBrandParam,
+      inStock ? "1" : "0",
+      // Include current selected attrs in cache key so narrowing is recomputed
+      JSON.stringify(activeAttrs),
+    ].join("|");
+  }, [debouncedCategory, debouncedQ, activeBrandParam, inStock, activeAttrs]);
+
+  const loadDynamicFilters = useCallback(async () => {
+    if (!debouncedCategory) {
+      setDynamicFilters([], "");
+      return;
+    }
+    if (dynamicCacheKey === dynamicFiltersCacheKey) return;
+
+    setDynamicFiltersLoading(true);
+    try {
+      const result = await fetchDynamicFilters({
+        category: debouncedCategory,
+        search:   debouncedQ || undefined,
+        brand:    activeBrandParam || undefined,
+        inStock:  inStock || undefined,
+        attrs:    hasActiveAttrs ? activeAttrs : undefined,
+      });
+      setDynamicFilters(result.filters, dynamicCacheKey);
+    } catch {
+      // Non-critical; show no dynamic filters on error
+    } finally {
+      setDynamicFiltersLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dynamicCacheKey]);
+
+  useEffect(() => {
+    void loadDynamicFilters();
+  }, [loadDynamicFilters]);
+
   // ── Brand search / show-more (memoised) ────────────────────────────────────
-  const [brandSearch, setBrandSearch]   = useState("");
+  const [brandSearch, setBrandSearch]     = useState("");
   const [showAllBrands, setShowAllBrands] = useState(false);
   const BRAND_LIMIT = 6;
 
@@ -118,8 +282,6 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
     syncFromUrl, clearPriceDraft,
   } = useFilterDraftStore();
 
-  // Re-sync draft inputs whenever the URL price params change (covers external
-  // chip removal, clear-all, and direct URL edits).
   useEffect(() => {
     syncFromUrl(minPrice, maxPrice);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -128,15 +290,13 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
   const debouncedMin = useDebounce(draftMinPrice, 600);
   const debouncedMax = useDebounce(draftMaxPrice, 600);
 
-  // Commit to URL only when BOTH fields have valid values (or both are empty).
-  // A single bound is kept as draft-only and never committed.
   useEffect(() => {
     const bothFilled  = debouncedMin !== "" && debouncedMax !== "";
     const bothEmpty   = debouncedMin === "" && debouncedMax === "";
     const currentMin  = searchParams.get("minPrice") ?? "";
     const currentMax  = searchParams.get("maxPrice") ?? "";
 
-    if (!bothFilled && !bothEmpty) return; // one side filled — wait for the other
+    if (!bothFilled && !bothEmpty) return;
     if (debouncedMin === currentMin && debouncedMax === currentMax) return;
 
     const params = new URLSearchParams(searchParams.toString());
@@ -167,6 +327,29 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
       ? activeDelivery.filter((d) => d !== option)
       : [...activeDelivery, option];
     navigate({ delivery: next.length ? next.join(",") : null });
+  }
+
+  // ── Dynamic attr toggle ─────────────────────────────────────────────────────
+
+  function toggleAttr(key: string, value: string) {
+    const current = activeAttrs[key] ?? [];
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    const updated = { ...activeAttrs, [key]: next };
+    // Remove empty arrays
+    for (const k of Object.keys(updated)) {
+      if (updated[k].length === 0) delete updated[k];
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    if (Object.keys(updated).length > 0) {
+      params.set("attrs", JSON.stringify(updated));
+    } else {
+      params.delete("attrs");
+    }
+    params.delete("page");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -204,7 +387,7 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
             return (
               <li key={label} role="option" aria-selected={isActive}>
                 <button
-                  onClick={() => navigate({ category: slug, subcategory: null })}
+                  onClick={() => navigate({ category: slug, subcategory: null, attrs: null })}
                   className={cn(
                     "w-full text-left text-sm px-2.5 py-1.5 rounded-lg transition-colors font-medium",
                     isActive
@@ -251,7 +434,6 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
       {/* ── Brand ────────────────────────────────────────────────────────────── */}
       {brands.length > 0 && (
         <FilterSection title="Brand">
-          {/* Search — always shown for consistent UX */}
           <input
             type="text"
             placeholder="Search brands…"
@@ -261,7 +443,6 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
             aria-label="Search brands"
             data-testid="brand-search-input"
           />
-          {/* Scrollable list — prevents the sidebar from growing unbounded */}
           <div className="max-h-48 overflow-y-auto overscroll-contain pr-1">
             <ul className="space-y-1" aria-label="Brand filter">
               {visibleBrands.map((brand) => {
@@ -303,6 +484,23 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
         </FilterSection>
       )}
 
+      {/* ── Dynamic Attribute Filters (category-specific) ─────────────────────── */}
+      {dynamicFiltersLoading && activeCategory && (
+        <div className="px-4 py-3 space-y-2 border-b border-gray-100 dark:border-gray-700/60">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+          ))}
+        </div>
+      )}
+      {!dynamicFiltersLoading && dynamicFilters.map((group) => (
+        <DynamicAttrSection
+          key={group.key}
+          group={group}
+          activeValues={activeAttrs[group.key] ?? []}
+          onToggle={toggleAttr}
+        />
+      ))}
+
       {/* ── Price Range ───────────────────────────────────────────────────────── */}
       <FilterSection title="Price Range">
         <div className="flex items-center gap-2" role="group" aria-label="Custom price range">
@@ -334,7 +532,6 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
             />
           </div>
         </div>
-        {/* Hint: both fields required */}
         {(draftMinPrice || draftMaxPrice) && !(draftMinPrice && draftMaxPrice) && (
           <p className="text-[10px] text-amber-500 mt-1.5">
             Enter both min and max to apply price filter

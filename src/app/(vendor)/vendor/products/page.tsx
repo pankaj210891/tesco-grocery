@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { ProductsTable } from "@/components/common/ProductsTable";
 import type { Product, ProductBadge } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import DynamicAttributeFields from "@/components/product/DynamicAttributeFields";
 
 interface PageData { products: Product[]; total: number; page: number; totalPages: number; }
 
@@ -24,6 +25,7 @@ export default function VendorProductsPage() {
   const [modal, setModal]           = useState<"add" | "edit" | null>(null);
   const [editing, setEditing]       = useState<Product | null>(null);
   const [form, setForm]             = useState({ ...EMPTY });
+  const [formAttrs, setFormAttrs]   = useState<Record<string, string>>({});
   useScrollLock(modal !== null);
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
@@ -55,12 +57,21 @@ export default function VendorProductsPage() {
 
   function openEdit(p: Product) {
     setForm({ name: p.name, slug: p.slug, description: p.description, price: String(p.price), originalPrice: String(p.originalPrice ?? ""), category: p.category, brand: p.brand, unit: p.unit, images: p.images.join(", "), tags: p.tags.join(", "), badge: p.badge ?? "", inStock: p.inStock });
+    setFormAttrs(p.attributes ?? {});
     setEditing(p); setError(""); setModal("edit");
   }
 
   async function handleSave() {
     setSaving(true); setError("");
-    const body = { name: form.name, slug: form.slug, description: form.description, price: Number(form.price), originalPrice: form.originalPrice ? Number(form.originalPrice) : null, category: form.category, brand: form.brand, unit: form.unit, images: form.images.split(",").map((s) => s.trim()).filter(Boolean), tags: form.tags.split(",").map((s) => s.trim()).filter(Boolean), badge: form.badge || null, inStock: form.inStock };
+    const body = {
+      name: form.name, slug: form.slug, description: form.description,
+      price: Number(form.price), originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+      category: form.category, brand: form.brand, unit: form.unit,
+      images: form.images.split(",").map((s) => s.trim()).filter(Boolean),
+      tags: form.tags.split(",").map((s) => s.trim()).filter(Boolean),
+      badge: form.badge || null, inStock: form.inStock,
+      attributes: Object.fromEntries(Object.entries(formAttrs).filter(([, v]) => v.trim() !== "")),
+    };
     const url    = editing ? `/api/vendor/products/${editing._id}` : "/api/vendor/products";
     const method = editing ? "PUT" : "POST";
     const res    = await fetch(url, { method, headers: { ...authHeader, "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -122,7 +133,11 @@ export default function VendorProductsPage() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
                 <select
                   value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  onChange={(e) => {
+                    const cat = e.target.value;
+                    setForm((f) => ({ ...f, category: cat }));
+                    setFormAttrs({});
+                  }}
                   className="w-full px-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
                   data-testid="product-category-select"
                 >
@@ -130,6 +145,12 @@ export default function VendorProductsPage() {
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              <DynamicAttributeFields
+                category={form.category}
+                values={formAttrs}
+                onChange={setFormAttrs}
+                accentColor="#1a7a4a"
+              />
               {(["brand","unit"] as const).map((field) => (
                 <div key={field}>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1 capitalize">{field}</label>

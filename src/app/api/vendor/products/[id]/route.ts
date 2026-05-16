@@ -25,6 +25,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
     for (const key of allowed) {
       if (body[key] !== undefined) update[key] = body[key];
     }
+    // Merge dynamic attributes safely
+    if (body.attributes && typeof body.attributes === "object" && !Array.isArray(body.attributes)) {
+      const safeAttrs: Record<string, string> = {};
+      for (const [k, v] of Object.entries(body.attributes as Record<string, unknown>)) {
+        const key = k.replace(/[^a-z0-9_]/gi, "");
+        if (key && typeof v === "string" && v.trim()) {
+          safeAttrs[key] = v.trim();
+        }
+      }
+      update.attributes = safeAttrs;
+    }
 
     const product = await ProductModel.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true });
     return NextResponse.json({ success: true, data: product });

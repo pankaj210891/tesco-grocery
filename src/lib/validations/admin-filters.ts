@@ -85,6 +85,8 @@ export const AdminProductCreateSchema = z.object({
   deliveryOptions: z.array(z.enum(DELIVERY_VALUES)).optional(),
   vendorId:      z.string().nullable().optional(),
   vendorName:    z.string().nullable().optional(),
+  // Dynamic category attributes — sanitised on the client, stored as Map in MongoDB
+  attributes:    z.record(z.string(), z.string()).optional().default({}),
 });
 
 export type AdminProductCreate = z.infer<typeof AdminProductCreateSchema>;
