@@ -8,13 +8,25 @@ const CartItemSchema = new Schema(
   { _id: false }
 );
 
+const SavedItemSchema = new Schema(
+  {
+    productId: { type: String, required: true },
+    savedAt:   { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const CartSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
-    items:  [CartItemSchema],
+    userId:     { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    items:      [CartItemSchema],
+    savedItems: { type: [SavedItemSchema], default: [] },
   },
   { timestamps: true }
 );
+
+CartSchema.index({ "items.productId": 1 });
+CartSchema.index({ "savedItems.productId": 1 });
 
 export type CartDoc = InferSchemaType<typeof CartSchema> & {
   _id: mongoose.Types.ObjectId;

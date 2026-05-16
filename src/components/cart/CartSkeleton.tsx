@@ -4,15 +4,15 @@ export default function CartSkeleton() {
       {/* Header */}
       <div className="flex justify-between mb-6">
         <div className="space-y-2">
-          <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-32" />
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+          <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-36" />
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20" />
         </div>
-        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-24" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
         {/* Items skeleton */}
-        <div className="lg:col-span-2 space-y-3">
+        <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
@@ -21,9 +21,9 @@ export default function CartSkeleton() {
               <div className="h-24 w-24 bg-gray-200 dark:bg-gray-700 rounded-xl shrink-0" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20" />
-                <div className="flex justify-between mt-3">
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-28" />
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+                <div className="flex justify-between mt-3 items-center">
                   <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-28" />
                   <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16" />
                 </div>
@@ -32,11 +32,14 @@ export default function CartSkeleton() {
           ))}
         </div>
 
-        {/* Summary skeleton */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-4">
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+        {/* Summary skeleton (desktop only) */}
+        <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-4">
+          <div className="flex justify-between">
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12" />
+          </div>
           <div className="space-y-2.5">
-            {[1, 2].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="flex justify-between">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20" />
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-14" />
@@ -50,6 +53,17 @@ export default function CartSkeleton() {
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full" />
           <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl" />
           <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Mobile sticky bar skeleton */}
+      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <div className="flex-1 space-y-1">
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+          </div>
+          <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-28" />
         </div>
       </div>
     </div>

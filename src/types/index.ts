@@ -152,10 +152,30 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface SavedCartItem {
+  product: Product;
+  savedAt: string;
+}
+
 export interface Cart {
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
+}
+
+export interface CartRecommendation {
+  _id:           string;
+  name:          string;
+  slug:          string;
+  price:         number;
+  originalPrice?: number;
+  images:        string[];
+  brand:         string;
+  unit:          string;
+  rating:        number;
+  inStock:       boolean;
+  badge?:        ProductBadge | null;
+  vendorName?:   string | null;
 }
 
 // ─── User / Auth ─────────────────────────────────────────────────────────────
