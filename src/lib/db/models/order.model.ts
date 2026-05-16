@@ -6,12 +6,14 @@ const OrderSchema = new Schema(
     userId:      { type: Schema.Types.ObjectId, ref: "User" },
     items: [
       {
-        productId: String,
-        name:      { type: String, required: true },
-        slug:      String,
-        price:     { type: Number, required: true },
-        quantity:  { type: Number, required: true },
-        image:     String,
+        productId:  String,
+        vendorId:   { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
+        vendorName: { type: String, default: null },
+        name:       { type: String, required: true },
+        slug:       String,
+        price:      { type: Number, required: true },
+        quantity:   { type: Number, required: true },
+        image:      String,
       },
     ],
     delivery: {
@@ -33,10 +35,9 @@ const OrderSchema = new Schema(
       enum:    ["pending", "processing", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
-    // ── Payment ───────────────────────────────────────────────────────────────
     paymentMethod: {
-      type:    String,
-      enum:    ["razorpay", "cod"],
+      type:     String,
+      enum:     ["razorpay", "cod"],
       required: true,
     },
     paymentStatus: {
@@ -47,10 +48,8 @@ const OrderSchema = new Schema(
     razorpayOrderId:   String,
     razorpayPaymentId: String,
     razorpaySignature: String,
-    // ── Cancellation ──────────────────────────────────────────────────────────
     cancellationReason:  String,
     cancellationComment: String,
-    // ── Refund ────────────────────────────────────────────────────────────────
     refundId: String,
     refundStatus: {
       type: String,
@@ -60,7 +59,14 @@ const OrderSchema = new Schema(
   { timestamps: true }
 );
 
+// Core lookup indexes
 OrderSchema.index({ userId: 1 });
+OrderSchema.index({ "items.vendorId": 1 });
+// Compound indexes for common filter combinations
+OrderSchema.index({ userId: 1, status: 1 });
+OrderSchema.index({ "items.vendorId": 1, status: 1 });
+OrderSchema.index({ status: 1, createdAt: -1 });
+OrderSchema.index({ createdAt: -1 });
 
 export type OrderDoc = InferSchemaType<typeof OrderSchema> & {
   _id:       mongoose.Types.ObjectId;

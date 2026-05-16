@@ -18,8 +18,11 @@ const ProductSchema = new Schema(
     tags:            [String],
     badge:           { type: String, enum: ["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"], default: null },
     deliveryOptions: { type: [String], enum: ["express", "standard", "collection"], default: ["standard"] },
+    // Marketplace: vendor ownership
     vendorId:        { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
     vendorName:      { type: String, default: null },
+    // Admin approval workflow
+    status:          { type: String, enum: ["pending", "approved", "rejected"], default: "approved" },
   },
   { timestamps: true }
 );
@@ -32,10 +35,14 @@ ProductSchema.index({ price: 1 });
 ProductSchema.index({ rating: -1 });
 ProductSchema.index({ reviewCount: -1 });
 ProductSchema.index({ inStock: 1 });
+ProductSchema.index({ vendorId: 1 });
+ProductSchema.index({ status: 1 });
 // Compound indexes for common filter combinations
 ProductSchema.index({ category: 1, price: 1 });
 ProductSchema.index({ category: 1, rating: -1 });
 ProductSchema.index({ category: 1, brand: 1 });
+ProductSchema.index({ vendorId: 1, status: 1 });
+ProductSchema.index({ vendorId: 1, createdAt: -1 });
 // Full-text search
 ProductSchema.index({ name: "text", description: "text", brand: "text", tags: "text" });
 

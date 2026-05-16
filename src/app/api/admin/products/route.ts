@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import ProductModel from "@/lib/db/models/product.model";
@@ -12,16 +13,20 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page     = Math.max(1, Number(searchParams.get("page") ?? 1));
     const limit    = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const search   = searchParams.get("search") ?? "";
+    const search   = searchParams.get("search")   ?? "";
     const category = searchParams.get("category") ?? "";
-    const badge    = searchParams.get("badge") ?? "";
+    const badge    = searchParams.get("badge")    ?? "";
     const vendorId = searchParams.get("vendorId") ?? "";
+    const status   = searchParams.get("status")   ?? "";
 
     const filter: Record<string, unknown> = {};
     if (search)   filter.$text = { $search: search };
     if (category) filter.category = category;
     if (badge)    filter.badge = badge;
-    if (vendorId) filter.vendorId = vendorId;
+    if (status && ["pending", "approved", "rejected"].includes(status)) filter.status = status;
+    if (vendorId && mongoose.isValidObjectId(vendorId)) {
+      filter.vendorId = new mongoose.Types.ObjectId(vendorId);
+    }
 
     const [products, total] = await Promise.all([
       ProductModel.find(filter)
@@ -70,6 +75,8 @@ export async function POST(req: NextRequest) {
       badge:         (badge as "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | null | undefined) ?? null,
       vendorId:      (vendorId as string | null | undefined) ?? null,
       vendorName:    (vendorName as string | null | undefined) ?? null,
+      // Admin-created products are auto-approved
+      status:        "approved",
       rating:        0,
       reviewCount:   0,
     });
