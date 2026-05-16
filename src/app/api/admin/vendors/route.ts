@@ -2,28 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import VendorModel from "@/lib/db/models/vendor.model";
+import { AdminVendorQuerySchema } from "@/lib/validations/admin-filters";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
 
+  const parsed = AdminVendorQuerySchema.safeParse(
+    Object.fromEntries(new URL(req.url).searchParams),
+  );
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: parsed.error.issues[0]?.message ?? "Invalid query" },
+      { status: 400 },
+    );
+  }
+
+  const { page, limit, q, status, dateFrom, dateTo } = parsed.data;
+
   try {
     await connectDB();
-    const { searchParams } = new URL(req.url);
-    const page   = Math.max(1, Number(searchParams.get("page") ?? 1));
-    const limit  = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const status = searchParams.get("status") ?? "";
-
-    const q = searchParams.get("q") ?? "";
 
     const filter: Record<string, unknown> = {};
-    if (status && status !== "all") filter.status = status;
+    if (status) filter.status = status;
     if (q) {
       filter.$or = [
         { name:  { $regex: q, $options: "i" } },
         { email: { $regex: q, $options: "i" } },
         { city:  { $regex: q, $options: "i" } },
       ];
+    }
+    if (dateFrom || dateTo) {
+      const dateFilter: Record<string, Date> = {};
+      if (dateFrom) dateFilter.$gte = new Date(`${dateFrom}T00:00:00.000Z`);
+      if (dateTo)   dateFilter.$lte = new Date(`${dateTo}T23:59:59.999Z`);
+      filter.createdAt = dateFilter;
     }
 
     const [vendors, total] = await Promise.all([

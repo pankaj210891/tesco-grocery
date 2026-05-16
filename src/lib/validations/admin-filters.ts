@@ -92,3 +92,34 @@ export type AdminProductCreate = z.infer<typeof AdminProductCreateSchema>;
 export const AdminProductUpdateSchema = AdminProductCreateSchema.partial().extend({
   status: z.enum(["pending", "approved", "rejected"]).optional(),
 });
+
+// ─── Refund ───────────────────────────────────────────────────────────────────
+
+export const AdminRefundSchema = z.object({
+  type:   z.enum(["full", "partial"]),
+  reason: z.string().min(1, "Reason is required").max(500),
+  items:  z.array(
+    z.object({
+      productId: z.string(),
+      name:      z.string(),
+      quantity:  z.number().int().min(1),
+      amount:    z.number().min(0),
+    }),
+  ).optional(),
+  amount: z.number().min(0).optional(),
+});
+
+export type AdminRefund = z.infer<typeof AdminRefundSchema>;
+
+// ─── Vendor listing ───────────────────────────────────────────────────────────
+
+export const AdminVendorQuerySchema = z.object({
+  page:     z.coerce.number().int().min(1).default(1),
+  limit:    z.coerce.number().int().min(1).max(50).default(20),
+  q:        z.string().optional(),
+  status:   z.preprocess(emptyToUndefined, z.enum(["pending", "active", "suspended"]).optional()),
+  dateFrom: ISO_DATE.optional(),
+  dateTo:   ISO_DATE.optional(),
+});
+
+export type AdminVendorQuery = z.infer<typeof AdminVendorQuerySchema>;

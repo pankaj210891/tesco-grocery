@@ -166,12 +166,21 @@ export interface OrderLineItem {
 }
 
 export type PaymentMethodType = "razorpay" | "cod";
-export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded";
+export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
 export type RefundStatus     = "initiated" | "processed" | "failed";
+export type RefundType       = "full" | "partial";
+
+export interface RefundItem {
+  productId: string;
+  name:      string;
+  quantity:  number;
+  amount:    number;
+}
 
 export interface Order {
   _id:         string;
   orderNumber: string;
+  userId?:     string | null;
   items:       OrderLineItem[];
   delivery: {
     fullName: string;
@@ -194,9 +203,39 @@ export interface Order {
   razorpayPaymentId?: string;
   cancellationReason?:  string;
   cancellationComment?: string;
-  refundId?:     string;
-  refundStatus?: RefundStatus;
+  refundId?:          string;
+  refundStatus?:      RefundStatus;
+  refundType?:        RefundType | null;
+  refundReason?:      string | null;
+  refundedAmount?:    number;
+  refundedItems?:     RefundItem[];
+  refundProcessedAt?: string | null;
   createdAt:   string;
+  updatedAt:   string;
+}
+
+export interface OrderDetail extends Order {
+  user?: {
+    _id:    string;
+    name:   string;
+    email:  string;
+    role:   string;
+    status: string;
+  } | null;
+}
+
+export interface UserAnalytics {
+  totalOrders:     number;
+  totalSpent:      number;
+  cancelledOrders: number;
+  refundedOrders:  number;
+  lastOrderDate:   string | null;
+}
+
+export interface UserDetail extends User {
+  addresses: Address[];
+  orders:    Order[];
+  analytics: UserAnalytics;
 }
 
 // ─── Address ─────────────────────────────────────────────────────────────────

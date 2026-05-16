@@ -42,7 +42,7 @@ const OrderSchema = new Schema(
     },
     paymentStatus: {
       type:    String,
-      enum:    ["pending", "paid", "failed", "refunded"],
+      enum:    ["pending", "paid", "failed", "refunded", "partially_refunded"],
       default: "pending",
     },
     razorpayOrderId:   String,
@@ -50,11 +50,21 @@ const OrderSchema = new Schema(
     razorpaySignature: String,
     cancellationReason:  String,
     cancellationComment: String,
-    refundId: String,
-    refundStatus: {
-      type: String,
-      enum: ["initiated", "processed", "failed"],
-    },
+    // Refund tracking
+    refundId:     String,
+    refundStatus: { type: String, enum: ["initiated", "processed", "failed"] },
+    refundType:   { type: String, enum: ["full", "partial"], default: null },
+    refundReason: { type: String, default: null },
+    refundedAmount: { type: Number, default: 0 },
+    refundedItems: [
+      {
+        productId: String,
+        name:      String,
+        quantity:  Number,
+        amount:    Number,
+      },
+    ],
+    refundProcessedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
@@ -67,6 +77,9 @@ OrderSchema.index({ userId: 1, status: 1 });
 OrderSchema.index({ "items.vendorId": 1, status: 1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ createdAt: -1 });
+// Refund + payment indexes
+OrderSchema.index({ paymentStatus: 1 });
+OrderSchema.index({ refundStatus: 1 });
 
 export type OrderDoc = InferSchemaType<typeof OrderSchema> & {
   _id:       mongoose.Types.ObjectId;
