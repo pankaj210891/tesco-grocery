@@ -6,6 +6,22 @@ import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
 import type { Product, ProductFilters, PaginatedProducts, FilterMeta } from "@/types";
 
+// ── Category slug resolver ────────────────────────────────────────────────────
+// CATEGORY_NAME_MAP covers original grocery categories.
+// For categories added via seeding (e.g. "mobiles", "gaming-consoles"), the map
+// must have an entry OR the fallback below handles it:
+//   slug → replace hyphens with spaces → case-insensitive regex
+// This prevents silent 0-result bugs when new categories are seeded without a map entry.
+function buildCategoryQuery(slug: string): string | RegExp {
+  const mapped = CATEGORY_NAME_MAP[slug];
+  if (mapped) return mapped; // exact string — index-friendly
+
+  // Fallback: "gaming-consoles" → /^gaming consoles$/i  →  matches "Gaming Consoles"
+  const nameFromSlug = slug.replace(/-/g, " ");
+  const escaped = nameFromSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped}$`, "i");
+}
+
 // ── Serialiser ────────────────────────────────────────────────────────────────
 
 function toProduct(doc: ProductDoc): Product {
@@ -72,8 +88,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
     query.slug = { $in: slugs };
   }
   if (category) {
-    const name = CATEGORY_NAME_MAP[category] ?? category;
-    query.category = name;
+    query.category = buildCategoryQuery(category);
   }
   if (subcategory) {
     query.subcategory = subcategory;
@@ -210,7 +225,7 @@ export async function getFilterMeta(category?: string): Promise<FilterMeta> {
 
   // Use distinct() for simpler, index-friendly queries instead of $facet
   const matchFilter = category
-    ? { category: CATEGORY_NAME_MAP[category] ?? category }
+    ? { category: buildCategoryQuery(category) }
     : {};
 
   const [brandsRaw, subcatsRaw] = await Promise.all([

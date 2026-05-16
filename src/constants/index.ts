@@ -77,6 +77,11 @@ export const CATEGORY_NAME_MAP: Record<string, string> = {
   "garden-diy-car":       "Garden, DIY & Car Care",
   "kiosk":                "Kiosk",
   "inspiration-events":   "Inspiration & Events",
+  // Seeded marketplace categories
+  "mobiles":              "Mobiles",
+  "gaming-consoles":      "Gaming Consoles",
+  "computers":            "Computers",
+  "laptops":              "Laptops",
 };
 
 /** Prakash Supermarket brand palette — navy + saffron */
