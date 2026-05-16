@@ -9,7 +9,19 @@
       "Skill(debugging)",
       "Skill(debugging:*)",
       "Skill(deploy)",
-      "Skill(deploy:*)"
+      "Skill(deploy:*)",
+      "Skill(ecommerce)",
+      "Skill(ecommerce:*)",
+      "Skill(react)",
+      "Skill(react:*)",
+      "Skill(nextjs)",
+      "Skill(nextjs:*)",
+      "Skill(mongodb)",
+      "Skill(mongodb:*)",
+      "Skill(mongoose)",
+      "Skill(mongoose:*)",
+      "Skill(testing)",
+      "Skill(testing:*)"
     ],
     "deny": []
   },

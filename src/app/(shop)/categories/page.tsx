@@ -34,7 +34,7 @@ export default async function CategoriesPage() {
           {categories.map((cat) => (
             <li key={cat.slug}>
               <Link
-                href={`/categories/${cat.slug}`}
+                href={`/products?category=${cat.slug}`}
                 className={cn(
                   "group flex flex-col items-center text-center p-5 rounded-2xl border transition-colors transition-shadow duration-200",
                   "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md",

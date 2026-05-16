@@ -7,11 +7,15 @@ import FiltersSidebar from "@/components/product/FiltersSidebar";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface MobileFiltersDrawerProps {
-  categories: string[];
+  categories:    string[];
+  subcategories: string[];
+  brands:        string[];
 }
 
 export default function MobileFiltersDrawer({
   categories,
+  subcategories,
+  brands,
 }: MobileFiltersDrawerProps) {
   const [open, setOpen] = useState(false);
   useScrollLock(open);
@@ -23,16 +27,16 @@ export default function MobileFiltersDrawer({
         className={cn(
           "flex items-center gap-2 px-4 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600",
           "text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800",
-          "hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
+          "hover:border-[#FCA311] hover:text-[#FCA311] transition-colors",
         )}
         aria-expanded={open}
         aria-label="Open filters"
+        data-testid="mobile-filters-button"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Filters
       </button>
 
-      {/* Backdrop */}
       {open && (
         <div
           className="fixed inset-0 z-50 flex"
@@ -55,14 +59,19 @@ export default function MobileFiltersDrawer({
                 onClick={() => setOpen(false)}
                 aria-label="Close filters"
                 className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
+                data-testid="close-mobile-filters"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Scrollable filter content */}
-            <div className="flex-1 overflow-y-auto px-5 py-5">
-              <FiltersSidebar categories={categories} />
+            <div className="flex-1 overflow-y-auto">
+              <FiltersSidebar
+                categories={categories}
+                subcategories={subcategories}
+                brands={brands}
+              />
             </div>
 
             {/* Apply footer */}
@@ -70,6 +79,7 @@ export default function MobileFiltersDrawer({
               <button
                 onClick={() => setOpen(false)}
                 className="w-full py-2.5 bg-[#FCA311] text-white rounded-xl font-semibold text-sm hover:bg-[#E8920A] transition-colors"
+                data-testid="apply-mobile-filters"
               >
                 Show Results
               </button>

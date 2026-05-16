@@ -1,6 +1,8 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
 export type ProductBadge = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type DeliveryOption = "express" | "standard" | "collection";
+export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";
 
 export interface Product {
   _id: string;
@@ -11,6 +13,7 @@ export interface Product {
   originalPrice?: number;
   images: string[];
   category: string;
+  subcategory?: string | null;
   brand: string;
   unit: string;
   inStock: boolean;
@@ -18,6 +21,7 @@ export interface Product {
   reviewCount: number;
   tags: string[];
   badge?: ProductBadge | null;
+  deliveryOptions?: DeliveryOption[];
   vendorId?: string | null;
   vendorName?: string | null;
   createdAt: string;
@@ -25,16 +29,25 @@ export interface Product {
 }
 
 export interface ProductFilters {
-  category?: string;
-  brand?:    string;
-  minPrice?: number;
-  maxPrice?: number;
-  inStock?: boolean;
-  sortBy?: "price-asc" | "price-desc" | "rating" | "newest";
-  search?: string;
-  page?: number;
-  limit?: number;
-  slugs?: string[];
+  category?:       string;
+  subcategory?:    string;
+  brands?:         string[];   // multi-select, replaces single brand
+  minPrice?:       number;
+  maxPrice?:       number;
+  inStock?:        boolean;
+  rating?:          number;          // exact star rating match (e.g. 4 = exactly 4 stars)
+  discount?:        number;          // exact discount % match (e.g. 25 = exactly 25% off)
+  deliveryOptions?: DeliveryOption[]; // multi-select delivery types
+  sortBy?:         SortBy;
+  search?:         string;
+  page?:           number;
+  limit?:          number;
+  slugs?:          string[];
+}
+
+export interface FilterMeta {
+  brands:        string[];
+  subcategories: string[];
 }
 
 export interface PaginatedProducts {
