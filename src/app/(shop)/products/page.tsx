@@ -67,8 +67,29 @@ export default async function ProductsPage({ searchParams }: Props) {
     limit:           safeInt(str(params.limit)) ?? 20,
   };
 
+  // Parse dynamic attribute filters from URL (?attrs={"ram":["8GB"]})
+  let attrs: Record<string, string[]> | undefined;
+  const attrsRaw = str(params.attrs);
+  if (attrsRaw) {
+    try {
+      const parsed = JSON.parse(attrsRaw) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        attrs = {};
+        for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+          const key = k.replace(/[^a-z0-9_]/gi, "");
+          if (!key) continue;
+          if (Array.isArray(v)) attrs[key] = (v as unknown[]).map(String).filter(Boolean);
+          else if (typeof v === "string" && v) attrs[key] = [v];
+        }
+        if (Object.keys(attrs).length === 0) attrs = undefined;
+      }
+    } catch { /* malformed — ignore */ }
+  }
+
+  const filtersWithAttrs: ProductFilters = { ...filters, attrs };
+
   const [{ products, total, totalPages }, categories, filterMeta] = await Promise.all([
-    getProducts(filters),
+    getProducts(filtersWithAttrs),
     getCategories(),
     getFilterMeta(str(params.category)),
   ]);

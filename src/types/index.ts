@@ -26,6 +26,8 @@ export interface Product {
   vendorId?: string | null;
   vendorName?: string | null;
   status?: ProductStatus;
+  // Dynamic category-specific attributes e.g. { ram: "8GB", storage: "128GB" }
+  attributes?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,11 +47,55 @@ export interface ProductFilters {
   page?:           number;
   limit?:          number;
   slugs?:          string[];
+  // Dynamic attribute filters — key=attrKey, values=multiselect values
+  attrs?:          Record<string, string[]>;
 }
 
 export interface FilterMeta {
   brands:        string[];
   subcategories: string[];
+}
+
+// ─── Category Attributes ─────────────────────────────────────────────────────
+
+export type AttributeType = "text" | "select" | "multiselect" | "boolean" | "number";
+
+export interface AttributeDef {
+  key:        string;
+  label:      string;
+  type:       AttributeType;
+  filterable: boolean;
+  searchable: boolean;
+  required:   boolean;
+  options:    string[];
+  order:      number;
+}
+
+export interface CategoryAttributes {
+  _id:        string;
+  category:   string;
+  label:      string;
+  attributes: AttributeDef[];
+  isActive:   boolean;
+  createdAt:  string;
+  updatedAt:  string;
+}
+
+// A single dynamic filter group returned by /api/products/dynamic-filters
+export interface DynamicFilterValue {
+  value: string;
+  count: number;
+}
+
+export interface DynamicFilterGroup {
+  key:    string;
+  label:  string;
+  type:   AttributeType;
+  values: DynamicFilterValue[];
+}
+
+export interface DynamicFiltersResult {
+  filters: DynamicFilterGroup[];
 }
 
 export interface PaginatedProducts {

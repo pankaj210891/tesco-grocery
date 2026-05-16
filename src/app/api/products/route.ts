@@ -13,6 +13,27 @@ function parseDelivery(raw: string | undefined): DeliveryOption[] | undefined {
   return options.length > 0 ? options : undefined;
 }
 
+function parseAttrs(raw: string | undefined): Record<string, string[]> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+    const result: Record<string, string[]> = {};
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      const sanitizedKey = k.replace(/[^a-z0-9_]/gi, "");
+      if (!sanitizedKey) continue;
+      if (Array.isArray(v)) {
+        result[sanitizedKey] = (v as unknown[]).map(String).filter(Boolean);
+      } else if (typeof v === "string" && v) {
+        result[sanitizedKey] = [v];
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
 
@@ -31,6 +52,7 @@ export async function GET(req: NextRequest) {
     page:        sp.get("page")        ?? undefined,
     limit:       sp.get("limit")       ?? undefined,
     slugs:       sp.get("slugs")       ?? undefined,
+    attrs:       sp.get("attrs")       ?? undefined,
   };
 
   const parsed = ProductFiltersSchema.safeParse(raw);
@@ -58,6 +80,7 @@ export async function GET(req: NextRequest) {
     page:            data.page,
     limit:           data.limit,
     slugs:           data.slugs ? data.slugs.split(",") : undefined,
+    attrs:           parseAttrs(data.attrs),
   };
 
   try {

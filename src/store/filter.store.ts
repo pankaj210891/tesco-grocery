@@ -1,9 +1,11 @@
 import { create } from "zustand";
+import type { DynamicFilterGroup } from "@/types";
 
 // Holds draft price values typed by the user before they are committed to the URL.
 // Price inputs are debounced (600 ms); the URL updates only when BOTH bounds are filled.
 // Also caches the brands list fetched from /api/brands so the sidebar can hydrate
 // without re-fetching when the user navigates between pages.
+// Dynamic filters are cached per category — refetched when category or search changes.
 
 interface FilterDraftState {
   // ── Price draft ──────────────────────────────────────────────────────────────
@@ -11,15 +13,21 @@ interface FilterDraftState {
   draftMaxPrice: string;
   setDraftMinPrice: (v: string) => void;
   setDraftMaxPrice: (v: string) => void;
-  // Sync both draft fields from current URL params (called when URL changes)
   syncFromUrl: (min: string | null, max: string | null) => void;
-  // Reset both draft fields to empty (used by clear-all)
   clearPriceDraft: () => void;
 
   // ── Brands cache ─────────────────────────────────────────────────────────────
-  brands:     string[];
+  brands:       string[];
   brandsLoaded: boolean;
-  setBrands:  (brands: string[]) => void;
+  setBrands:    (brands: string[]) => void;
+
+  // ── Dynamic filters cache ─────────────────────────────────────────────────────
+  // Keyed by a cache key (category + search + serialized attrs) for instant render
+  dynamicFilters:        DynamicFilterGroup[];
+  dynamicFiltersLoading: boolean;
+  dynamicFiltersCacheKey: string;
+  setDynamicFilters:        (filters: DynamicFilterGroup[], cacheKey: string) => void;
+  setDynamicFiltersLoading: (loading: boolean) => void;
 }
 
 export const useFilterDraftStore = create<FilterDraftState>((set) => ({
@@ -34,4 +42,11 @@ export const useFilterDraftStore = create<FilterDraftState>((set) => ({
   brands:       [],
   brandsLoaded: false,
   setBrands:    (brands) => set({ brands, brandsLoaded: true }),
+
+  dynamicFilters:          [],
+  dynamicFiltersLoading:   false,
+  dynamicFiltersCacheKey:  "",
+  setDynamicFilters:        (filters, cacheKey) =>
+    set({ dynamicFilters: filters, dynamicFiltersCacheKey: cacheKey }),
+  setDynamicFiltersLoading: (loading) => set({ dynamicFiltersLoading: loading }),
 }));

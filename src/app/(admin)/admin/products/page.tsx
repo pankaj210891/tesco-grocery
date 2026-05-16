@@ -13,6 +13,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import type { Product, ProductBadge, Vendor } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import DynamicAttributeFields from "@/components/product/DynamicAttributeFields";
 
 interface PageData { products: Product[]; total: number; page: number; totalPages: number; }
 
@@ -26,6 +27,8 @@ const EMPTY_FORM = {
   badge: "" as ProductBadge | "", inStock: true,
   vendorId: "", vendorName: "",
 };
+
+type AttrMap = Record<string, string>;
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -80,6 +83,7 @@ function AdminProductsPageInner() {
   const [modal, setModal]         = useState<"add" | "edit" | null>(null);
   const [editing, setEditing]     = useState<Product | null>(null);
   const [form, setForm]           = useState({ ...EMPTY_FORM });
+  const [formAttrs, setFormAttrs] = useState<AttrMap>({});
   const [saving, setSaving]       = useState(false);
   const [approving, setApproving] = useState<string | null>(null);
   const [error, setError]         = useState("");
@@ -196,6 +200,7 @@ function AdminProductsPageInner() {
 
   function openAdd() {
     setForm({ ...EMPTY_FORM });
+    setFormAttrs({});
     setEditing(null);
     setError("");
     setModal("add");
@@ -210,6 +215,7 @@ function AdminProductsPageInner() {
       badge: p.badge ?? "", inStock: p.inStock,
       vendorId: p.vendorId ?? "", vendorName: p.vendorName ?? "",
     });
+    setFormAttrs(p.attributes ?? {});
     setEditing(p);
     setError("");
     setModal("edit");
@@ -227,6 +233,10 @@ function AdminProductsPageInner() {
       tags:   form.tags.split(",").map((s) => s.trim()).filter(Boolean),
       badge:  form.badge || null, inStock: form.inStock,
       vendorId: form.vendorId || null,
+      // Strip empty attribute values before saving
+      attributes: Object.fromEntries(
+        Object.entries(formAttrs).filter(([, v]) => v.trim() !== ""),
+      ),
     };
     try {
       const url    = editing ? `/api/admin/products/${editing._id}` : "/api/admin/products";
@@ -571,7 +581,12 @@ function AdminProductsPageInner() {
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Category</label>
                 <select
                   value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  onChange={(e) => {
+                    const cat = e.target.value;
+                    setForm((f) => ({ ...f, category: cat }));
+                    // Clear dynamic attributes when category changes
+                    setFormAttrs({});
+                  }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
                   data-testid="product-category-select"
                 >
@@ -579,6 +594,13 @@ function AdminProductsPageInner() {
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              {/* Dynamic attribute fields based on selected category */}
+              <DynamicAttributeFields
+                category={form.category}
+                values={formAttrs}
+                onChange={setFormAttrs}
+                accentColor="#0F4C75"
+              />
               {(["brand", "unit"] as const).map((field) => (
                 <div key={field}>
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 capitalize">{field}</label>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { titleCase } from "@/lib/utils/format";
 import { DELIVERY_OPTIONS, DISCOUNT_OPTIONS, RATING_OPTIONS } from "@/constants";
+import { useFilterDraftStore } from "@/store/filter.store";
 
 interface Chip {
   label:  string;
@@ -14,6 +16,7 @@ export default function ActiveFilters() {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const pathname     = usePathname();
+  const dynamicFilters = useFilterDraftStore((s) => s.dynamicFilters);
 
   function removeParam(...keys: string[]) {
     const params = new URLSearchParams(searchParams.toString());
@@ -28,6 +31,29 @@ export default function ActiveFilters() {
     const current = (params.get(key) ?? "").split(",").filter(Boolean);
     const next    = current.filter((v) => v !== value);
     if (next.length) { params.set(key, next.join(",")); } else { params.delete(key); }
+    params.delete("page");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  function removeAttrValue(attrKey: string, value: string) {
+    const params  = new URLSearchParams(searchParams.toString());
+    const raw     = params.get("attrs");
+    let current: Record<string, string[]> = {};
+    if (raw) {
+      try { current = JSON.parse(raw) as Record<string, string[]>; } catch { /* skip */ }
+    }
+    const next = (current[attrKey] ?? []).filter((v) => v !== value);
+    if (next.length > 0) {
+      current[attrKey] = next;
+    } else {
+      delete current[attrKey];
+    }
+    if (Object.keys(current).length > 0) {
+      params.set("attrs", JSON.stringify(current));
+    } else {
+      params.delete("attrs");
+    }
     params.delete("page");
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -48,11 +74,29 @@ export default function ActiveFilters() {
   const deliveryParam = searchParams.get("delivery") ?? "";
   const deliveries    = deliveryParam ? deliveryParam.split(",").filter(Boolean) : [];
 
+  // Parse active dynamic attribute filters
+  const activeAttrs: Record<string, string[]> = useMemo(() => {
+    const raw = searchParams.get("attrs");
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+      const result: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (Array.isArray(v)) result[k] = (v as unknown[]).map(String);
+        else if (typeof v === "string" && v) result[k] = [v];
+      }
+      return result;
+    } catch {
+      return {};
+    }
+  }, [searchParams]);
+
   if (q) {
     chips.push({ label: `"${q}"`, remove: () => removeParam("q") });
   }
   if (category) {
-    chips.push({ label: titleCase(category), remove: () => removeParam("category", "subcategory") });
+    chips.push({ label: titleCase(category), remove: () => removeParam("category", "subcategory", "attrs") });
   }
   if (subcategory) {
     chips.push({ label: subcategory, remove: () => removeParam("subcategory") });
@@ -88,6 +132,18 @@ export default function ActiveFilters() {
     const opt = DELIVERY_OPTIONS.find((o) => o.value === d);
     chips.push({ label: opt?.label ?? d, remove: () => removeFromList("delivery", d) });
   });
+  // Dynamic attribute chips — look up human label from cached filter groups
+  for (const [attrKey, values] of Object.entries(activeAttrs)) {
+    const group = dynamicFilters.find((g) => g.key === attrKey);
+    const attrLabel = group?.label ?? attrKey;
+    values.forEach((val) => {
+      const displayVal = val === "true" ? "Yes" : val === "false" ? "No" : val;
+      chips.push({
+        label:  `${attrLabel}: ${displayVal}`,
+        remove: () => removeAttrValue(attrKey, val),
+      });
+    });
+  }
 
   if (chips.length === 0) return null;
 

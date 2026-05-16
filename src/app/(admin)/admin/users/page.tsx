@@ -9,8 +9,13 @@ import {
   type AdminUserFilters,
 } from "@/store/admin-users.store";
 import { useDebounce } from "@/hooks/useDebounce";
+import dynamic from "next/dynamic";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
-import { AdminUserDetail } from "@/components/admin/AdminUserDetail";
+
+const AdminUserDetail = dynamic(
+  () => import("@/components/admin/AdminUserDetail").then((m) => ({ default: m.AdminUserDetail })),
+  { loading: () => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"><div className="bg-white dark:bg-gray-900 rounded-xl p-8 animate-pulse w-full max-w-xl mx-4 h-48" /></div> }
+);
 import type { User, UserRole } from "@/types";
 
 interface PageData { users: User[]; total: number; page: number; totalPages: number; }

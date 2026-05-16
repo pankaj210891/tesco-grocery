@@ -9,6 +9,15 @@ import type { Product, ProductFilters, PaginatedProducts, FilterMeta } from "@/t
 // ── Serialiser ────────────────────────────────────────────────────────────────
 
 function toProduct(doc: ProductDoc): Product {
+  // Deserialise the Mongoose Map back to a plain Record<string, string>
+  const rawAttrs = (doc as ProductDoc & { attributes?: unknown }).attributes;
+  let attributes: Record<string, string> | undefined;
+  if (rawAttrs instanceof Map) {
+    attributes = Object.fromEntries(rawAttrs) as Record<string, string>;
+  } else if (rawAttrs && typeof rawAttrs === "object") {
+    attributes = rawAttrs as Record<string, string>;
+  }
+
   return {
     _id:             doc._id.toString(),
     name:            doc.name,
@@ -31,6 +40,7 @@ function toProduct(doc: ProductDoc): Product {
     ) as Product["deliveryOptions"],
     vendorId:        doc.vendorId?.toString() ?? null,
     vendorName:      doc.vendorName ?? null,
+    attributes,
     createdAt:       doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
     updatedAt:       doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
   };
@@ -44,7 +54,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   const {
     category, subcategory, brands, inStock,
     rating, discount, deliveryOptions, sortBy, search,
-    page = 1, limit = PRODUCTS_PER_PAGE, slugs,
+    page = 1, limit = PRODUCTS_PER_PAGE, slugs, attrs,
   } = filters;
 
   // Price filter: only apply when BOTH bounds are present
@@ -119,6 +129,16 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   }
   if (search) {
     query.$text = { $search: search };
+  }
+  // Dynamic attribute filters — each key maps to one or more values (multiselect → $in)
+  if (attrs && Object.keys(attrs).length > 0) {
+    for (const [key, values] of Object.entries(attrs)) {
+      const sanitizedKey = key.replace(/[^a-z0-9_]/gi, "");
+      if (!sanitizedKey || values.length === 0) continue;
+      query[`attributes.${sanitizedKey}`] = values.length === 1
+        ? values[0]
+        : { $in: values };
+    }
   }
 
   type SortSpec = Record<string, mongoose.SortOrder>;

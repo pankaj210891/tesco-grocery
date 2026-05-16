@@ -23,6 +23,9 @@ const ProductSchema = new Schema(
     vendorName:      { type: String, default: null },
     // Admin approval workflow
     status:          { type: String, enum: ["pending", "approved", "rejected"], default: "approved" },
+    // Dynamic category-specific attributes (e.g. { ram: "8GB", storage: "128GB" })
+    // Stored as a Map for O(1) dot-notation queries: { "attributes.ram": "8GB" }
+    attributes:      { type: Map, of: String, default: {} },
   },
   { timestamps: true }
 );
@@ -43,6 +46,15 @@ ProductSchema.index({ category: 1, rating: -1 });
 ProductSchema.index({ category: 1, brand: 1 });
 ProductSchema.index({ vendorId: 1, status: 1 });
 ProductSchema.index({ vendorId: 1, createdAt: -1 });
+// Dynamic attribute indexes for filterable keys
+ProductSchema.index({ "attributes.ram": 1 });
+ProductSchema.index({ "attributes.storage": 1 });
+ProductSchema.index({ "attributes.battery": 1 });
+ProductSchema.index({ "attributes.network": 1 });
+ProductSchema.index({ "attributes.processor": 1 });
+ProductSchema.index({ "attributes.weight": 1 });
+ProductSchema.index({ "attributes.flavor": 1 });
+ProductSchema.index({ "attributes.organic": 1 });
 // Full-text search
 ProductSchema.index({ name: "text", description: "text", brand: "text", tags: "text" });
 
@@ -50,6 +62,7 @@ export type ProductDoc = InferSchemaType<typeof ProductSchema> & {
   _id: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  attributes?: Map<string, string>;
 };
 
 const ProductModel =

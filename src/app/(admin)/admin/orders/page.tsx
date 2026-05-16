@@ -3,10 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ChevronDown, X, Search, Store, Eye } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/auth.store";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
-import { AdminOrderDetail } from "@/components/admin/AdminOrderDetail";
 import { formatPrice } from "@/lib/utils/format";
+
+const AdminOrderDetail = dynamic(
+  () => import("@/components/admin/AdminOrderDetail").then((m) => ({ default: m.AdminOrderDetail })),
+  { loading: () => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"><div className="bg-white dark:bg-gray-900 rounded-xl p-8 animate-pulse w-full max-w-2xl mx-4 h-64" /></div> }
+);
 import type { Order, OrderDetail, Vendor } from "@/types";
 
 interface PageData { orders: Order[]; total: number; page: number; totalPages: number; }
