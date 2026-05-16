@@ -21,12 +21,14 @@ interface FiltersSidebarProps {
 
 function FilterSection({
   title,
+  defaultOpen = false,
   children,
 }: {
   title: string;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-gray-100 dark:border-gray-700/60 last:border-0">
       <button
@@ -62,7 +64,7 @@ function DynamicAttrSection({
 
   if (group.type === "boolean") {
     return (
-      <FilterSection title={group.label}>
+      <FilterSection title={group.label} defaultOpen={activeValues.length > 0}>
         <ul className="space-y-1" aria-label={`${group.label} filter`}>
           {group.values.map(({ value, count }) => {
             const label   = value === "true" ? "Yes" : "No";
@@ -97,25 +99,39 @@ function DynamicAttrSection({
   const visible = showAll ? group.values : group.values.slice(0, LIMIT);
 
   return (
-    <FilterSection title={group.label}>
+    <FilterSection title={group.label} defaultOpen={activeValues.length > 0}>
       <div className="max-h-48 overflow-y-auto overscroll-contain pr-1">
         <ul className="space-y-1" aria-label={`${group.label} filter`}>
           {visible.map(({ value, count }) => {
             const checked = activeValues.includes(value);
+            // Ghost: selected by the user but yields 0 results in the current
+            // cross-filter context. Shown muted so the user knows it conflicts,
+            // but still clickable so they can deselect it.
+            const isGhost = count === 0;
             return (
               <li key={value}>
-                <label className="flex items-center gap-2.5 cursor-pointer">
+                <label
+                  className={cn(
+                    "flex items-center gap-2.5",
+                    isGhost ? "cursor-pointer opacity-50" : "cursor-pointer",
+                  )}
+                  title={isGhost ? "No results with current filters — click to deselect" : undefined}
+                >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => onToggle(group.key, value)}
                     className="h-3.5 w-3.5 rounded accent-[#FCA311] cursor-pointer shrink-0"
-                    aria-label={`${group.label}: ${value}`}
+                    aria-label={`${group.label}: ${value}${isGhost ? " (no results)" : ""}`}
                     data-testid={`attr-filter-${group.key}-${value}`}
                   />
                   <span className={cn(
                     "text-sm truncate flex-1 transition-colors",
-                    checked ? "text-[#FCA311] dark:text-amber-400 font-medium" : "text-gray-600 dark:text-gray-300",
+                    isGhost
+                      ? "text-[#FCA311] dark:text-amber-400 font-medium line-through"
+                      : checked
+                        ? "text-[#FCA311] dark:text-amber-400 font-medium"
+                        : "text-gray-600 dark:text-gray-300",
                   )}>
                     {value}
                   </span>
@@ -485,14 +501,17 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
       )}
 
       {/* ── Dynamic Attribute Filters (category-specific) ─────────────────────── */}
-      {dynamicFiltersLoading && activeCategory && (
+      {/* Skeleton only on initial load (no filters yet) — not during re-fetches.
+          Keeping DynamicAttrSection mounted through re-fetches preserves open state
+          so a checkbox selection never collapses the section. */}
+      {dynamicFiltersLoading && activeCategory && dynamicFilters.length === 0 && (
         <div className="px-4 py-3 space-y-2 border-b border-gray-100 dark:border-gray-700/60">
           {[1, 2].map((i) => (
             <div key={i} className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
           ))}
         </div>
       )}
-      {!dynamicFiltersLoading && dynamicFilters.map((group) => (
+      {dynamicFilters.map((group) => (
         <DynamicAttrSection
           key={group.key}
           group={group}

@@ -79,13 +79,23 @@ export async function getDynamicFilters(
 
   // ── 4. Distinct queries per filterable attribute ────────────────────────────
   // Run all distinct queries in parallel for performance.
+  //
+  // Per-attribute exclusion (Amazon/Flipkart multi-select pattern):
+  // When computing available values for attribute X, we omit X's own filter from
+  // the match. This keeps all values for X visible after one is selected, enabling
+  // true multi-select. Filters for every OTHER attribute still narrow the results.
   const distinctQueries = filterableAttrs.map(async (attrDef) => {
     const field = `attributes.${attrDef.key}`;
 
+    // Build a match that excludes this attribute's own constraint
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const selfExcludedMatch: Record<string, any> = { ...baseMatch };
+    delete selfExcludedMatch[field];
+
     // For boolean attrs use ["true","false"], otherwise use distinct
     if (attrDef.type === "boolean") {
-      const trueCount  = await ProductModel.countDocuments({ ...baseMatch, [field]: "true" });
-      const falseCount = await ProductModel.countDocuments({ ...baseMatch, [field]: "false" });
+      const trueCount  = await ProductModel.countDocuments({ ...selfExcludedMatch, [field]: "true" });
+      const falseCount = await ProductModel.countDocuments({ ...selfExcludedMatch, [field]: "false" });
       const values: DynamicFilterGroup["values"] = [];
       if (trueCount > 0)  values.push({ value: "true",  count: trueCount  });
       if (falseCount > 0) values.push({ value: "false", count: falseCount });
@@ -93,7 +103,7 @@ export async function getDynamicFilters(
     }
 
     // For select/multiselect/text/number use distinct + count per value
-    const rawValues = (await ProductModel.distinct(field, baseMatch)) as unknown[];
+    const rawValues = (await ProductModel.distinct(field, selfExcludedMatch)) as unknown[];
     const stringValues = rawValues
       .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -101,13 +111,26 @@ export async function getDynamicFilters(
     const valueCounts = await Promise.all(
       stringValues.map(async (val) => ({
         value: val,
-        count: await ProductModel.countDocuments({ ...baseMatch, [field]: val }),
+        count: await ProductModel.countDocuments({ ...selfExcludedMatch, [field]: val }),
       })),
     );
 
+    // Values that exist in the narrowed result set (count > 0)
+    const activeValues = valueCounts.filter((v) => v.count > 0);
+    const activeValueSet = new Set(activeValues.map((v) => v.value));
+
+    // Ghost values: currently selected by the user but pushed to count=0 by
+    // other active filters (e.g. RAM=12GB disappears when Storage=256GB is picked).
+    // Amazon/Flipkart principle — a selected value must always stay visible so
+    // the user can deselect it. Appended after the active values.
+    const selectedForAttr = attrs?.[attrDef.key] ?? [];
+    const ghostValues: DynamicFilterGroup["values"] = selectedForAttr
+      .filter((v) => !activeValueSet.has(v))
+      .map((v) => ({ value: v, count: 0 }));
+
     return {
       attrDef,
-      values: valueCounts.filter((v) => v.count > 0),
+      values: [...activeValues, ...ghostValues],
     };
   });
 
