@@ -69,14 +69,14 @@ const PRODUCTS_STUB = {
 const CATEGORIES_STUB = { success: true, data: [{ name: "Dairy" }, { name: "Bakery" }] };
 const BRANDS_STUB     = { success: true, data: ["NatureFarm", "ArtisanBakes"] };
 
-function stubAdminAuth() {
+function stubAdminAuth(win: Window) {
   const authState = { state: { user: ADMIN_AUTH.user, token: ADMIN_AUTH.token, hasHydrated: true }, version: 0 };
-  window.localStorage.setItem("prakash-auth", JSON.stringify(authState));
+  win.localStorage.setItem("prakash-auth", JSON.stringify(authState));
 }
 
-function stubVendorAuth() {
+function stubVendorAuth(win: Window) {
   const authState = { state: { user: VENDOR_AUTH.user, token: VENDOR_AUTH.token, hasHydrated: true }, version: 0 };
-  window.localStorage.setItem("prakash-auth", JSON.stringify(authState));
+  win.localStorage.setItem("prakash-auth", JSON.stringify(authState));
 }
 
 function interceptAll(products = PRODUCTS_STUB) {

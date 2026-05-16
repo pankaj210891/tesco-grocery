@@ -31,11 +31,12 @@ export default defineConfig({
     },
     setupNodeEvents(on) {
       on("before:browser:launch", (browser, launchOptions) => {
-        if (browser.family === "chromium" || browser.name === "electron") {
-          launchOptions.args.push("--disable-dev-shm-usage");
-          launchOptions.args.push("--disable-gpu");
+        // --no-sandbox / --disable-dev-shm-usage are Linux CI flags and crash
+        // macOS ARM64 Electron. Only apply them on non-macOS platforms for
+        // Chromium browsers (never Electron, which is Cypress's own shell).
+        if (process.platform !== "darwin" && browser.family === "chromium" && browser.name !== "electron") {
           launchOptions.args.push("--no-sandbox");
-          launchOptions.args.push("--disable-features=IsolateOrigins,site-per-process");
+          launchOptions.args.push("--disable-dev-shm-usage");
         }
         return launchOptions;
       });

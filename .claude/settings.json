@@ -25,7 +25,11 @@
       "Skill(security)",
       "Skill(security:*)",
       "Skill(resume-pending-task)",
-      "Skill(resume-pending-task:*)"
+      "Skill(resume-pending-task:*)",
+      "Skill(project-workflow)",
+      "Skill(project-workflow:*)",
+      "Skill(performance)",
+      "Skill(performance:*)"
     ],
     "deny": []
   },

@@ -37,9 +37,9 @@ const EMPTY_STUB = {
   data: { users: [], total: 0, page: 1, totalPages: 0 },
 };
 
-function stubAuth() {
+function stubAuth(win: Window) {
   const authState = { state: { user: ADMIN_AUTH.user, token: ADMIN_AUTH.token, hasHydrated: true }, version: 0 };
-  window.localStorage.setItem("prakash-auth", JSON.stringify(authState));
+  win.localStorage.setItem("prakash-auth", JSON.stringify(authState));
 }
 
 function interceptUsers(body = USERS_STUB) {

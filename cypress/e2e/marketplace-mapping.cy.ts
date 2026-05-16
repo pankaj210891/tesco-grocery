@@ -205,30 +205,28 @@ const VENDOR_ANALYTICS_ADMIN_STUB = {
 
 // ── Auth helpers ────────────────────────────────────────────────────────────────
 
-function setAdminSession() {
-  cy.window().then((win) => {
-    const state = {
-      state: {
-        user:  { _id: "admin001", name: "Admin", email: "admin@test.com", role: "admin" },
-        token: "mock-admin-token",
-      },
-      version: 0,
-    };
-    win.localStorage.setItem("auth-storage", JSON.stringify(state));
-  });
+function stubAdminAuth(win: Window) {
+  const state = {
+    state: {
+      user:  { _id: "admin001", name: "Admin", email: "admin@test.com", role: "admin", status: "active" },
+      token: "mock-admin-token",
+      hasHydrated: true,
+    },
+    version: 0,
+  };
+  win.localStorage.setItem("prakash-auth", JSON.stringify(state));
 }
 
-function setVendorSession() {
-  cy.window().then((win) => {
-    const state = {
-      state: {
-        user:  { _id: "vendor001", name: "Fresh Farms", email: "vendor@test.com", role: "vendor", vendorId: VENDOR_ID_A },
-        token: "mock-vendor-token",
-      },
-      version: 0,
-    };
-    win.localStorage.setItem("auth-storage", JSON.stringify(state));
-  });
+function stubVendorAuth(win: Window) {
+  const state = {
+    state: {
+      user:  { _id: "vendor001", name: "Fresh Farms", email: "vendor@test.com", role: "vendor", vendorId: VENDOR_ID_A, status: "active" },
+      token: "mock-vendor-token",
+      hasHydrated: true,
+    },
+    version: 0,
+  };
+  win.localStorage.setItem("prakash-auth", JSON.stringify(state));
 }
 
 // ── Admin — Products with Vendor Mapping ─────────────────────────────────────
@@ -237,9 +235,7 @@ describe("Admin — Products Vendor Mapping", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/admin/vendors*", VENDORS_STUB).as("getVendors");
     cy.intercept("GET", "/api/admin/products*", PRODUCTS_STUB).as("getProducts");
-    cy.visit("/admin/products");
-    setAdminSession();
-    cy.reload();
+    cy.visit("/admin/products", { onBeforeLoad: stubAdminAuth });
   });
 
   it("renders vendor filter dropdown with vendor options", () => {
@@ -330,9 +326,7 @@ describe("Admin — Orders Marketplace Filters", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/admin/vendors*", VENDORS_STUB).as("getVendors");
     cy.intercept("GET", "/api/admin/orders*", ORDERS_STUB).as("getOrders");
-    cy.visit("/admin/orders");
-    setAdminSession();
-    cy.reload();
+    cy.visit("/admin/orders", { onBeforeLoad: stubAdminAuth });
   });
 
   it("renders vendor filter dropdown", () => {
@@ -409,9 +403,7 @@ describe("Admin — Dashboard Vendor Analytics", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/admin/stats",             ADMIN_STATS_STUB).as("getStats");
     cy.intercept("GET", "/api/admin/vendors/analytics", VENDOR_ANALYTICS_ADMIN_STUB).as("getVendorAnalytics");
-    cy.visit("/admin");
-    setAdminSession();
-    cy.reload();
+    cy.visit("/admin", { onBeforeLoad: stubAdminAuth });
   });
 
   it("shows pending products count in stats cards", () => {
@@ -462,9 +454,7 @@ describe("Vendor — Dashboard Earnings Analytics", () => {
     cy.intercept("GET", "/api/vendor/stats",     VENDOR_STATS_STUB).as("getVendorStats");
     cy.intercept("GET", "/api/vendor/profile",   VENDOR_PROFILE_STUB).as("getVendorProfile");
     cy.intercept("GET", "/api/vendor/analytics", VENDOR_ANALYTICS_STUB).as("getVendorAnalytics");
-    cy.visit("/vendor");
-    setVendorSession();
-    cy.reload();
+    cy.visit("/vendor", { onBeforeLoad: stubVendorAuth });
   });
 
   it("shows vendor name and status from profile", () => {
@@ -530,9 +520,7 @@ describe("Vendor — Dashboard Earnings Analytics", () => {
 describe("Vendor — Orders Data Isolation", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/vendor/orders*", VENDOR_ORDERS_STUB).as("getVendorOrders");
-    cy.visit("/vendor/orders");
-    setVendorSession();
-    cy.reload();
+    cy.visit("/vendor/orders", { onBeforeLoad: stubVendorAuth });
   });
 
   it("renders vendor orders table with own items only", () => {
@@ -608,9 +596,7 @@ describe("RBAC — Unauthorized Access Prevention", () => {
   });
 
   it("vendor user visiting /admin is redirected away from admin", () => {
-    cy.visit("/admin");
-    setVendorSession();
-    cy.reload();
+    cy.visit("/admin", { onBeforeLoad: stubVendorAuth });
     cy.url().should("not.include", "/admin");
   });
 
@@ -729,9 +715,7 @@ describe("Vendor — Product Portal Isolation", () => {
         total: 1, page: 1, totalPages: 1,
       },
     }).as("getVendorProducts");
-    cy.visit("/vendor/products");
-    setVendorSession();
-    cy.reload();
+    cy.visit("/vendor/products", { onBeforeLoad: stubVendorAuth });
   });
 
   it("vendor products page loads and shows vendor's own products", () => {
@@ -750,9 +734,7 @@ describe("Admin — Product Approval Workflow UI", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/admin/vendors*",  VENDORS_STUB).as("getVendors");
     cy.intercept("GET", "/api/admin/products*", PRODUCTS_STUB).as("getProducts");
-    cy.visit("/admin/products");
-    setAdminSession();
-    cy.reload();
+    cy.visit("/admin/products", { onBeforeLoad: stubAdminAuth });
   });
 
   it("clicking pending tab shows only pending products", () => {
@@ -791,9 +773,7 @@ describe("Admin — Combined Order Filters Sanity", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/admin/vendors*", VENDORS_STUB).as("getVendors");
     cy.intercept("GET", "/api/admin/orders*",  ORDERS_STUB).as("getOrders");
-    cy.visit("/admin/orders");
-    setAdminSession();
-    cy.reload();
+    cy.visit("/admin/orders", { onBeforeLoad: stubAdminAuth });
   });
 
   it("vendor + status filters coexist in the same request", () => {

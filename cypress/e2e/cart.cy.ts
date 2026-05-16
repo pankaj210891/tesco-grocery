@@ -56,14 +56,14 @@ describe("Cart — With Items (mocked Zustand state)", () => {
       },
       version: 0,
     };
-    window.localStorage.setItem("cart-store", JSON.stringify(cartState));
-
     cy.intercept("GET", "/api/cart*", {
       statusCode: 200,
       body: { success: true, data: { items: [], subtotal: 0, total: 0 } },
     }).as("getCart");
 
-    cy.visit("/cart");
+    cy.visit("/cart", {
+      onBeforeLoad: (win) => { win.localStorage.setItem("cart-store", JSON.stringify(cartState)); },
+    });
   });
 
   it("displays the product name from the cart", () => {
@@ -162,8 +162,9 @@ describe("Cart — Checkout Navigation", () => {
       },
       version: 0,
     };
-    window.localStorage.setItem("cart-store", JSON.stringify(cartState));
-    cy.visit("/cart");
+    cy.visit("/cart", {
+      onBeforeLoad: (win) => { win.localStorage.setItem("cart-store", JSON.stringify(cartState)); },
+    });
   });
 
   it("has a checkout button visible when the cart has items", () => {

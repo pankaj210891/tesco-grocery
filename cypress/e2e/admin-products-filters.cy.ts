@@ -46,9 +46,9 @@ const VENDORS_STUB = {
   data: { vendors: [{ _id: "v1", name: "Artisan Vendor" }] },
 };
 
-function stubAuth() {
+function stubAuth(win: Window) {
   const authState = { state: { user: ADMIN_AUTH.user, token: ADMIN_AUTH.token, hasHydrated: true }, version: 0 };
-  window.localStorage.setItem("prakash-auth", JSON.stringify(authState));
+  win.localStorage.setItem("prakash-auth", JSON.stringify(authState));
 }
 
 function interceptProducts(body = PRODUCTS_STUB) {
