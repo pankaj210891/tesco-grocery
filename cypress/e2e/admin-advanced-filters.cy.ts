@@ -347,7 +347,9 @@ describe("Vendors Page — View/Edit Modal", () => {
     cy.get("[data-testid='vendor-edit-btn']").click();
     cy.get("[data-testid='vendor-save-btn']").click();
     cy.wait("@failedUpdate");
-    cy.contains("Validation failed").should("be.visible");
+    // The error paragraph is inside a max-h overflow-y-auto modal that may be
+    // scrolled past the top; scroll it into view before asserting visibility.
+    cy.contains("Validation failed").scrollIntoView().should("be.visible");
   });
 
   it("cancel edit returns to view mode", () => {
@@ -515,17 +517,16 @@ describe("Promo Codes Page — Status Filter", () => {
   });
 
   it("search and status filter work together", () => {
-    // Click the status tab first and let its API call settle (beforeEach intercept handles it).
-    // Setting up the combined assertion intercept beforehand causes expect() to throw on
-    // that first request (no q param yet), which prevents req.reply() from being called.
     cy.get("[data-testid='promo-status-active']").click();
     cy.wait("@getPromos");
 
-    cy.intercept("GET", "/api/admin/promocodes*", (req) => {
-      expect(req.query).to.have.property("q", "SUMMER");
-      expect(req.query).to.have.property("status", "active");
-      req.reply({ success: true, data: [PROMOS_STUB.data[0]] });
-    }).as("combinedFilter");
+    // Use a RouteMatcher with an exact query object so this intercept only fires
+    // when the full search term "SUMMER" is present — intermediate keystrokes
+    // (q='S', q='SU', …) don't match and fall through to the beforeEach stub.
+    cy.intercept(
+      { method: "GET", url: "/api/admin/promocodes*", query: { q: "SUMMER", status: "active" } },
+      { success: true, data: [PROMOS_STUB.data[0]] },
+    ).as("combinedFilter");
 
     cy.get("[data-testid='promo-search']").type("SUMMER");
     cy.wait("@combinedFilter");
