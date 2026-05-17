@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ShoppingCart,
-  Search,
   User,
   Menu,
   X,
@@ -29,6 +28,7 @@ import { useHydrated } from "@/hooks/useHydrated";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import DepartmentMegaPanel from "./DepartmentMegaPanel";
+import SearchBar from "@/components/search/SearchBar";
 import type { Category } from "@/types";
 
 const AMBER = "#FCA311";
@@ -105,7 +105,6 @@ function MobileCategoryList({ onNavigate }: { onNavigate: () => void }) {
 
 export default function Navbar() {
   const [mobileOpen,  setMobileOpen]  = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
   const [deptOpen,    setDeptOpen]    = useState(false);
   const [scrolled,    setScrolled]    = useState(false);
@@ -169,16 +168,6 @@ export default function Navbar() {
     router.push("/");
   }
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const q = searchQuery.trim();
-    if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`);
-      setSearchQuery("");
-      setMobileOpen(false);
-    }
-  }
-
   return (
     <header
       className={cn(
@@ -225,43 +214,10 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-4" role="search">
-            <div
-              className={cn(
-                "flex items-center w-full h-11 rounded-xl overflow-hidden",
-                "bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-                "focus-within:border-[#FCA311] focus-within:ring-2 focus-within:ring-[#FCA311]/20 transition-colors",
-              )}
-            >
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for products, brands and more…"
-                aria-label="Search products"
-                className="flex-1 min-w-0 h-full pl-4 pr-2 text-base md:text-sm text-gray-900 dark:text-gray-100 bg-transparent placeholder:text-gray-400 focus:outline-none"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => setSearchQuery("")}
-                  className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-              <button
-                type="submit"
-                aria-label="Submit search"
-                className="shrink-0 flex items-center justify-center w-12 h-full text-white rounded-r-xl transition-colors hover:brightness-105 active:scale-95"
-                style={{ backgroundColor: AMBER }}
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+          {/* Search bar — desktop */}
+          <div className="hidden md:flex flex-1 max-w-2xl">
+            <SearchBar />
+          </div>
 
           {/* Right actions */}
           <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
@@ -478,38 +434,9 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-xl overflow-y-auto max-h-[calc(100dvh-64px)]">
 
-          {/* Search + theme */}
+          {/* Search + theme — mobile */}
           <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-4 pb-3 space-y-3">
-            <form onSubmit={handleSearch} role="search">
-              <div className="flex items-center w-full h-11 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 focus-within:border-[#FCA311] bg-gray-50 dark:bg-gray-800 transition-colors">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products…"
-                  aria-label="Search products"
-                  className="flex-1 min-w-0 h-full pl-4 pr-2 text-base bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    aria-label="Clear search"
-                    onClick={() => setSearchQuery("")}
-                    className="shrink-0 flex items-center justify-center w-9 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  aria-label="Submit search"
-                  className="shrink-0 flex items-center justify-center w-12 h-full text-white rounded-r-xl transition-colors hover:brightness-105"
-                  style={{ backgroundColor: AMBER }}
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
+            <SearchBar mobile onSearch={() => setMobileOpen(false)} />
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</span>
               <ThemeToggle />
