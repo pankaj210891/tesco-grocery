@@ -51,7 +51,6 @@ describe("Authentication — Login", () => {
   /* ── Successful login (mocked) ────────────────────────────────── */
   it("logs in successfully and redirects to the homepage", () => {
     cy.intercept("POST", "/api/auth/login", {
-      fixture: "user.json",
       statusCode: 200,
       body: {
         success: true,

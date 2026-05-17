@@ -1,5 +1,42 @@
 {
   "permissions": {
-    "allow": ["Bash", "Skill(git-workflow)", "Skill(git-workflow:*)"]
+    "allow": [
+      "Bash",
+      "Skill(git-workflow)",
+      "Skill(git-workflow:*)",
+      "Skill(review)",
+      "Skill(review:*)",
+      "Skill(debugging)",
+      "Skill(debugging:*)",
+      "Skill(deploy)",
+      "Skill(deploy:*)",
+      "Skill(ecommerce)",
+      "Skill(ecommerce:*)",
+      "Skill(react)",
+      "Skill(react:*)",
+      "Skill(nextjs)",
+      "Skill(nextjs:*)",
+      "Skill(mongodb)",
+      "Skill(mongodb:*)",
+      "Skill(mongoose)",
+      "Skill(mongoose:*)",
+      "Skill(testing)",
+      "Skill(testing:*)",
+      "Skill(security)",
+      "Skill(security:*)",
+      "Skill(resume-pending-task)",
+      "Skill(resume-pending-task:*)",
+      "Skill(project-workflow)",
+      "Skill(project-workflow:*)",
+      "Skill(performance)",
+      "Skill(performance:*)"
+    ],
+    "deny": []
+  },
+  "project": {
+    "framework": "Next.js",
+    "language": "TypeScript",
+    "database": "MongoDB",
+    "testing": "Cypress"
   }
 }

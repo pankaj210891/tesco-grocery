@@ -3,8 +3,10 @@
   "version": "1.11.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
@@ -15,7 +17,8 @@
     "cypress:run": "cypress run",
     "cypress:run:e2e": "cypress run --e2e --browser chrome",
     "cypress:run:component": "cypress run --component --browser chrome",
-    "cypress:ci": "start-server-and-test start http://localhost:3000 cypress:run:e2e"
+    "cypress:ci": "start-server-and-test start http://localhost:3000 cypress:run:e2e",
+    "seed:products": "tsx scripts/seedProducts.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --max-warnings=0",
@@ -52,7 +55,9 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
     "cypress": "^13.17.0",
+    "dotenv": "^16.6.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.5",
     "husky": "^9.1.7",
@@ -60,6 +65,8 @@
     "prettier": "^3.8.3",
     "start-server-and-test": "^3.0.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.22.0",
+    "typescript": "^5",
+    "vite": "^6.4.2"
   }
 }

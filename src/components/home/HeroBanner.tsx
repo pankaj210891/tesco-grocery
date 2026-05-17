@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import NavArrow from "@/components/ui/NavArrow";
+import MiniBannerCard from "@/components/ui/MiniBannerCard";
 import { cn } from "@/lib/utils/cn";
 import type { HomepageSection } from "@/types";
 
@@ -225,33 +226,19 @@ export default function HeroBanner() {
       {/* ── Right mini-banners (desktop only) ───────────────────── */}
       <div className="hidden lg:flex flex-col gap-4">
         {MINI_BANNERS.map((mb) => (
-          <Link
+          <MiniBannerCard
             key={mb.id}
             href={mb.href}
-            className={cn(
-              "flex-1 group relative overflow-hidden rounded-2xl bg-gradient-to-br p-6 flex flex-col justify-between",
-              "border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-colors transition-shadow duration-200",
-              mb.bg,
-            )}
-          >
-            {/* Label badge */}
-            <div>
-              <span className={cn("text-xs font-black uppercase tracking-wider", mb.textColor)}>
-                {mb.label}
-              </span>
-              <h3 className={cn("text-lg font-black leading-tight mt-1", mb.textColor)}>
-                {mb.title}
-              </h3>
-              <span className={cn("flex items-center gap-1 text-xs font-semibold mt-2 hover:underline", mb.btnColor)}>
-                {mb.cta} <ArrowRight className="h-3 w-3" />
-              </span>
-            </div>
-
-            {/* Emoji illustration */}
-            <div className="absolute right-4 bottom-4 text-5xl select-none group-hover:scale-110 transition-transform duration-300" aria-hidden>
-              {mb.emoji}
-            </div>
-          </Link>
+            label={mb.label}
+            title={mb.title}
+            cta={mb.cta}
+            emoji={mb.emoji}
+            bg={mb.bg}
+            textColor={mb.textColor}
+            btnColor={mb.btnColor}
+            size="lg"
+            className="flex-1"
+          />
         ))}
       </div>
 

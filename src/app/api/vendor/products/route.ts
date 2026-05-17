@@ -39,10 +39,21 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json() as Record<string, unknown>;
-    const { name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags, badge } = body;
+    const { name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags, badge, attributes } = body;
 
     if (!name || !slug || !description || price === undefined || !category || !brand || !unit) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 422 });
+    }
+
+    // Sanitise dynamic attributes — only string key/value pairs allowed
+    const safeAttrs: Record<string, string> = {};
+    if (attributes && typeof attributes === "object" && !Array.isArray(attributes)) {
+      for (const [k, v] of Object.entries(attributes as Record<string, unknown>)) {
+        const key = k.replace(/[^a-z0-9_]/gi, "");
+        if (key && typeof v === "string" && v.trim()) {
+          safeAttrs[key] = v.trim();
+        }
+      }
     }
 
     const vendor = await VendorModel.findById(auth.vendorId).lean<{ name: string }>();
@@ -62,6 +73,7 @@ export async function POST(req: NextRequest) {
       badge:         (badge as "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | null | undefined) ?? null,
       vendorId:      auth.vendorId,
       vendorName:    vendor?.name ?? null,
+      attributes:    safeAttrs,
       rating: 0,
       reviewCount: 0,
     });

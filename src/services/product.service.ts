@@ -4,28 +4,61 @@ import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
 import Review from "@/lib/db/models/review.model";
 import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
-import type { Product, ProductFilters, PaginatedProducts } from "@/types";
+import type { Product, ProductFilters, PaginatedProducts, FilterMeta } from "@/types";
+
+// ── Category slug resolver ────────────────────────────────────────────────────
+// CATEGORY_NAME_MAP covers original grocery categories.
+// For categories added via seeding (e.g. "mobiles", "gaming-consoles"), the map
+// must have an entry OR the fallback below handles it:
+//   slug → replace hyphens with spaces → case-insensitive regex
+// This prevents silent 0-result bugs when new categories are seeded without a map entry.
+function buildCategoryQuery(slug: string): string | RegExp {
+  const mapped = CATEGORY_NAME_MAP[slug];
+  if (mapped) return mapped; // exact string — index-friendly
+
+  // Fallback: "gaming-consoles" → /^gaming consoles$/i  →  matches "Gaming Consoles"
+  const nameFromSlug = slug.replace(/-/g, " ");
+  const escaped = nameFromSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped}$`, "i");
+}
 
 // ── Serialiser ────────────────────────────────────────────────────────────────
 
 function toProduct(doc: ProductDoc): Product {
+  // Deserialise the Mongoose Map back to a plain Record<string, string>
+  const rawAttrs = (doc as ProductDoc & { attributes?: unknown }).attributes;
+  let attributes: Record<string, string> | undefined;
+  if (rawAttrs instanceof Map) {
+    attributes = Object.fromEntries(rawAttrs) as Record<string, string>;
+  } else if (rawAttrs && typeof rawAttrs === "object") {
+    attributes = rawAttrs as Record<string, string>;
+  }
+
   return {
-    _id:           doc._id.toString(),
-    name:          doc.name,
-    slug:          doc.slug,
-    description:   doc.description,
-    price:         doc.price,
-    originalPrice: doc.originalPrice ?? undefined,
-    images:        (doc.images ?? []) as string[],
-    category:      doc.category,
-    brand:         doc.brand,
-    unit:          doc.unit,
-    inStock:       doc.inStock ?? true,
-    rating:        doc.rating ?? 0,
-    reviewCount:   doc.reviewCount ?? 0,
-    tags:          (doc.tags ?? []) as string[],
-    createdAt:     doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
-    updatedAt:     doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
+    _id:             doc._id.toString(),
+    name:            doc.name,
+    slug:            doc.slug,
+    description:     doc.description,
+    price:           doc.price,
+    originalPrice:   doc.originalPrice ?? undefined,
+    images:          (doc.images ?? []) as string[],
+    category:        doc.category,
+    subcategory:     (doc as ProductDoc & { subcategory?: string | null }).subcategory ?? null,
+    brand:           doc.brand,
+    unit:            doc.unit,
+    inStock:         doc.inStock ?? true,
+    rating:          doc.rating ?? 0,
+    reviewCount:     doc.reviewCount ?? 0,
+    tags:            (doc.tags ?? []) as string[],
+    badge:           (doc.badge ?? null) as Product["badge"],
+    deliveryOptions: (
+      (doc as ProductDoc & { deliveryOptions?: string[] }).deliveryOptions ?? ["standard"]
+    ) as Product["deliveryOptions"],
+    vendorId:        doc.vendorId?.toString() ?? null,
+    vendorName:      doc.vendorName ?? null,
+    attributes,
+    createdAt:       doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
+    updatedAt:       doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
   };
 }
 
@@ -35,37 +68,101 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   await connectDB();
 
   const {
-    category, brand, minPrice, maxPrice, inStock,
-    sortBy, search, page = 1, limit = PRODUCTS_PER_PAGE,
-    slugs,
+    category, subcategory, brands, inStock,
+    rating, discount, deliveryOptions, sortBy, search,
+    page = 1, limit = PRODUCTS_PER_PAGE, slugs, attrs,
   } = filters;
 
-  const query: mongoose.QueryFilter<ProductDoc> = {};
+  // Price filter: only apply when BOTH bounds are present
+  const minPrice = filters.minPrice !== undefined && filters.maxPrice !== undefined
+    ? filters.minPrice
+    : undefined;
+  const maxPrice = filters.minPrice !== undefined && filters.maxPrice !== undefined
+    ? filters.maxPrice
+    : undefined;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Record<string, any> = {};
 
   if (slugs && slugs.length > 0) {
-    query.slug = { $in: slugs } as mongoose.QueryFilter<ProductDoc>["slug"];
+    query.slug = { $in: slugs };
   }
   if (category) {
-    const name = CATEGORY_NAME_MAP[category] ?? category;
-    query.category = name;
+    query.category = buildCategoryQuery(category);
   }
-  if (brand) {
-    query.brand = { $regex: brand, $options: "i" } as mongoose.QueryFilter<ProductDoc>["brand"];
+  if (subcategory) {
+    query.subcategory = subcategory;
   }
-  if (inStock) query.inStock = true;
-  if (minPrice !== undefined || maxPrice !== undefined) {
-    query.price = {} as { $gte?: number; $lte?: number };
-    if (minPrice !== undefined) (query.price as Record<string, number>).$gte = minPrice;
-    if (maxPrice !== undefined) (query.price as Record<string, number>).$lte = maxPrice;
+  if (brands && brands.length > 0) {
+    query.brand = {
+      $in: brands.map((b) => new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")),
+    };
   }
-  if (search) query.$text = { $search: search };
+  if (inStock) {
+    query.inStock = true;
+  }
+  if (minPrice !== undefined && maxPrice !== undefined) {
+    query.price = { $gte: minPrice, $lte: maxPrice };
+  }
+  if (rating !== undefined) {
+    // Exact integer match: rating=4 returns only products stored with rating === 4
+    query.rating = rating;
+  }
+  if (discount !== undefined && discount > 0) {
+    // Exact discount match:
+    // 1. Guard: originalPrice must be a positive number and greater than price
+    // 2. Compute: floor(((originalPrice - price) / originalPrice) * 100)
+    // 3. Match: computed integer discount === requested discount
+    // $floor is used so that e.g. 24.9% does NOT match discount=25
+    query.$expr = {
+      $and: [
+        { $gt: [{ $ifNull: ["$originalPrice", 0] }, 0] },
+        { $gt: ["$originalPrice", "$price"] },
+        {
+          $eq: [
+            {
+              $floor: {
+                $multiply: [
+                  {
+                    $divide: [
+                      { $subtract: ["$originalPrice", "$price"] },
+                      "$originalPrice",
+                    ],
+                  },
+                  100,
+                ],
+              },
+            },
+            discount,
+          ],
+        },
+      ],
+    };
+  }
+  if (deliveryOptions && deliveryOptions.length > 0) {
+    query.deliveryOptions = { $in: deliveryOptions };
+  }
+  if (search) {
+    query.$text = { $search: search };
+  }
+  // Dynamic attribute filters — each key maps to one or more values (multiselect → $in)
+  if (attrs && Object.keys(attrs).length > 0) {
+    for (const [key, values] of Object.entries(attrs)) {
+      const sanitizedKey = key.replace(/[^a-z0-9_]/gi, "");
+      if (!sanitizedKey || values.length === 0) continue;
+      query[`attributes.${sanitizedKey}`] = values.length === 1
+        ? values[0]
+        : { $in: values };
+    }
+  }
 
   type SortSpec = Record<string, mongoose.SortOrder>;
   const sortMap: Record<string, SortSpec> = {
-    "price-asc":  { price:     1 as mongoose.SortOrder },
-    "price-desc": { price:    -1 as mongoose.SortOrder },
-    "rating":     { rating:   -1 as mongoose.SortOrder },
-    "newest":     { createdAt: -1 as mongoose.SortOrder },
+    "price-asc":  { price:        1 as mongoose.SortOrder },
+    "price-desc": { price:       -1 as mongoose.SortOrder },
+    "rating":     { rating:      -1 as mongoose.SortOrder },
+    "newest":     { createdAt:   -1 as mongoose.SortOrder },
+    "popularity": { reviewCount: -1 as mongoose.SortOrder },
   };
   const defaultSort: SortSpec = { createdAt: -1 as mongoose.SortOrder };
   const sort = sortBy ? (sortMap[sortBy] ?? defaultSort) : defaultSort;
@@ -92,7 +189,6 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     Review.countDocuments({ productSlug: slug, isApproved: true }),
   ]);
   if (!doc) return null;
-  // Keep the stored reviewCount in sync if it drifted (e.g. seeding issues)
   if (doc.reviewCount !== liveCount) {
     void ProductModel.updateOne({ slug }, { reviewCount: liveCount });
   }
@@ -114,4 +210,38 @@ export async function getCategories(): Promise<{ name: string; slug: string; cou
     { $sort: { _id: 1 } },
   ]);
   return rows.map((r) => ({ name: r._id, slug: slugify(r._id), count: r.count }));
+}
+
+export async function getBrands(): Promise<string[]> {
+  await connectDB();
+  const rows = await ProductModel.distinct("brand");
+  return (rows as string[])
+    .filter((b): b is string => typeof b === "string" && b.trim().length > 0)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+export async function getFilterMeta(category?: string): Promise<FilterMeta> {
+  await connectDB();
+
+  // Use distinct() for simpler, index-friendly queries instead of $facet
+  const matchFilter = category
+    ? { category: buildCategoryQuery(category) }
+    : {};
+
+  const [brandsRaw, subcatsRaw] = await Promise.all([
+    ProductModel.distinct("brand", matchFilter) as Promise<string[]>,
+    ProductModel.distinct("subcategory", {
+      ...matchFilter,
+      subcategory: { $ne: null, $exists: true, $nin: ["", null] },
+    }) as Promise<string[]>,
+  ]);
+
+  return {
+    brands:        brandsRaw
+                     .filter((b): b is string => typeof b === "string" && b.trim().length > 0)
+                     .sort((a, b) => a.localeCompare(b)),
+    subcategories: subcatsRaw
+                     .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+                     .sort((a, b) => a.localeCompare(b)),
+  };
 }

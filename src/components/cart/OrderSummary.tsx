@@ -99,8 +99,8 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   const total             = promoInfo
     ? promoInfo.discountType === "freeDelivery"
       ? subtotal
-      : Math.max(0, subtotal + deliveryCost - discountAmount)
-    : subtotal + deliveryCost;
+      : Math.max(0, subtotal + effectiveDelivery - discountAmount)
+    : subtotal + effectiveDelivery;
 
   const needed   = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
@@ -144,9 +144,19 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
     toast.success("Promo code removed");
   }
 
+  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20">
-      <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
+    <div
+      data-testid="order-summary"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
+        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+          {totalItems} {totalItems === 1 ? "item" : "items"}
+        </span>
+      </div>
 
       {/* Price breakdown */}
       <ul className="space-y-2.5 text-sm">
@@ -167,7 +177,9 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
 
       {/* Total */}
       <div className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-baseline justify-between">
-        <span className="text-base font-bold text-gray-900 dark:text-white">Total</span>
+        <div>
+          <span className="text-base font-bold text-gray-900 dark:text-white">Total</span>
+        </div>
         <span className="text-2xl font-black text-gray-900 dark:text-white">{formatPrice(total)}</span>
       </div>
 

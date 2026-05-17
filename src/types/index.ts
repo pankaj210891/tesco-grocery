@@ -1,6 +1,9 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
-export type ProductBadge = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type ProductBadge  = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type ProductStatus = "pending" | "approved" | "rejected";
+export type DeliveryOption = "express" | "standard" | "collection";
+export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";
 
 export interface Product {
   _id: string;
@@ -11,6 +14,7 @@ export interface Product {
   originalPrice?: number;
   images: string[];
   category: string;
+  subcategory?: string | null;
   brand: string;
   unit: string;
   inStock: boolean;
@@ -18,23 +22,80 @@ export interface Product {
   reviewCount: number;
   tags: string[];
   badge?: ProductBadge | null;
+  deliveryOptions?: DeliveryOption[];
   vendorId?: string | null;
   vendorName?: string | null;
+  status?: ProductStatus;
+  // Dynamic category-specific attributes e.g. { ram: "8GB", storage: "128GB" }
+  attributes?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ProductFilters {
-  category?: string;
-  brand?:    string;
-  minPrice?: number;
-  maxPrice?: number;
-  inStock?: boolean;
-  sortBy?: "price-asc" | "price-desc" | "rating" | "newest";
-  search?: string;
-  page?: number;
-  limit?: number;
-  slugs?: string[];
+  category?:       string;
+  subcategory?:    string;
+  brands?:         string[];   // multi-select, replaces single brand
+  minPrice?:       number;
+  maxPrice?:       number;
+  inStock?:        boolean;
+  rating?:          number;          // exact star rating match (e.g. 4 = exactly 4 stars)
+  discount?:        number;          // exact discount % match (e.g. 25 = exactly 25% off)
+  deliveryOptions?: DeliveryOption[]; // multi-select delivery types
+  sortBy?:         SortBy;
+  search?:         string;
+  page?:           number;
+  limit?:          number;
+  slugs?:          string[];
+  // Dynamic attribute filters — key=attrKey, values=multiselect values
+  attrs?:          Record<string, string[]>;
+}
+
+export interface FilterMeta {
+  brands:        string[];
+  subcategories: string[];
+}
+
+// ─── Category Attributes ─────────────────────────────────────────────────────
+
+export type AttributeType = "text" | "select" | "multiselect" | "boolean" | "number";
+
+export interface AttributeDef {
+  key:        string;
+  label:      string;
+  type:       AttributeType;
+  filterable: boolean;
+  searchable: boolean;
+  required:   boolean;
+  options:    string[];
+  order:      number;
+}
+
+export interface CategoryAttributes {
+  _id:        string;
+  category:   string;
+  label:      string;
+  attributes: AttributeDef[];
+  isActive:   boolean;
+  createdAt:  string;
+  updatedAt:  string;
+}
+
+// A single dynamic filter group returned by /api/products/dynamic-filters
+export interface DynamicFilterValue {
+  value: string;
+  count: number;
+}
+
+export interface DynamicFilterGroup {
+  key:    string;
+  label:  string;
+  type:   AttributeType;
+  values: DynamicFilterValue[];
+}
+
+export interface DynamicFiltersResult {
+  filters: DynamicFilterGroup[];
 }
 
 export interface PaginatedProducts {
@@ -58,7 +119,14 @@ export interface Category {
   order:        number;
   isActive:     boolean;
   productCount: number;
+  parentId:     string | null;
+  level:        number;
   createdAt:    string;
+}
+
+// Hierarchical node returned by /api/categories/tree
+export interface CategoryNode extends Category {
+  children: CategoryNode[];
 }
 
 // Lightweight shape returned by the categories list API
@@ -91,10 +159,30 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface SavedCartItem {
+  product: Product;
+  savedAt: string;
+}
+
 export interface Cart {
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
+}
+
+export interface CartRecommendation {
+  _id:           string;
+  name:          string;
+  slug:          string;
+  price:         number;
+  originalPrice?: number;
+  images:        string[];
+  brand:         string;
+  unit:          string;
+  rating:        number;
+  inStock:       boolean;
+  badge?:        ProductBadge | null;
+  vendorName?:   string | null;
 }
 
 // ─── User / Auth ─────────────────────────────────────────────────────────────
@@ -137,24 +225,48 @@ export interface Vendor {
   createdAt:   string;
 }
 
+export type VendorInviteStatus = "pending" | "accepted" | "expired";
+
+export interface VendorInvite {
+  _id:          string;
+  email:        string;
+  businessName: string;
+  contactName:  string;
+  status:       VendorInviteStatus;
+  expiresAt:    string;
+  invitedBy:    string;
+  createdAt:    string;
+}
+
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 export interface OrderLineItem {
-  productId: string;
-  name:      string;
-  slug:      string;
-  price:     number;
-  quantity:  number;
-  image:     string;
+  productId:  string;
+  vendorId?:  string | null;
+  vendorName?: string | null;
+  name:       string;
+  slug:       string;
+  price:      number;
+  quantity:   number;
+  image:      string;
 }
 
 export type PaymentMethodType = "razorpay" | "cod";
-export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded";
+export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
 export type RefundStatus     = "initiated" | "processed" | "failed";
+export type RefundType       = "full" | "partial";
+
+export interface RefundItem {
+  productId: string;
+  name:      string;
+  quantity:  number;
+  amount:    number;
+}
 
 export interface Order {
   _id:         string;
   orderNumber: string;
+  userId?:     string | null;
   items:       OrderLineItem[];
   delivery: {
     fullName: string;
@@ -177,9 +289,39 @@ export interface Order {
   razorpayPaymentId?: string;
   cancellationReason?:  string;
   cancellationComment?: string;
-  refundId?:     string;
-  refundStatus?: RefundStatus;
+  refundId?:          string;
+  refundStatus?:      RefundStatus;
+  refundType?:        RefundType | null;
+  refundReason?:      string | null;
+  refundedAmount?:    number;
+  refundedItems?:     RefundItem[];
+  refundProcessedAt?: string | null;
   createdAt:   string;
+  updatedAt:   string;
+}
+
+export interface OrderDetail extends Order {
+  user?: {
+    _id:    string;
+    name:   string;
+    email:  string;
+    role:   string;
+    status: string;
+  } | null;
+}
+
+export interface UserAnalytics {
+  totalOrders:     number;
+  totalSpent:      number;
+  cancelledOrders: number;
+  refundedOrders:  number;
+  lastOrderDate:   string | null;
+}
+
+export interface UserDetail extends User {
+  addresses: Address[];
+  orders:    Order[];
+  analytics: UserAnalytics;
 }
 
 // ─── Address ─────────────────────────────────────────────────────────────────
@@ -352,6 +494,60 @@ export interface HomepageSection {
   ctaHref?:  string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Marketplace Analytics ────────────────────────────────────────────────────
+
+export interface VendorAnalytics {
+  totalRevenue:   number;
+  totalOrders:    number;
+  pendingOrders:  number;
+  totalProducts:  number;
+  topProducts: Array<{
+    name:     string;
+    slug:     string;
+    revenue:  number;
+    quantity: number;
+  }>;
+  revenueByMonth: Array<{ month: string; revenue: number }>;
+}
+
+export interface AdminVendorStats {
+  vendorId:      string;
+  vendorName:    string;
+  totalProducts: number;
+  totalOrders:   number;
+  totalRevenue:  number;
+  status:        string;
+}
+
+export interface AdminDashboardStats {
+  totalProducts:    number;
+  totalOrders:      number;
+  pendingOrders:    number;
+  processingOrders: number;
+  totalUsers:       number;
+  totalVendors:     number;
+  totalRevenue:     number;
+  recentOrders: Array<{
+    _id:          string;
+    orderNumber:  string;
+    delivery:     { fullName: string };
+    total:        number;
+    status:       string;
+    createdAt:    string;
+  }>;
+  lowStock:    Array<{ _id: string; name: string; category: string }>;
+  topVendors:  AdminVendorStats[];
+}
+
+// ─── Paginated results ────────────────────────────────────────────────────────
+
+export interface PaginatedResult<T> {
+  data:       T[];
+  total:      number;
+  page:       number;
+  totalPages: number;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

@@ -9,9 +9,14 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   await connectDB();
-  const sp     = req.nextUrl.searchParams;
-  const search = sp.get("q")?.trim() ?? "";
-  const query  = search ? { name: { $regex: search, $options: "i" } } : {};
+  const sp       = req.nextUrl.searchParams;
+  const search   = sp.get("q")?.trim() ?? "";
+  const isActive = sp.get("isActive");
+
+  const query: Record<string, unknown> = {};
+  if (search) query.name = { $regex: search, $options: "i" };
+  if (isActive === "true")  query.isActive = true;
+  if (isActive === "false") query.isActive = false;
 
   const docs = await CategoryModel.find(query).sort({ order: 1, name: 1 }).lean();
   return NextResponse.json({ success: true, data: docs });

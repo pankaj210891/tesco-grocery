@@ -3,24 +3,33 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Package, ShoppingBag, Users, Store, TrendingUp, ArrowRight } from "lucide-react";
+import { Package, ShoppingBag, Users, Store, TrendingUp, ArrowRight, Clock } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import StatsCard from "@/components/admin/StatsCard";
+import type { AdminVendorStats } from "@/types";
+
+interface TopVendorRevenue {
+  vendorId:   string;
+  vendorName: string;
+  revenue:    number;
+}
 
 interface DashStats {
   totalProducts:    number;
+  pendingProducts:  number;
   totalOrders:      number;
   pendingOrders:    number;
   processingOrders: number;
   totalUsers:       number;
   totalVendors:     number;
   totalRevenue:     number;
-  recentOrders:     Array<{
+  recentOrders: Array<{
     _id: string; orderNumber: string;
     delivery: { fullName: string };
     total: number; status: string; createdAt: string;
   }>;
-  lowStock: Array<{ _id: string; name: string; category: string }>;
+  lowStock:         Array<{ _id: string; name: string; category: string }>;
+  topVendorRevenue: TopVendorRevenue[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -34,17 +43,22 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminDashboard() {
   const { user, token } = useAuthStore();
   const router = useRouter();
-  const [stats, setStats] = useState<DashStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats]             = useState<DashStats | null>(null);
+  const [topVendors, setTopVendors]   = useState<AdminVendorStats[]>([]);
+  const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
     if (user.role !== "admin") { router.push("/"); return; }
 
-    fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json() as Promise<{ success: boolean; data: DashStats }>)
-      .then((j) => { if (j.success) setStats(j.data); })
-      .finally(() => setLoading(false));
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      fetch("/api/admin/stats",             { headers }).then((r) => r.json() as Promise<{ success: boolean; data: DashStats }>),
+      fetch("/api/admin/vendors/analytics", { headers }).then((r) => r.json() as Promise<{ success: boolean; data: AdminVendorStats[] }>),
+    ]).then(([statsRes, analyticsRes]) => {
+      if (statsRes.success)     setStats(statsRes.data);
+      if (analyticsRes.success) setTopVendors(analyticsRes.data);
+    }).finally(() => setLoading(false));
   }, [user, token, router]);
 
   if (loading || !stats) {
@@ -69,25 +83,40 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatsCard label="Products"  value={stats.totalProducts} icon={Package}     color="blue"   href="/admin/products" />
-        <StatsCard label="Orders"    value={stats.totalOrders}   icon={ShoppingBag} color="green"  sub={`${stats.pendingOrders} pending`} href="/admin/orders" />
+        <StatsCard label="Products"  value={stats.totalProducts} icon={Package}     color="blue"   href="/admin/products"
+          sub={stats.pendingProducts > 0 ? `${stats.pendingProducts} pending review` : undefined} />
+        <StatsCard label="Orders"    value={stats.totalOrders}   icon={ShoppingBag} color="green"  href="/admin/orders"
+          sub={`${stats.pendingOrders} pending`} />
         <StatsCard label="Users"     value={stats.totalUsers}    icon={Users}       color="purple" href="/admin/users" />
         <StatsCard label="Vendors"   value={stats.totalVendors}  icon={Store}       color="orange" href="/admin/vendors" />
         <StatsCard label="Revenue"   value={`₹${Math.round(stats.totalRevenue).toLocaleString("en-IN")}`} icon={TrendingUp} color="red" />
       </div>
+
+      {/* Pending product approvals alert */}
+      {stats.pendingProducts > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/40 rounded-xl">
+          <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
+          <p className="text-sm text-yellow-800 dark:text-yellow-300 font-medium">
+            {stats.pendingProducts} vendor product{stats.pendingProducts !== 1 ? "s" : ""} awaiting approval
+          </p>
+          <Link href="/admin/products?status=pending" className="ml-auto text-xs font-bold text-yellow-700 dark:text-yellow-300 hover:underline whitespace-nowrap">
+            Review now →
+          </Link>
+        </div>
+      )}
 
       {/* Quick Navigation */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Manage</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { href: "/admin/products", icon: Package,     color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-50 dark:bg-blue-950/40",   title: "Products",  desc: "Add, edit, or remove products and manage inventory" },
-            { href: "/admin/orders",   icon: ShoppingBag, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/40", title: "Orders",    desc: "View all customer orders and update their status" },
-            { href: "/admin/users",    icon: Users,       color: "text-purple-600 dark:text-purple-400",bg: "bg-purple-50 dark:bg-purple-950/40",title: "Users",   desc: "Manage customer accounts, roles, and access" },
-            { href: "/admin/vendors",  icon: Store,       color: "text-orange-600 dark:text-orange-400",bg: "bg-orange-50 dark:bg-orange-950/40",title: "Vendors", desc: "Approve and manage vendor stores and accounts" },
+            { href: "/admin/products", icon: Package,     color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-50 dark:bg-blue-950/40",   title: "Products",  desc: "Add, edit, approve vendor products" },
+            { href: "/admin/orders",   icon: ShoppingBag, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/40", title: "Orders",    desc: "View all marketplace orders" },
+            { href: "/admin/users",    icon: Users,       color: "text-purple-600 dark:text-purple-400",bg: "bg-purple-50 dark:bg-purple-950/40",title: "Users",   desc: "Manage customer accounts" },
+            { href: "/admin/vendors",  icon: Store,       color: "text-orange-600 dark:text-orange-400",bg: "bg-orange-50 dark:bg-orange-950/40",title: "Vendors", desc: "Approve and manage vendor stores" },
           ].map(({ href, icon: Icon, color, bg, title, desc }) => (
             <Link key={href} href={href}
-              className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-colors transition-shadow"
+              className="group flex items-start gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-colors"
             >
               <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
                 <Icon className={`h-5 w-5 ${color}`} />
@@ -96,7 +125,7 @@ export default function AdminDashboard() {
                 <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">{title}</p>
                 <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{desc}</p>
               </div>
-              <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-colors transition-transform shrink-0 mt-0.5" />
+              <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
             </Link>
           ))}
         </div>
@@ -147,6 +176,65 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Top Vendors by Revenue */}
+      {topVendors.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Top Vendors by Revenue</h2>
+            <Link href="/admin/vendors" className="text-xs font-semibold text-[#0F4C75] hover:underline">View all</Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="top-vendors-table">
+              <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
+                <tr>
+                  {["Vendor", "Products", "Orders", "Revenue", "Status"].map((h) => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                {topVendors.map((v) => (
+                  <tr key={v.vendorId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-analytics-row">
+                    <td className="px-5 py-3 font-semibold text-gray-900 dark:text-gray-100">{v.vendorName}</td>
+                    <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{v.totalProducts}</td>
+                    <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{v.totalOrders}</td>
+                    <td className="px-5 py-3 font-bold text-gray-900 dark:text-gray-100">
+                      ₹{v.totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                        v.status === "active"    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                        : v.status === "pending" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                      }`}>
+                        {v.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Inline top vendor revenue from stats (backup if analytics fails) */}
+      {topVendors.length === 0 && stats.topVendorRevenue?.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Top Vendors by Revenue</h2>
+          </div>
+          <div className="divide-y divide-gray-50 dark:divide-gray-800">
+            {stats.topVendorRevenue.map((v) => (
+              <div key={v.vendorId} className="px-5 py-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{v.vendorName}</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">₹{v.revenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,6 +13,13 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
+// Indexes for admin filtering / sorting
+UserSchema.index({ role: 1 });
+UserSchema.index({ status: 1 });
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ role: 1, status: 1 });
+UserSchema.index({ name: 1 });
+
 export type UserDoc = InferSchemaType<typeof UserSchema> & {
   _id: mongoose.Types.ObjectId;
   createdAt: Date;

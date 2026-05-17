@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, X, Search } from "lucide-react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
-import type { Vendor, VendorStatus } from "@/types";
+import {
+  useAdminVendorsStore,
+  type AdminVendorFilters,
+} from "@/store/admin-vendors.store";
+import { useDebounce } from "@/hooks/useDebounce";
+import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import type { Vendor, VendorStatus, VendorInvite } from "@/types";
 
 interface PageData { vendors: Vendor[]; total: number; page: number; totalPages: number; }
+interface InvitePageData { invites: VendorInvite[]; total: number; }
 
 const STATUS_COLORS: Record<string, string> = {
   active:    "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
@@ -15,56 +22,205 @@ const STATUS_COLORS: Record<string, string> = {
   suspended: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300",
 };
 
-const EMPTY_FORM = { name:"", slug:"", description:"", email:"", phone:"", address:"", city:"", ownerId:"", ownerName:"", status:"pending" as VendorStatus };
-function slugify(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+const STATUS_TABS = ["", "active", "pending", "suspended"] as const;
 
-export default function AdminVendorsPage() {
+const EMPTY_FORM = {
+  name: "", slug: "", description: "", email: "", phone: "",
+  address: "", city: "", ownerId: "", ownerName: "", status: "pending" as VendorStatus,
+};
+
+type VendorForm = typeof EMPTY_FORM;
+
+function slugify(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function vendorToForm(v: Vendor): VendorForm {
+  return {
+    name: v.name, slug: v.slug, description: v.description,
+    email: v.email, phone: v.phone, address: v.address,
+    city: v.city, ownerId: v.ownerId, ownerName: v.ownerName, status: v.status,
+  };
+}
+
+function buildQS(filters: AdminVendorFilters, page: number): URLSearchParams {
+  const qs = new URLSearchParams();
+  if (page > 1)          qs.set("page",     String(page));
+  if (filters.search)    qs.set("search",   filters.search);
+  if (filters.status)    qs.set("status",   filters.status);
+  if (filters.dateFrom)  qs.set("dateFrom", filters.dateFrom);
+  if (filters.dateTo)    qs.set("dateTo",   filters.dateTo);
+  return qs;
+}
+
+function hasActiveFilters(f: AdminVendorFilters): boolean {
+  return !!(f.search || f.status || f.dateFrom || f.dateTo);
+}
+
+function AdminVendorsPageInner() {
   const { user, token } = useAuthStore();
-  const router = useRouter();
-  const [data, setData]       = useState<PageData | null>(null);
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal]     = useState(false);
-  const [form, setForm]       = useState({ ...EMPTY_FORM });
-  useScrollLock(modal);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState("");
+  const router   = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { page, filters, setPage, setFilter, resetFilters } = useAdminVendorsStore();
+
+  const [data, setData]         = useState<PageData | null>(null);
+  const [loading, setLoading]   = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [search, setSearch]     = useState("");
+
+  // Add vendor modal
+  const [addModal, setAddModal] = useState(false);
+  const [addForm, setAddForm]   = useState({ ...EMPTY_FORM });
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError]   = useState("");
+
+  // Invite vendor modal
+  const [inviteModal,   setInviteModal]   = useState(false);
+  const [inviteForm,    setInviteForm]    = useState({ email: "", businessName: "", contactName: "" });
+  const [inviteSaving,  setInviteSaving]  = useState(false);
+  const [inviteError,   setInviteError]   = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState("");
+
+  // View/Edit vendor modal
+  const [viewVendor, setViewVendor] = useState<Vendor | null>(null);
+  const [editMode, setEditMode]     = useState(false);
+  const [editForm, setEditForm]     = useState<VendorForm>({ ...EMPTY_FORM });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError]   = useState("");
+
+  useScrollLock(addModal || inviteModal || viewVendor !== null);
+
+  // ── Bug 2 fix: guard load + URL-sync until URL→store init completes ─────────
+  // On mount three effects fire synchronously in order. Without this guard the
+  // Store→URL effect runs first (with empty initial state) and wipes the URL
+  // params before the URL→Store effect has a chance to read them.
+  const [filterReady, setFilterReady] = useState(false);
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<"vendors" | "invites">("vendors");
+
+  // ── Invite list ───────────────────────────────────────────────────────────────
+  const [inviteData,        setInviteData]        = useState<InvitePageData | null>(null);
+  const [inviteListLoading, setInviteListLoading] = useState(false);
+
+  const debouncedSearch = useDebounce(filters.search, 350);
 
   const authHeader = { Authorization: `Bearer ${token}` };
+
+  // Sync store from URL on mount — must run before any load or URL-write
+  useEffect(() => {
+    const p: Partial<AdminVendorFilters> = {
+      search:   searchParams.get("search")   ?? "",
+      status:   searchParams.get("status")   ?? "",
+      dateFrom: searchParams.get("dateFrom") ?? "",
+      dateTo:   searchParams.get("dateTo")   ?? "",
+    };
+    setFilter(p);
+    const pg = Number(searchParams.get("page") ?? 1);
+    if (pg > 1) setPage(pg);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilterReady(true); // unblock load + URL sync after this render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const qs = new URLSearchParams({ page: String(page), limit: "20" });
-    if (search) qs.set("q", search);
+    if (debouncedSearch)    qs.set("q",        debouncedSearch);
+    if (filters.status)     qs.set("status",   filters.status);
+    if (filters.dateFrom)   qs.set("dateFrom", filters.dateFrom);
+    if (filters.dateTo)     qs.set("dateTo",   filters.dateTo);
     fetch(`/api/admin/vendors?${qs}`, { headers: authHeader })
       .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
       .then((j) => { if (j.success) setData(j.data); })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, token, search]);
+  }, [page, debouncedSearch, filters.status, filters.dateFrom, filters.dateTo, token]);
+
+  const loadInvites = useCallback(async () => {
+    setInviteListLoading(true);
+    fetch("/api/admin/vendors/invite", { headers: authHeader })
+      .then((r) => r.json() as Promise<{ success: boolean; data: InvitePageData }>)
+      .then((j) => { if (j.success) setInviteData(j.data); })
+      .finally(() => setInviteListLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   useEffect(() => {
-    if (!user) { router.push("/login"); return; }
-    if (user.role !== "admin") { router.push("/"); return; }
+    if (!user)                 { router.push("/login"); return; }
+    if (user.role !== "admin") { router.push("/");      return; }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!filterReady || !user || user.role !== "admin") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [user, router, load]);
+    void loadInvites();
+  }, [load, loadInvites, user, filterReady]);
 
-  async function handleSave() {
-    setSaving(true); setError("");
+  // Sync URL when filters change — skip until filterReady to avoid wiping URL on mount
+  useEffect(() => {
+    if (!filterReady) return;
+    const qs = buildQS(filters, page);
+    const url = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
+    router.replace(url, { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, page, filterReady]);
+
+  async function handleAddSave() {
+    setAddSaving(true); setAddError("");
     const res  = await fetch("/api/admin/vendors", {
       method: "POST",
       headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(addForm),
     });
     const json = await res.json() as { success: boolean; error?: string };
-    setSaving(false);
-    if (!json.success) { setError(json.error ?? "Failed"); return; }
-    setModal(false);
-     
+    setAddSaving(false);
+    if (!json.success) { setAddError(json.error ?? "Failed"); return; }
+    setAddModal(false);
     void load();
+  }
+
+  async function handleEditSave() {
+    if (!viewVendor) return;
+    if (!editForm.name.trim()) { setEditError("Name is required"); return; }
+    if (!editForm.email.trim()) { setEditError("Email is required"); return; }
+    setEditSaving(true); setEditError("");
+    const res = await fetch(`/api/admin/vendors/${viewVendor._id}`, {
+      method: "PUT",
+      headers: { ...authHeader, "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    const json = await res.json() as { success: boolean; error?: string; data?: Vendor };
+    setEditSaving(false);
+    if (!json.success) { setEditError(json.error ?? "Failed"); return; }
+    if (json.data) {
+      setViewVendor(json.data);
+      setData((prev) => {
+        if (!prev) return prev;
+        return { ...prev, vendors: prev.vendors.map((v) => v._id === json.data!._id ? json.data! : v) };
+      });
+    }
+    setEditMode(false);
+  }
+
+  async function handleInviteSave() {
+    if (!inviteForm.email.trim())        { setInviteError("Email is required"); return; }
+    if (!inviteForm.businessName.trim()) { setInviteError("Business name is required"); return; }
+    if (!inviteForm.contactName.trim())  { setInviteError("Contact name is required"); return; }
+    setInviteSaving(true); setInviteError(""); setInviteSuccess("");
+    const res  = await fetch("/api/admin/vendors/invite", {
+      method: "POST",
+      headers: { ...authHeader, "Content-Type": "application/json" },
+      body: JSON.stringify(inviteForm),
+    });
+    const json = await res.json() as { success: boolean; error?: string; message?: string };
+    setInviteSaving(false);
+    if (!json.success) { setInviteError(json.error ?? "Failed to send invite"); return; }
+    setInviteSuccess(json.message ?? `Invite sent to ${inviteForm.email}`);
+    setInviteForm({ email: "", businessName: "", contactName: "" });
+    void loadInvites(); // refresh invite list immediately
   }
 
   async function updateStatus(id: string, status: VendorStatus) {
@@ -75,103 +231,447 @@ export default function AdminVendorsPage() {
       body: JSON.stringify({ status }),
     });
     setUpdating(null);
-     
     void load();
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this vendor? Their products will not be deleted.")) return;
     await fetch(`/api/admin/vendors/${id}`, { method: "DELETE", headers: authHeader });
-     
     void load();
   }
 
+  function openView(v: Vendor) {
+    setViewVendor(v);
+    setEditForm(vendorToForm(v));
+    setEditMode(false);
+    setEditError("");
+  }
+
+  const filteredInvites = (inviteData?.invites ?? []).filter((inv) => {
+    if (!filters.search) return true;
+    const q = filters.search.toLowerCase();
+    return (
+      inv.email.toLowerCase().includes(q) ||
+      inv.businessName.toLowerCase().includes(q) ||
+      inv.contactName.toLowerCase().includes(q)
+    );
+  });
+
+  const inputCls = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]";
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="space-y-4">
+
+      {/* ── Page header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Vendors</h1>
-        <button onClick={() => { setForm({ ...EMPTY_FORM }); setError(""); setModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg hover:bg-[#0A3352] transition-colors">
-          <Plus className="h-4 w-4" /> Add Vendor
-        </button>
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search name, email, city…"
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
-        />
-      </div>
-
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 280px)" }}>
-        <div className="overflow-auto flex-1">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
-              <tr>
-                {["Vendor", "Owner", "City", "Email", "Status", "Joined", "Actions"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
-                ))
-              ) : data?.vendors.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors yet</td></tr>
-              ) : data?.vendors.map((v) => (
-                <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{v.name}</p>
-                    <p className="text-xs text-gray-400">{v.city}</p>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{v.ownerName}</td>
-                  <td className="px-4 py-3 text-gray-500">{v.city || "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{v.email}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      {v.status !== "active" && (
-                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50">Approve</button>
-                      )}
-                      {v.status === "active" && (
-                        <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50">Suspend</button>
-                      )}
-                      <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => { setInviteForm({ email: "", businessName: "", contactName: "" }); setInviteError(""); setInviteSuccess(""); setInviteModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#14532d] text-white text-sm font-semibold rounded-lg hover:bg-[#0f3d20] transition-colors"
+            data-testid="invite-vendor-btn"
+          >
+            <Mail className="h-4 w-4" /> Invite Vendor
+          </button>
+          <button
+            onClick={() => { setAddForm({ ...EMPTY_FORM }); setAddError(""); setAddModal(true); }}
+            disabled={activeTab === "invites"}
+            title={activeTab === "invites" ? "Switch to Vendors tab to add a vendor" : undefined}
+            className={`flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg transition-colors ${
+              activeTab === "invites" ? "opacity-40 cursor-not-allowed" : "hover:bg-[#0A3352]"
+            }`}
+            data-testid="add-vendor-btn"
+          >
+            <Plus className="h-4 w-4" /> Add Vendor
+          </button>
         </div>
-        {data && data.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
-            <span className="text-gray-500">Page {data.page} of {data.totalPages}</span>
-            <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-              <button disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-            </div>
+      </div>
+
+      {/* ── Filter bar — search always active; status/date disabled on Invites tab ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[160px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              value={filters.search}
+              onChange={(e) => setFilter({ search: e.target.value })}
+              placeholder={activeTab === "invites" ? "Search invites…" : "Search name, email, city…"}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+              data-testid="vendor-search"
+            />
+          </div>
+          {hasActiveFilters(filters) && (
+            <button
+              onClick={resetFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 transition-colors"
+              data-testid="clear-vendor-filters"
+            >
+              <RotateCcw className="h-4 w-4" /> Clear
+            </button>
+          )}
+        </div>
+
+        <div
+          className={`flex flex-wrap gap-2 items-center transition-opacity ${
+            activeTab === "invites" ? "opacity-40 pointer-events-none select-none" : ""
+          }`}
+          title={activeTab === "invites" ? "Status and date filters apply to the Vendors tab" : undefined}
+        >
+          <div className="flex flex-wrap gap-1" data-testid="vendor-status-tabs">
+            {STATUS_TABS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter({ status: s })}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
+                  filters.status === s
+                    ? "bg-[#0F4C75] text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+                data-testid={`vendor-status-${s || "all"}`}
+              >
+                {s || "All"}
+              </button>
+            ))}
+          </div>
+          <AdminDateFilter
+            dateFrom={filters.dateFrom}
+            dateTo={filters.dateTo}
+            label="Joined date"
+            onApply={(from, to) => setFilter({ dateFrom: from, dateTo: to })}
+            onClear={() => setFilter({ dateFrom: "", dateTo: "" })}
+          />
+        </div>
+
+        {hasActiveFilters(filters) && (
+          <div className="flex flex-wrap gap-1.5 pt-1" data-testid="active-vendor-filters">
+            {filters.search && (
+              <Chip label={`"${filters.search}"`} onRemove={() => setFilter({ search: "" })} />
+            )}
+            {filters.status && (
+              <Chip label={`Status: ${filters.status}`} onRemove={() => setFilter({ status: "" })} />
+            )}
+            {(filters.dateFrom || filters.dateTo) && (
+              <Chip label={`${filters.dateFrom || "…"} → ${filters.dateTo || "…"}`} onRemove={() => setFilter({ dateFrom: "", dateTo: "" })} />
+            )}
           </div>
         )}
       </div>
 
+      {/* ── Tabbed card ─────────────────────────────────────────────────────── */}
+      <div
+        className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
+        style={{ height: "max(360px, calc(100vh - 320px))" }}
+      >
+        {/* Tab strip — overflow-x-auto so tabs stay readable on narrow screens */}
+        <div className="flex border-b border-gray-100 dark:border-gray-800 shrink-0 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("vendors")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === "vendors"
+                ? "border-[#0F4C75] text-[#0F4C75] dark:text-blue-400 dark:border-blue-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+            data-testid="tab-vendors"
+          >
+            Vendors
+            {data && (
+              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                activeTab === "vendors"
+                  ? "bg-blue-100 text-[#0F4C75] dark:bg-blue-900/40 dark:text-blue-300"
+                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+              }`}>
+                {data.total}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("invites")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === "invites"
+                ? "border-[#14532d] text-[#14532d] dark:text-green-400 dark:border-green-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+            data-testid="tab-invites"
+          >
+            Pending Invites
+            {inviteData && inviteData.total > 0 && (
+              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                activeTab === "invites"
+                  ? "bg-green-100 text-[#14532d] dark:bg-green-900/40 dark:text-green-300"
+                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+              }`}>
+                {inviteData.total}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* ── Vendors tab ─────────────────────────────────────────────────── */}
+        {activeTab === "vendors" && (
+          <>
+            <div className="overflow-auto flex-1">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Vendor</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">City</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden lg:table-cell">Joined</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                  {loading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
+                    ))
+                  ) : data?.vendors.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
+                  ) : data?.vendors.map((v) => (
+                    <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{v.name}</p>
+                        <p className="text-xs text-gray-400 font-mono">{v.slug}</p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.ownerName}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{v.city || "—"}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{v.email}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 whitespace-nowrap hidden lg:table-cell">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => openView(v)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                            title="View details"
+                            data-testid={`view-vendor-${v._id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          {v.status !== "active" && (
+                            <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50" data-testid={`approve-vendor-${v._id}`}>Approve</button>
+                          )}
+                          {v.status === "active" && (
+                            <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50" data-testid={`suspend-vendor-${v._id}`}>Suspend</button>
+                          )}
+                          <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30" data-testid={`delete-vendor-${v._id}`}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {data && data.totalPages > 1 && (
+              <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm shrink-0">
+                <span className="text-gray-500" data-testid="vendor-pagination-info">Page {data.page} of {data.totalPages} · {data.total} vendors</span>
+                <div className="flex gap-2">
+                  <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                  <button disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Invites tab ─────────────────────────────────────────────────── */}
+        {activeTab === "invites" && (
+          <div className="overflow-auto flex-1">
+            {inviteListLoading ? (
+              <div className="px-4 py-4 space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : !inviteData || inviteData.invites.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
+                <Mail className="h-8 w-8 opacity-40" />
+                <p className="text-sm">No invites sent yet</p>
+                <button
+                  onClick={() => { setInviteForm({ email: "", businessName: "", contactName: "" }); setInviteError(""); setInviteSuccess(""); setInviteModal(true); }}
+                  className="text-sm font-semibold text-[#14532d] hover:underline"
+                >
+                  Send your first invite
+                </button>
+              </div>
+            ) : (
+              <table className="w-full text-sm min-w-[520px]">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Business</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Contact</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">Sent</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Expires</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                  {filteredInvites.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No invites match your search</td></tr>
+                  ) : filteredInvites.map((inv) => {
+                    const expired     = inv.status === "expired" || new Date(inv.expiresAt) < new Date();
+                    const accepted    = inv.status === "accepted";
+                    const statusLabel = accepted ? "accepted" : expired ? "expired" : "pending";
+                    const statusCls   = accepted
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                      : expired
+                        ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300";
+                    return (
+                      <tr key={inv._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="invite-row">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.email}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{inv.businessName}</td>
+                        <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{inv.contactName}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${statusCls}`}>{statusLabel}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
+                          {new Date(inv.createdAt).toLocaleDateString("en-GB")}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden sm:table-cell">
+                          {expired || accepted ? "—" : new Date(inv.expiresAt).toLocaleDateString("en-GB")}
+                        </td>
+                        <td className="px-4 py-3">
+                          {!accepted && (
+                            <button
+                              onClick={() => {
+                                setInviteForm({ email: inv.email, businessName: inv.businessName, contactName: inv.contactName });
+                                setInviteError(""); setInviteSuccess(""); setInviteModal(true);
+                              }}
+                              className="text-xs px-2 py-1 rounded-lg font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-300 whitespace-nowrap"
+                              data-testid={`resend-invite-${inv._id}`}
+                            >
+                              Resend
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Invite Vendor Modal */}
+      {inviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h2 className="font-bold text-gray-900 dark:text-gray-100">Invite Vendor</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Send an onboarding email with a secure invite link</p>
+              </div>
+              <button onClick={() => setInviteModal(false)}><X className="h-5 w-5 text-gray-400" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              {inviteError && (
+                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{inviteError}</p>
+              )}
+              {inviteSuccess ? (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-[#14532d]" />
+                  </div>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">Invite Sent!</p>
+                  <p className="text-sm text-gray-500">{inviteSuccess}</p>
+                  <p className="text-xs text-gray-400">The vendor will receive an email with a link valid for 72 hours.</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Vendor Email *</label>
+                    <input
+                      type="email"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="vendor@example.com"
+                      className={inputCls}
+                      data-testid="invite-vendor-email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Business Name *</label>
+                    <input
+                      type="text"
+                      value={inviteForm.businessName}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, businessName: e.target.value }))}
+                      placeholder="e.g. Fresh Farms Co."
+                      className={inputCls}
+                      data-testid="invite-vendor-business-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Contact Name *</label>
+                    <input
+                      type="text"
+                      value={inviteForm.contactName}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, contactName: e.target.value }))}
+                      placeholder="Person receiving the invite"
+                      className={inputCls}
+                      data-testid="invite-vendor-contact-name"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+                    An email with a secure 72-hour onboarding link will be sent to the vendor. They will set up their account and store — no password required from you.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="px-6 pb-6 flex gap-3 justify-end">
+              {inviteSuccess ? (
+                <>
+                  <button
+                    onClick={() => { setInviteSuccess(""); setInviteForm({ email: "", businessName: "", contactName: "" }); }}
+                    className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    Send Another
+                  </button>
+                  <button
+                    onClick={() => setInviteModal(false)}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-[#14532d] rounded-lg hover:bg-[#0f3d20]"
+                  >
+                    Done
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setInviteModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
+                  <button
+                    onClick={() => void handleInviteSave()}
+                    disabled={inviteSaving}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-[#14532d] rounded-lg hover:bg-[#0f3d20] disabled:opacity-50 flex items-center gap-2"
+                    data-testid="invite-vendor-send-btn"
+                  >
+                    {inviteSaving ? "Sending…" : <><Mail className="h-4 w-4" /> Send Invite</>}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Vendor Modal */}
-      {modal && (
+      {addModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="font-bold text-gray-900 dark:text-gray-100">Add Vendor</h2>
-              <button onClick={() => setModal(false)}><X className="h-5 w-5 text-gray-400" /></button>
+              <button onClick={() => setAddModal(false)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             <div className="p-6 space-y-4">
-              {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{error}</p>}
+              {addError && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{addError}</p>}
               {([
                 { field: "name", label: "Business Name" },
                 { field: "slug", label: "Slug" },
@@ -181,28 +681,23 @@ export default function AdminVendorsPage() {
                 { field: "city", label: "City" },
                 { field: "ownerId", label: "Owner User ID" },
                 { field: "ownerName", label: "Owner Name" },
-              ] as { field: keyof typeof form; label: string }[]).map(({ field, label }) => (
+              ] as { field: keyof VendorForm; label: string }[]).map(({ field, label }) => (
                 <div key={field}>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{label}</label>
                   <input
                     type="text"
-                    value={String(form[field])}
+                    value={String(addForm[field])}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setForm((f) => ({
-                        ...f,
-                        [field]: val,
-                        ...(field === "name" ? { slug: slugify(val) } : {}),
-                      }));
+                      setAddForm((f) => ({ ...f, [field]: val, ...(field === "name" ? { slug: slugify(val) } : {}) }));
                     }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                    className={inputCls}
                   />
                 </div>
               ))}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Status</label>
-                <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as VendorStatus }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none">
+                <select value={addForm.status} onChange={(e) => setAddForm((f) => ({ ...f, status: e.target.value as VendorStatus }))} className={inputCls}>
                   <option value="pending">Pending</option>
                   <option value="active">Active</option>
                   <option value="suspended">Suspended</option>
@@ -210,14 +705,137 @@ export default function AdminVendorsPage() {
               </div>
             </div>
             <div className="px-6 pb-6 flex gap-3 justify-end">
-              <button onClick={() => setModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-semibold text-white bg-[#0F4C75] rounded-lg hover:bg-[#0A3352] disabled:opacity-50">
-                {saving ? "Saving…" : "Add Vendor"}
+              <button onClick={() => setAddModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
+              <button onClick={() => void handleAddSave()} disabled={addSaving} className="px-4 py-2 text-sm font-semibold text-white bg-[#0F4C75] rounded-lg hover:bg-[#0A3352] disabled:opacity-50">
+                {addSaving ? "Saving…" : "Add Vendor"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* View/Edit Vendor Modal */}
+      {viewVendor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" data-testid="vendor-detail-modal">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h2 className="font-bold text-gray-900 dark:text-gray-100">{viewVendor.name}</h2>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[viewVendor.status] ?? ""}`}>{viewVendor.status}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {!editMode && (
+                  <button
+                    onClick={() => { setEditMode(true); setEditForm(vendorToForm(viewVendor)); setEditError(""); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    data-testid="vendor-edit-btn"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                )}
+                <button onClick={() => { setViewVendor(null); setEditMode(false); }} data-testid="vendor-modal-close">
+                  <X className="h-5 w-5 text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {editError && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2 mb-4">{editError}</p>}
+
+              {editMode ? (
+                <div className="space-y-4">
+                  {([
+                    { field: "name", label: "Business Name" },
+                    { field: "slug", label: "Slug" },
+                    { field: "description", label: "Description" },
+                    { field: "email", label: "Email" },
+                    { field: "phone", label: "Phone" },
+                    { field: "address", label: "Address" },
+                    { field: "city", label: "City" },
+                    { field: "ownerName", label: "Owner Name" },
+                  ] as { field: keyof VendorForm; label: string }[]).map(({ field, label }) => (
+                    <div key={field}>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{label}</label>
+                      <input
+                        type="text"
+                        value={String(editForm[field])}
+                        onChange={(e) => setEditForm((f) => ({ ...f, [field]: e.target.value }))}
+                        className={inputCls}
+                        data-testid={`vendor-edit-${field}`}
+                      />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Status</label>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as VendorStatus }))}
+                      className={inputCls}
+                      data-testid="vendor-edit-status"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="active">Active</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <dl className="space-y-3">
+                  {[
+                    { label: "Business Name",  value: viewVendor.name },
+                    { label: "Slug",           value: viewVendor.slug },
+                    { label: "Description",    value: viewVendor.description || "—" },
+                    { label: "Email",          value: viewVendor.email },
+                    { label: "Phone",          value: viewVendor.phone || "—" },
+                    { label: "Address",        value: viewVendor.address || "—" },
+                    { label: "City",           value: viewVendor.city || "—" },
+                    { label: "Owner Name",     value: viewVendor.ownerName },
+                    { label: "Owner ID",       value: viewVendor.ownerId },
+                    { label: "Joined",         value: new Date(viewVendor.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-3">
+                      <dt className="w-32 shrink-0 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{label}</dt>
+                      <dd className="text-sm text-gray-900 dark:text-gray-100 break-all">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </div>
+
+            <div className="px-6 pb-6 flex gap-3 justify-end border-t border-gray-100 dark:border-gray-800 pt-4">
+              {editMode ? (
+                <>
+                  <button onClick={() => { setEditMode(false); setEditError(""); }} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
+                  <button onClick={() => void handleEditSave()} disabled={editSaving} className="px-4 py-2 text-sm font-semibold text-white bg-[#0F4C75] rounded-lg hover:bg-[#0A3352] disabled:opacity-50" data-testid="vendor-save-btn">
+                    {editSaving ? "Saving…" : "Save Changes"}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => { setViewVendor(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Close</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+      {label}
+      <button onClick={onRemove} className="hover:text-blue-900 dark:hover:text-blue-100" aria-label={`Remove ${label} filter`}>
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
+export default function AdminVendorsPage() {
+  return (
+    <Suspense>
+      <AdminVendorsPageInner />
+    </Suspense>
   );
 }

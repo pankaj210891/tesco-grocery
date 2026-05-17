@@ -44,3 +44,10 @@ next-env.d.ts
 # cypress
 cypress/screenshots
 cypress/videos
+
+# claude local config
+.claude/settings.local.json
+CLAUDE.local.md
+
+# build output
+dist

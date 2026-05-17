@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -36,6 +36,7 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
+  const [isActive,   setIsActive]   = useState<"" | "true" | "false">("");
   const [showForm,   setShowForm]   = useState(false);
   const [editing,    setEditing]    = useState<Category | null>(null);
   useScrollLock(showForm);
@@ -43,6 +44,8 @@ export default function AdminCategoriesPage() {
   const [saving,     setSaving]     = useState(false);
   const [deleting,   setDeleting]   = useState<string | null>(null);
   const [formError,  setFormError]  = useState("");
+  const [seeding,    setSeeding]    = useState(false);
+  const [seedMsg,    setSeedMsg]    = useState<{ ok: boolean; text: string } | null>(null);
 
   const authHeader = { Authorization: `Bearer ${token}` };
 
@@ -54,15 +57,17 @@ export default function AdminCategoriesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs  = search ? `?q=${encodeURIComponent(search)}` : "";
-      const res = await fetch(`/api/admin/categories${qs}`, { headers: authHeader });
+      const qs = new URLSearchParams();
+      if (search)   qs.set("q",        search);
+      if (isActive) qs.set("isActive", isActive);
+      const res  = await fetch(`/api/admin/categories${qs.size ? `?${qs}` : ""}`, { headers: authHeader });
       const json = await res.json() as { success: boolean; data: Category[] };
       if (json.success) setCategories(json.data);
     } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, token]);
+  }, [search, isActive, token]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
@@ -122,6 +127,25 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  async function handleSeedSubcategories() {
+    setSeeding(true);
+    setSeedMsg(null);
+    try {
+      const res  = await fetch("/api/categories/tree/seed", { method: "POST" });
+      const json = await res.json() as { success: boolean; inserted?: number; skipped?: number; message?: string; error?: string };
+      if (json.success) {
+        setSeedMsg({ ok: true, text: json.message ?? `Inserted ${json.inserted ?? 0} sub-categories.` });
+        void load();
+      } else {
+        setSeedMsg({ ok: false, text: json.error ?? "Seed failed." });
+      }
+    } catch {
+      setSeedMsg({ ok: false, text: "Network error — seed request failed." });
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -129,29 +153,69 @@ export default function AdminCategoriesPage() {
           <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Categories</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{categories.length} total</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg hover:bg-[#0a3a5c] transition-colors"
-        >
-          <Plus className="h-4 w-4" /> Add Category
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleSeedSubcategories()}
+            disabled={seeding}
+            title="Insert level-1 and level-2 sub-categories into the database (safe to re-run)"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+          >
+            {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            Seed Sub-Categories
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg hover:bg-[#0a3a5c] transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Add Category
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search categories…"
-          className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-[#0F4C75]"
-        />
-        {search && (
-          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      {seedMsg && (
+        <div className={`flex items-start gap-2 px-4 py-3 rounded-lg text-sm font-medium ${seedMsg.ok ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300" : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300"}`}>
+          {seedMsg.ok ? <Check className="h-4 w-4 mt-0.5 shrink-0" /> : <X className="h-4 w-4 mt-0.5 shrink-0" />}
+          <span>{seedMsg.text}</span>
+          <button onClick={() => setSeedMsg(null)} className="ml-auto shrink-0 opacity-60 hover:opacity-100"><X className="h-3.5 w-3.5" /></button>
+        </div>
+      )}
+
+      {/* Search + Status filter */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search categories…"
+            className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-[#0F4C75]"
+            data-testid="category-search"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Status tabs */}
+        <div className="flex gap-1" data-testid="category-status-filters">
+          {([["", "All"], ["true", "Active"], ["false", "Inactive"]] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setIsActive(val)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                isActive === val
+                  ? "bg-[#0F4C75] text-white"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+              data-testid={`category-status-${val || "all"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}

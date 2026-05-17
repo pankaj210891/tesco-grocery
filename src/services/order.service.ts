@@ -87,6 +87,7 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     refundId:     (doc as unknown as { refundId?: string }).refundId      ?? undefined,
     refundStatus: (doc as unknown as { refundStatus?: string }).refundStatus as RefundStatus | undefined,
     createdAt:   doc.createdAt.toISOString(),
+    updatedAt:   (doc as unknown as { updatedAt?: Date }).updatedAt?.toISOString() ?? doc.createdAt.toISOString(),
   };
 }
 

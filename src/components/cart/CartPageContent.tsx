@@ -1,17 +1,66 @@
 "use client";
 
+import { useEffect, useMemo, lazy, Suspense } from "react";
 import Link from "next/link";
-import { Trash2, ShoppingCart, ArrowRight } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowRight, Store } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import CartItem from "@/components/cart/CartItem";
 import OrderSummary from "@/components/cart/OrderSummary";
 import CartSkeleton from "@/components/cart/CartSkeleton";
+import SavedItemsSection from "@/components/cart/SavedItemsSection";
+
+const CartRecommendations = lazy(
+  () => import("@/components/cart/CartRecommendations")
+);
+
+// ── Vendor group ─────────────────────────────────────────────────────────────
+
+interface VendorGroup {
+  vendorId:   string | null;
+  vendorName: string | null;
+  items:      ReturnType<typeof useCartStore.getState>["items"];
+  subtotal:   number;
+}
 
 export default function CartPageContent() {
   const { user, token, hasHydrated } = useAuthStore();
-  const { items, totalItems, totalPrice, clearCart, loading, loaded } = useCartStore();
+  const {
+    items, totalItems, totalPrice,
+    clearCart, loading, loaded,
+    fetchSavedItems, savedLoaded,
+  } = useCartStore();
+
+  // Fetch saved items once logged in
+  useEffect(() => {
+    if (token && !savedLoaded) void fetchSavedItems(token);
+  }, [token, savedLoaded, fetchSavedItems]);
+
+  // ── Vendor groups ────────────────────────────────────────────────────────────
+  const vendorGroups = useMemo<VendorGroup[]>(() => {
+    const map = new Map<string, VendorGroup>();
+    for (const item of items) {
+      const key  = item.product.vendorId ?? "__marketplace__";
+      const name = item.product.vendorName ?? null;
+      if (!map.has(key)) {
+        map.set(key, { vendorId: item.product.vendorId ?? null, vendorName: name, items: [], subtotal: 0 });
+      }
+      const g = map.get(key)!;
+      g.items.push(item);
+      g.subtotal += item.product.price * item.quantity;
+    }
+    return Array.from(map.values());
+  }, [items]);
+
+  const hasMultipleVendors = vendorGroups.length > 1;
+
+  // ── Recommendation params (memoized) ─────────────────────────────────────────
+  const cartItemIds   = useMemo(() => items.map((i) => i.product._id), [items]);
+  const cartCategories = useMemo(
+    () => Array.from(new Set(items.map((i) => i.product.category))),
+    [items]
+  );
 
   if (!hasHydrated) return <CartSkeleton />;
 
@@ -44,7 +93,7 @@ export default function CartPageContent() {
         <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
           <ShoppingCart className="h-9 w-9 text-gray-400 dark:text-gray-500" aria-hidden />
         </div>
-        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Your cart is empty</h2>
+        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Your trolley is empty</h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mb-8 leading-relaxed">
           Looks like you haven&apos;t added anything yet. Start browsing and fill it up!
         </p>
@@ -55,41 +104,49 @@ export default function CartPageContent() {
           Browse Products
           <ArrowRight className="h-4 w-4" />
         </Link>
+        {/* Show saved items even when cart is empty */}
+        <div className="w-full max-w-2xl mt-8">
+          <SavedItemsSection />
+        </div>
       </div>
     );
   }
 
   function handleClearCart() {
     void clearCart(token!);
-    toast.success("Cart cleared");
+    toast.success("Trolley cleared");
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 lg:pb-16">
       {/* ── Page header ── */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Shopping Cart</h1>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+            Your Trolley
+          </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             <span className="font-semibold text-gray-700 dark:text-gray-300">{totalItems}</span>
-            {" "}{totalItems === 1 ? "item" : "items"} in your cart
+            {" "}{totalItems === 1 ? "item" : "items"} in your trolley
           </p>
         </div>
         <button
           onClick={handleClearCart}
+          data-testid="clear-cart"
           className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10"
         >
           <Trash2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Clear cart</span>
+          <span className="hidden sm:inline">Clear trolley</span>
         </button>
       </div>
 
       {/* ── Two-column layout ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+
         {/* Left: Items list */}
-        <div className="space-y-3">
+        <div>
           {/* Section header */}
-          <div className="hidden sm:grid grid-cols-[1fr_auto] items-center pb-3 border-b border-gray-100 dark:border-gray-700/60">
+          <div className="hidden sm:grid grid-cols-[1fr_auto] items-center pb-3 mb-3 border-b border-gray-100 dark:border-gray-700/60">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
               Product
             </span>
@@ -98,12 +155,42 @@ export default function CartPageContent() {
             </span>
           </div>
 
-          {items.map((item) => (
-            <CartItem key={item.product._id} item={item} />
-          ))}
+          {/* Items — grouped by vendor when marketplace */}
+          {hasMultipleVendors
+            ? vendorGroups.map((group) => (
+              <div key={group.vendorId ?? "marketplace"} className="mb-6">
+                {/* Vendor header */}
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <div className="flex items-center gap-1.5">
+                    <Store className="h-3.5 w-3.5 text-[#FCA311]" />
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                      {group.vendorName ?? "Marketplace"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    Subtotal: <strong className="text-gray-900 dark:text-white">
+                      {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(group.subtotal)}
+                    </strong>
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {group.items.map((item) => (
+                    <CartItem key={item.product._id} item={item} />
+                  ))}
+                </div>
+              </div>
+            ))
+            : (
+              <div className="space-y-3">
+                {items.map((item) => (
+                  <CartItem key={item.product._id} item={item} />
+                ))}
+              </div>
+            )
+          }
 
           {/* Continue shopping */}
-          <div className="pt-2">
+          <div className="pt-4">
             <Link
               href="/products"
               className="inline-flex items-center gap-1.5 text-sm text-[#FCA311] font-semibold hover:underline"
@@ -111,11 +198,43 @@ export default function CartPageContent() {
               ← Continue Shopping
             </Link>
           </div>
+
+          {/* Saved for later */}
+          <SavedItemsSection />
+
+          {/* Recommendations */}
+          <Suspense fallback={null}>
+            <CartRecommendations
+              cartItemIds={cartItemIds}
+              cartCategories={cartCategories}
+            />
+          </Suspense>
         </div>
 
-        {/* Right: Summary */}
-        <div>
+        {/* Right: Sticky summary (desktop) */}
+        <div className="hidden lg:block">
           <OrderSummary subtotal={totalPrice} />
+        </div>
+      </div>
+
+      {/* ── Mobile sticky checkout bar ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 shadow-2xl">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {totalItems} {totalItems === 1 ? "item" : "items"}
+            </p>
+            <p className="text-base font-black text-gray-900 dark:text-white truncate">
+              {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(totalPrice)}
+            </p>
+          </div>
+          <Link
+            href="/checkout"
+            data-testid="mobile-checkout-btn"
+            className="shrink-0 px-6 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors active:scale-[0.98]"
+          >
+            Checkout →
+          </Link>
         </div>
       </div>
     </div>

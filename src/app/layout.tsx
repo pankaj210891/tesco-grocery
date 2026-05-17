@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
@@ -41,23 +42,24 @@ export default function RootLayout({
      * ThemeProvider toggling the "dark" class on <html> during hydration.
      */
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      {/*
-       * Blocking script — runs synchronously before first paint.
-       * Reads the stored theme from localStorage and applies the "dark" class
-       * immediately so there is no flash of wrong theme on refresh.
-       * Logic mirrors ThemeProvider:
-       *   "dark"            → dark
-       *   "light"           → light
-       *   "system" / unset  → follow OS preference
-       */}
-      <head>
-        <script
+      <body>
+        {/*
+         * Blocking theme-init script injected by Next.js into <head> via
+         * strategy="beforeInteractive".  Next.js owns the injection on both
+         * server and client, so React never sees a node-position mismatch.
+         *
+         * Reads localStorage and applies the "dark" class before first paint:
+         *   "dark"            → dark
+         *   "light"           → light
+         *   "system" / unset  → follow OS preference
+         */}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('prakash-theme'),p=window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.classList.toggle('dark',t==='dark'||(t!=='light'&&p))}catch(e){}})()`,
           }}
         />
-      </head>
-      <body>
         <ThemeProvider>
           <ScrollRestorer />
           <NetworkStatus />

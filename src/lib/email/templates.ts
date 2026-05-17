@@ -196,6 +196,61 @@ export function refundConfirmedTemplate(d: RefundConfirmedData): { subject: stri
   return { subject: `Refund Confirmed for Order ${d.orderNumber}`, html };
 }
 
+export interface VendorInviteData {
+  contactName:  string;
+  businessName: string;
+  inviteUrl:    string;
+  expiresInHrs: number;
+}
+
+export function vendorInviteTemplate(d: VendorInviteData): { subject: string; html: string } {
+  const html = base(
+    "You're Invited to Sell on Prakash Supermarket",
+    `<h2>Welcome to Our Seller Network! 🎉</h2>
+     <p>Hi ${d.contactName},</p>
+     <p>You've been invited to join <strong>${LOGO_TEXT}</strong> as a verified seller. Start listing your products and reach thousands of customers today.</p>
+     <div style="margin:24px 0;padding:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
+       <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:.5px">Business Name</p>
+       <p style="margin:0;font-size:18px;font-weight:700;color:#14532d">${d.businessName}</p>
+     </div>
+     <p>Click the button below to set up your seller account. This invite link is valid for <strong>${d.expiresInHrs} hours</strong>.</p>
+     <p style="text-align:center;margin:28px 0">
+       <a href="${d.inviteUrl}" class="btn" style="background:#14532d;color:#fff;padding:14px 36px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block">
+         Complete Your Seller Onboarding
+       </a>
+     </p>
+     <p style="font-size:13px;color:#6b7280">If the button doesn't work, copy and paste this link into your browser:</p>
+     <p style="font-size:12px;color:#9ca3af;word-break:break-all">${d.inviteUrl}</p>
+     <p style="font-size:13px;color:#6b7280;margin-top:20px">If you did not expect this invitation, you can safely ignore this email.</p>`,
+  );
+
+  return { subject: `You're invited to sell on ${LOGO_TEXT}`, html };
+}
+
+export interface VendorApprovedData {
+  vendorName:   string;
+  businessName: string;
+  dashboardUrl: string;
+}
+
+export function vendorApprovedTemplate(d: VendorApprovedData): { subject: string; html: string } {
+  const html = base(
+    "Your Seller Account is Approved",
+    `<h2>Congratulations! Your store is live 🚀</h2>
+     <p>Hi ${d.vendorName},</p>
+     <p>Great news! Your seller account for <strong>${d.businessName}</strong> has been reviewed and approved by our team.</p>
+     <p>You can now log in to your seller dashboard and start listing your products.</p>
+     <p style="text-align:center;margin:28px 0">
+       <a href="${d.dashboardUrl}" class="btn" style="background:#14532d;color:#fff;padding:14px 36px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block">
+         Go to Seller Dashboard
+       </a>
+     </p>
+     <p style="font-size:13px;color:#6b7280">Welcome to the Prakash Supermarket seller community. Our team is here to help you grow your business.</p>`,
+  );
+
+  return { subject: `Your seller account for ${d.businessName} is approved!`, html };
+}
+
 export function passwordResetTemplate(d: PasswordResetData): { subject: string; html: string } {
   const html = base(
     "Password Reset OTP",
