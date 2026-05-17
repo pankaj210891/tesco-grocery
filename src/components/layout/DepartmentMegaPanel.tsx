@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ChevronRight, ExternalLink, ArrowRight } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import axios from "axios";
 import { cn } from "@/lib/utils/cn";
+import MiniBannerCard from "@/components/ui/MiniBannerCard";
 import type { CategoryNode, Offer } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -33,44 +34,6 @@ const BANNER_PALETTE = [
   { bg: "from-amber-50 to-yellow-100 dark:from-amber-950/40 dark:to-yellow-900/30",   textColor: "text-amber-900 dark:text-amber-300",    btnColor: "text-amber-700 dark:text-amber-400"    },
 ];
 
-function MiniBanner({ offer, idx, onClose }: { offer: Offer; idx: number; onClose: () => void }) {
-  const palette = BANNER_PALETTE[idx % BANNER_PALETTE.length];
-  const discountLabel =
-    offer.discountType === "percentage" ? `${offer.discountValue}% Off`
-    : offer.discountType === "fixed"    ? `₹${offer.discountValue} Off`
-    : "Free Delivery";
-
-  return (
-    <Link
-      href={offer.href}
-      onClick={onClose}
-      data-testid="dept-mini-banner"
-      className={cn(
-        "group relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 flex flex-col justify-between",
-        "border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md",
-        "transition-shadow duration-200 min-h-[110px]",
-        palette.bg,
-      )}
-    >
-      <div>
-        <span className={cn("text-[10px] font-black uppercase tracking-widest", palette.textColor)}>{discountLabel}</span>
-        <h3 className={cn("text-sm font-black leading-tight mt-0.5 pr-12", palette.textColor)}>{offer.title}</h3>
-        {offer.code && (
-          <span className={cn("inline-block mt-1 text-[10px] font-mono font-bold bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded", palette.textColor)}>
-            {offer.code}
-          </span>
-        )}
-        <span className={cn("flex items-center gap-1 text-[11px] font-semibold mt-2 hover:underline", palette.btnColor)}>
-          Shop Now <ArrowRight className="h-3 w-3" />
-        </span>
-      </div>
-      <div className="absolute right-4 bottom-4 text-4xl select-none group-hover:scale-110 transition-transform duration-300" aria-hidden>
-        {offer.emoji ?? "🎉"}
-      </div>
-    </Link>
-  );
-}
-
 function BannerSkeleton() {
   return <div className="min-h-[110px] rounded-2xl animate-pulse bg-gray-100 dark:bg-gray-800" />;
 }
@@ -78,14 +41,14 @@ function BannerSkeleton() {
 function OffersPanel({ offers, offersLoading, onClose }: { offers: Offer[]; offersLoading: boolean; onClose: () => void }) {
   return (
     <div
-      className="dept-content-enter flex-1 min-w-0 overflow-y-auto py-4 px-4 lg:px-5 space-y-3"
+      className="dept-content-enter flex-1 min-w-0 max-w-[33.33%] overflow-y-auto py-4 px-4 lg:px-5 space-y-3"
       data-testid="dept-banners-panel"
     >
       <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-0.5">
         Offers &amp; Promotions
       </p>
       {offersLoading ? (
-        <><BannerSkeleton /><BannerSkeleton /><BannerSkeleton /></>
+        <><BannerSkeleton /><BannerSkeleton /></>
       ) : offers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <span className="text-4xl mb-3">🏷️</span>
@@ -96,7 +59,29 @@ function OffersPanel({ offers, offersLoading, onClose }: { offers: Offer[]; offe
           </Link>
         </div>
       ) : (
-        offers.map((offer, i) => <MiniBanner key={offer._id} offer={offer} idx={i} onClose={onClose} />)
+        offers.map((offer, i) => {
+          const palette = BANNER_PALETTE[i % BANNER_PALETTE.length];
+          const label =
+            offer.discountType === "percentage" ? `${offer.discountValue}% Off`
+            : offer.discountType === "fixed"    ? `₹${offer.discountValue} Off`
+            : "Free Delivery";
+          return (
+            <MiniBannerCard
+              key={offer._id}
+              href={offer.href}
+              label={label}
+              title={offer.title}
+              cta="Shop Now"
+              code={offer.code}
+              emoji={offer.emoji ?? "🎉"}
+              bg={palette.bg}
+              textColor={palette.textColor}
+              btnColor={palette.btnColor}
+              onClick={onClose}
+              data-testid="dept-mini-banner"
+            />
+          );
+        })
       )}
     </div>
   );
@@ -177,7 +162,7 @@ function SubDeptRow({
   );
 }
 
-function SubSubGrid({ parent: parentNode, items, onClose }: { parent: CategoryNode; items: CategoryNode[]; onClose: () => void }) {
+function SubSubList({ parent: parentNode, items, onClose }: { parent: CategoryNode; items: CategoryNode[]; onClose: () => void }) {
   if (items.length === 0) {
     return (
       <div className="dept-content-enter flex flex-col items-center justify-center h-full gap-3 text-center px-6">
@@ -191,26 +176,23 @@ function SubSubGrid({ parent: parentNode, items, onClose }: { parent: CategoryNo
   }
 
   return (
-    <div className="dept-content-enter h-full overflow-y-auto py-4 px-3 flex flex-col">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 px-1">
-        {parentNode.name}
-      </p>
-      <ul className="grid grid-cols-2 gap-x-2 gap-y-0.5 flex-1" data-testid="dept-subsubdept-grid">
+    <div className="dept-content-enter h-full flex flex-col overflow-hidden">
+      <ul className="flex-1 overflow-y-auto py-1.5" role="list" data-testid="dept-subsubdept-grid">
         {items.map((sub) => (
           <li key={sub._id}>
             <Link
               href={`/products?category=${sub.slug}`}
               onClick={onClose}
               data-testid="dept-subsubdept-item"
-              className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:text-[#FCA311] hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:text-[#FCA311] hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors duration-100"
             >
-              <span className="text-sm shrink-0 leading-none">{sub.emoji}</span>
+              <span className="text-[13px] shrink-0 leading-none">{sub.emoji}</span>
               <span className="truncate">{sub.name}</span>
             </Link>
           </li>
         ))}
       </ul>
-      <div className="shrink-0 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+      <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3">
         <Link
           href={`/products?category=${parentNode.slug}`}
           onClick={onClose}
@@ -282,7 +264,11 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
     setOffersLoading(true);
     axios
       .get<{ success: boolean; data: Offer[] }>("/api/offers")
-      .then(({ data }) => setOffers(data.data ?? []))
+      .then(({ data }) => {
+        const all = data.data ?? [];
+        const shuffled = [...all].sort(() => Math.random() - 0.5);
+        setOffers(shuffled.slice(0, 2));
+      })
       .catch(() => setOffers([]))
       .finally(() => { setOffersLoading(false); setOffersLoaded(true); });
   }, [isOpen, offersLoaded]);
@@ -331,9 +317,9 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
             style={{ maxHeight: PANEL_MAX_H }}
           >
 
-            {/* Col 1: Departments — always visible */}
+            {/* Col 1: Departments — flex-1 capped at 1/3 */}
             <div
-              className="flex-1 min-w-0 border-r border-gray-100 dark:border-gray-800 flex flex-col"
+              className="flex-1 min-w-0 max-w-[33.33%] border-r border-gray-100 dark:border-gray-800 flex flex-col"
               data-testid="dept-category-list"
             >
               <ul className="flex-1 overflow-y-auto py-1.5" role="list">
@@ -367,7 +353,7 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
             {/* Col 2: Sub-departments — visible only when a dept with children is selected */}
             {showSubDeptCol && (
               <div
-                className="dept-col-enter flex-1 min-w-0 border-r border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden"
+                className="dept-col-enter flex-1 min-w-0 max-w-[33.33%] border-r border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden"
                 data-testid="dept-subdept-list"
                 key={`subdept-col-${activeDepIdx}`}
               >
@@ -398,11 +384,11 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
             {/* Right panel: Sub-sub-depts when sub selected, otherwise Offers */}
             {showSubSubDepts ? (
               <div
-                className="flex-1 min-w-0 overflow-hidden"
+                className="flex-1 min-w-0 max-w-[33.33%] overflow-hidden"
                 data-testid="dept-subsubdept-panel"
                 key={rightPanelKey}
               >
-                <SubSubGrid parent={activeSub!} items={subSubItems} onClose={handleClose} />
+                <SubSubList parent={activeSub!} items={subSubItems} onClose={handleClose} />
               </div>
             ) : (
               <OffersPanel
