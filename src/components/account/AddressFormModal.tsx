@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
+import { X, Loader2, Navigation } from "lucide-react";
 import { addressSchema, type AddressFormData } from "@/lib/validations/address";
 import { cn } from "@/lib/utils/cn";
 import type { Address } from "@/types";
+import type { ReverseGeocodeResult } from "@/app/api/places/reverse-geocode/route";
+import AddressAutocomplete, { type AddressFields } from "@/components/forms/AddressAutocomplete";
 
 const inputCls = (hasError?: boolean) =>
   cn(
@@ -15,7 +17,7 @@ const inputCls = (hasError?: boolean) =>
     "placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white",
     hasError
       ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-      : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15"
+      : "border-gray-300 dark:border-gray-600 focus:border-[#FCA311] focus:ring-2 focus:ring-[#FCA311]/15",
   );
 
 function Field({
@@ -39,10 +41,10 @@ function Field({
 }
 
 interface AddressFormModalProps {
-  mode: "add" | "edit";
+  mode:     "add" | "edit";
   initial?: Address;
-  onClose: () => void;
-  onSave: (data: AddressFormData) => Promise<void>;
+  onClose:  () => void;
+  onSave:   (data: AddressFormData) => Promise<void>;
 }
 
 export default function AddressFormModal({
@@ -51,6 +53,9 @@ export default function AddressFormModal({
   onClose,
   onSave,
 }: AddressFormModalProps) {
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -61,25 +66,22 @@ export default function AddressFormModal({
     resolver: zodResolver(addressSchema),
     defaultValues: initial
       ? {
-          label: initial.label,
+          label:       initial.label,
           customLabel: initial.customLabel ?? "",
-          fullName: initial.fullName,
-          phone: initial.phone.replace(/\D/g, "").slice(0, 10),
-          line1: initial.line1,
-          line2: initial.line2 ?? "",
-          city: initial.city,
-          postcode: initial.postcode,
-          country: initial.country,
-          isDefault: initial.isDefault,
+          fullName:    initial.fullName,
+          phone:       initial.phone.replace(/\D/g, "").slice(0, 10),
+          line1:       initial.line1,
+          line2:       initial.line2 ?? "",
+          city:        initial.city,
+          postcode:    initial.postcode,
+          country:     initial.country,
+          isDefault:   initial.isDefault,
         }
-      : {
-          label: "Home",
-          country: "United Kingdom",
-          isDefault: false,
-        },
+      : { label: "Home", country: "United Kingdom", isDefault: false },
   });
 
   const label = useWatch({ control, name: "label" });
+  const line1 = useWatch({ control, name: "line1" }) ?? "";
 
   useScrollLock(true);
 
@@ -90,6 +92,67 @@ export default function AddressFormModal({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  function set(field: keyof AddressFormData, val: string) {
+    setValue(field, val, { shouldValidate: true, shouldDirty: true });
+  }
+
+  const handleAddressSelect = useCallback(
+    (fields: AddressFields) => {
+      set("line1",    fields.line1);
+      if (fields.line2)    set("line2",    fields.line2);
+      if (fields.city)     set("city",     fields.city);
+      if (fields.postcode) set("postcode", fields.postcode);
+      if (fields.country)  set("country",  fields.country);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setValue],
+  );
+
+  const handleUseLocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      setLocError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setLocating(true);
+    setLocError("");
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res  = await fetch(
+            `/api/places/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`,
+          );
+          const json = (await res.json()) as { success: boolean; data?: ReverseGeocodeResult; error?: string };
+
+          if (!json.success || !json.data) {
+            setLocError(json.error ?? "Could not determine your address.");
+            return;
+          }
+
+          const { line1, line2, city, postcode, country } = json.data;
+          if (line1)    set("line1",    line1);
+          if (line2)    set("line2",    line2);
+          if (city)     set("city",     city);
+          if (postcode) set("postcode", postcode);
+          if (country)  set("country",  country);
+        } catch {
+          setLocError("Failed to fetch your address. Please try again.");
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        setLocating(false);
+        setLocError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied. Please allow access or enter manually."
+            : "Unable to retrieve your location. Please enter manually.",
+        );
+      },
+      { timeout: 10000 },
+    );
+  }, [setValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
@@ -111,19 +174,34 @@ export default function AddressFormModal({
         </div>
 
         <form onSubmit={handleSubmit(onSave)} className="p-6 space-y-4">
+
+          {/* Use my location */}
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={handleUseLocation}
+              disabled={locating}
+              className="flex items-center gap-2 px-4 py-2.5 w-full rounded-xl border border-dashed border-[#FCA311]/60 text-sm font-semibold text-[#FCA311] hover:bg-amber-50 dark:hover:bg-amber-950/20 disabled:opacity-60 transition-colors"
+            >
+              {locating
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Navigation className="h-4 w-4" />}
+              {locating ? "Detecting your location…" : "Use my current location"}
+            </button>
+            {locError && <p className="text-xs text-red-600">{locError}</p>}
+          </div>
+
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+            <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">or fill manually</span>
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          </div>
+
           <Field label="Label" error={errors.label}>
             <div className="flex gap-3">
               {(["Home", "Office", "Other"] as const).map((opt) => (
-                <label
-                  key={opt}
-                  className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
-                >
-                  <input
-                    type="radio"
-                    value={opt}
-                    {...register("label")}
-                    className="accent-[#FCA311]"
-                  />
+                <label key={opt} className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                  <input type="radio" value={opt} {...register("label")} className="accent-[#FCA311]" />
                   {opt}
                 </label>
               ))}
@@ -132,24 +210,14 @@ export default function AddressFormModal({
 
           {label === "Other" && (
             <Field label="Custom label" error={errors.customLabel}>
-              <input
-                type="text"
-                placeholder="e.g. Parents' house"
-                className={inputCls(!!errors.customLabel)}
-                {...register("customLabel")}
-              />
+              <input type="text" placeholder="e.g. Parents' house" className={inputCls(!!errors.customLabel)} {...register("customLabel")} />
             </Field>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Field label="Full name" error={errors.fullName}>
-                <input
-                  type="text"
-                  placeholder="Jane Smith"
-                  className={inputCls(!!errors.fullName)}
-                  {...register("fullName")}
-                />
+                <input type="text" placeholder="Jane Smith" className={inputCls(!!errors.fullName)} {...register("fullName")} />
               </Field>
             </div>
 
@@ -172,61 +240,39 @@ export default function AddressFormModal({
 
             <div className="col-span-2">
               <Field label="Address line 1" error={errors.line1}>
-                <input
-                  type="text"
-                  placeholder="123 High Street"
-                  className={inputCls(!!errors.line1)}
-                  {...register("line1")}
+                <AddressAutocomplete
+                  value={line1}
+                  error={errors.line1}
+                  placeholder="Building, society or street…"
+                  onChange={(v) => set("line1", v)}
+                  onSelect={handleAddressSelect}
                 />
               </Field>
             </div>
 
             <div className="col-span-2">
               <Field label="Address line 2 (optional)" error={errors.line2}>
-                <input
-                  type="text"
-                  placeholder="Flat 4B"
-                  className={inputCls(!!errors.line2)}
-                  {...register("line2")}
-                />
+                <input type="text" placeholder="Flat 4B" className={inputCls(!!errors.line2)} {...register("line2")} />
               </Field>
             </div>
 
             <Field label="City" error={errors.city}>
-              <input
-                type="text"
-                placeholder="London"
-                className={inputCls(!!errors.city)}
-                {...register("city")}
-              />
+              <input type="text" placeholder="London" className={inputCls(!!errors.city)} {...register("city")} />
             </Field>
 
             <Field label="Postcode" error={errors.postcode}>
-              <input
-                type="text"
-                placeholder="SW1A 1AA"
-                className={cn(inputCls(!!errors.postcode), "uppercase")}
-                {...register("postcode")}
-              />
+              <input type="text" placeholder="SW1A 1AA" className={cn(inputCls(!!errors.postcode), "uppercase")} {...register("postcode")} />
             </Field>
 
             <div className="col-span-2">
               <Field label="Country" error={errors.country}>
-                <input
-                  type="text"
-                  className={inputCls(!!errors.country)}
-                  {...register("country")}
-                />
+                <input type="text" className={inputCls(!!errors.country)} {...register("country")} />
               </Field>
             </div>
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
-            <input
-              type="checkbox"
-              {...register("isDefault")}
-              className="accent-[#FCA311] h-4 w-4"
-            />
+            <input type="checkbox" {...register("isDefault")} className="accent-[#FCA311] h-4 w-4" />
             Set as default address
           </label>
 

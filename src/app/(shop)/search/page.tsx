@@ -1,13 +1,13 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getProducts } from "@/services/product.service";
+import { searchCategories } from "@/services/category.service";
 import ProductGrid from "@/components/product/ProductGrid";
 import SortControl from "@/components/product/SortControl";
 import SearchHeader from "@/components/search/SearchHeader";
 import NoResults from "@/components/search/NoResults";
-import type { ProductFilters } from "@/types";
-
-// ── Metadata ──────────────────────────────────────────────────────────────────
+import type { ProductFilters, Category } from "@/types";
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -16,28 +16,41 @@ type Props = {
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
-
   return q
-    ? {
-        title:       `"${q}" — Search Results`,
-        description: `Browse search results for "${q}" on Prakash Supermarket.`,
-      }
-    : {
-        title:       "Search",
-        description: "Search for groceries and everyday essentials.",
-      };
+    ? { title: `"${q}" — Search Results`, description: `Browse search results for "${q}" on Prakash Supermarket.` }
+    : { title: "Search", description: "Search for groceries and everyday essentials." };
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function CategoryChips({ categories }: { categories: Category[] }) {
+  return (
+    <section className="mb-6">
+      <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+        Matching categories
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <Link
+            key={cat._id}
+            href={`/categories/${cat.slug}`}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#FCA311]/40 bg-amber-50 dark:bg-amber-950/20 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-[#FCA311] transition-colors"
+          >
+            <span className="text-base leading-none">{cat.emoji}</span>
+            {cat.name}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default async function SearchPage({ searchParams }: Props) {
   const params = await searchParams;
-
   const query  = typeof params.q === "string" ? params.q.trim() : "";
   const sortBy = typeof params.sortBy === "string" ? params.sortBy : undefined;
 
   let products: Awaited<ReturnType<typeof getProducts>>["products"] = [];
   let total = 0;
+  let matchingCategories: Category[] = [];
 
   if (query) {
     const filters: ProductFilters = {
@@ -45,9 +58,13 @@ export default async function SearchPage({ searchParams }: Props) {
       sortBy: sortBy as ProductFilters["sortBy"] | undefined,
       limit:  100,
     };
-    const result = await getProducts(filters);
-    products = result.products;
-    total    = result.total;
+    const [productResult, cats] = await Promise.all([
+      getProducts(filters),
+      searchCategories(query),
+    ]);
+    products            = productResult.products;
+    total               = productResult.total;
+    matchingCategories  = cats;
   }
 
   return (
@@ -62,20 +79,28 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
       )}
 
-      {query && products.length === 0 && <NoResults query={query} />}
+      {query && (
+        <>
+          {matchingCategories.length > 0 && (
+            <CategoryChips categories={matchingCategories} />
+          )}
 
-      {query && products.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-5">
-            <Suspense fallback={<SortSkeleton />}>
-              <SortControl />
-            </Suspense>
-            <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
-              {total} {total === 1 ? "result" : "results"}
-            </span>
-          </div>
-          <ProductGrid products={products} />
-        </div>
+          {products.length === 0 && <NoResults query={query} />}
+
+          {products.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <Suspense fallback={<SortSkeleton />}>
+                  <SortControl />
+                </Suspense>
+                <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
+                  {total} {total === 1 ? "result" : "results"}
+                </span>
+              </div>
+              <ProductGrid products={products} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -73,3 +73,14 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     .lean<CategoryDoc>();
   return doc ? toCategory(doc) : null;
 }
+
+export async function searchCategories(query: string): Promise<Category[]> {
+  await connectDB();
+  const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  const docs = await CategoryModel
+    .find({ isActive: true, $or: [{ name: regex }, { slug: regex }, { description: regex }] })
+    .sort({ order: 1 })
+    .limit(6)
+    .lean<CategoryDoc[]>();
+  return docs.map(toCategory);
+}
