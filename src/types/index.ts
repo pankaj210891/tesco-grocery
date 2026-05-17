@@ -119,7 +119,14 @@ export interface Category {
   order:        number;
   isActive:     boolean;
   productCount: number;
+  parentId:     string | null;
+  level:        number;
   createdAt:    string;
+}
+
+// Hierarchical node returned by /api/categories/tree
+export interface CategoryNode extends Category {
+  children: CategoryNode[];
 }
 
 // Lightweight shape returned by the categories list API

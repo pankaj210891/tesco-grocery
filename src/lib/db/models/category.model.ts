@@ -12,11 +12,14 @@ const CategorySchema = new Schema(
     order:        { type: Number, default: 0 },
     isActive:     { type: Boolean, default: true },
     productCount: { type: Number, default: 0 },
+    parentId:     { type: Schema.Types.ObjectId, ref: "Category", default: null },
+    level:        { type: Number, default: 0, min: 0, max: 2 },
   },
   { timestamps: true }
 );
 
 CategorySchema.index({ order: 1 });
+CategorySchema.index({ parentId: 1, level: 1 });
 
 export type CategoryDoc = InferSchemaType<typeof CategorySchema> & {
   _id:       mongoose.Types.ObjectId;
