@@ -348,7 +348,8 @@ describe("Department Mega Menu", () => {
   it("each mini banner shows the offer title and discount", () => {
     openMegaMenu();
     cy.wait("@offers");
-    cy.get('[data-testid="dept-mini-banner"]').first().within(() => {
+    // Offers are randomly shuffled — search the panel, not a positional element
+    cy.get('[data-testid="dept-banners-panel"]').within(() => {
       cy.contains("Fresh Food Fiesta").should("be.visible");
       cy.contains("20% Off").should("be.visible");
     });
@@ -357,13 +358,15 @@ describe("Department Mega Menu", () => {
   it("each mini banner shows the promo code when present", () => {
     openMegaMenu();
     cy.wait("@offers");
-    cy.get('[data-testid="dept-mini-banner"]').first().contains("FRESH20").should("be.visible");
+    // Offers are randomly shuffled — find FRESH20 anywhere in the panel
+    cy.get('[data-testid="dept-banners-panel"]').contains("FRESH20").should("be.visible");
   });
 
   it("mini banner link navigates to the offer href", () => {
     openMegaMenu();
     cy.wait("@offers");
-    cy.get('[data-testid="dept-mini-banner"]').first().click();
+    // Select by content rather than position since offers are randomly shuffled
+    cy.contains('[data-testid="dept-mini-banner"]', "Fresh Food Fiesta").click();
     cy.url().should("include", "/categories/fresh-food");
   });
 
