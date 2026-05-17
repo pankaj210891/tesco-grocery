@@ -1,10 +1,10 @@
 /**
  * POST /api/categories/tree/seed
  *
- * Seeds level-1 and level-2 sub-categories that build the 3-level
- * Department → Sub-Department → Sub-Sub-Department mega menu tree.
+ * 1. Migrates existing root categories → sets level:0, parentId:null if missing.
+ * 2. Deletes any stale sub-category docs whose slugs are in the seed list.
+ * 3. Re-inserts all sub-categories with correct parentId and level.
  *
- * Safe to re-run — skips slugs that already exist.
  * Development-only: returns 403 in production.
  */
 
@@ -21,28 +21,30 @@ export async function POST() {
 
   await connectDB();
 
-  // Fetch ALL existing categories to build slug → ObjectId map
-  const existing = await CategoryModel.find({}).select("slug _id").lean();
-  const slugToId = new Map<string, mongoose.Types.ObjectId>(
-    existing.map((d) => [d.slug, d._id as mongoose.Types.ObjectId])
+  // ── Step 1: migrate root categories that are missing level / parentId ────────
+  const rootMigration = await CategoryModel.updateMany(
+    { level: { $exists: false } },
+    { $set: { level: 0, parentId: null } }
   );
 
+  // ── Step 2: delete stale sub-category docs so we can re-insert clean ─────────
+  const seedSlugs = SUBCATEGORY_SEEDS.map((s) => s.slug);
+  const { deletedCount } = await CategoryModel.deleteMany({ slug: { $in: seedSlugs } });
+
+  // ── Step 3: build slug → ObjectId map from surviving root categories ──────────
+  const roots = await CategoryModel.find({}).select("slug _id").lean();
+  const slugToId = new Map<string, mongoose.Types.ObjectId>(
+    roots.map((d) => [d.slug, d._id as mongoose.Types.ObjectId])
+  );
+
+  // ── Step 4: re-insert all sub-categories in seed order ───────────────────────
   let inserted = 0;
-  let skipped  = 0;
   const errors: string[] = [];
 
   for (const seed of SUBCATEGORY_SEEDS) {
-    // Skip if this sub-category already exists
-    if (slugToId.has(seed.slug)) {
-      skipped++;
-      continue;
-    }
-
-    // Resolve parent ObjectId
     const parentObjectId = slugToId.get(seed.parentSlug);
     if (!parentObjectId) {
       errors.push(`Parent not found: "${seed.parentSlug}" (needed by "${seed.slug}")`);
-      skipped++;
       continue;
     }
 
@@ -58,10 +60,9 @@ export async function POST() {
         isActive:     true,
         productCount: 0,
         level:        seed.level,
-        parentId:     parentObjectId, // explicit ObjectId — no string-cast ambiguity
+        parentId:     parentObjectId,
       });
-
-      // Register in map so level-2 items can resolve their level-1 parents
+      // Register so level-2 items can resolve their level-1 parent in the same loop
       slugToId.set(seed.slug, doc._id as mongoose.Types.ObjectId);
       inserted++;
     } catch (err: unknown) {
@@ -74,11 +75,14 @@ export async function POST() {
 
   return NextResponse.json({
     success: true,
+    rootsMigrated: rootMigration.modifiedCount,
+    deleted:  deletedCount,
     inserted,
-    skipped,
     ...(errors.length > 0 && { errors }),
-    message: inserted > 0
-      ? `Seeded ${inserted} sub-categories. Refresh /api/categories/tree to see the updated tree.`
-      : "All sub-categories already exist — nothing inserted.",
+    message: [
+      rootMigration.modifiedCount > 0 && `${rootMigration.modifiedCount} root categories migrated (level+parentId added)`,
+      `${deletedCount} stale sub-categories removed`,
+      `${inserted} sub-categories inserted`,
+    ].filter(Boolean).join(", ") + ".",
   });
 }

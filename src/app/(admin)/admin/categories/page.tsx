@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -44,6 +44,8 @@ export default function AdminCategoriesPage() {
   const [saving,     setSaving]     = useState(false);
   const [deleting,   setDeleting]   = useState<string | null>(null);
   const [formError,  setFormError]  = useState("");
+  const [seeding,    setSeeding]    = useState(false);
+  const [seedMsg,    setSeedMsg]    = useState<{ ok: boolean; text: string } | null>(null);
 
   const authHeader = { Authorization: `Bearer ${token}` };
 
@@ -125,6 +127,25 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  async function handleSeedSubcategories() {
+    setSeeding(true);
+    setSeedMsg(null);
+    try {
+      const res  = await fetch("/api/categories/tree/seed", { method: "POST" });
+      const json = await res.json() as { success: boolean; inserted?: number; skipped?: number; message?: string; error?: string };
+      if (json.success) {
+        setSeedMsg({ ok: true, text: json.message ?? `Inserted ${json.inserted ?? 0} sub-categories.` });
+        void load();
+      } else {
+        setSeedMsg({ ok: false, text: json.error ?? "Seed failed." });
+      }
+    } catch {
+      setSeedMsg({ ok: false, text: "Network error — seed request failed." });
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -132,13 +153,32 @@ export default function AdminCategoriesPage() {
           <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Categories</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{categories.length} total</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg hover:bg-[#0a3a5c] transition-colors"
-        >
-          <Plus className="h-4 w-4" /> Add Category
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleSeedSubcategories()}
+            disabled={seeding}
+            title="Insert level-1 and level-2 sub-categories into the database (safe to re-run)"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+          >
+            {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            Seed Sub-Categories
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-[#0F4C75] text-white text-sm font-semibold rounded-lg hover:bg-[#0a3a5c] transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Add Category
+          </button>
+        </div>
       </div>
+
+      {seedMsg && (
+        <div className={`flex items-start gap-2 px-4 py-3 rounded-lg text-sm font-medium ${seedMsg.ok ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300" : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300"}`}>
+          {seedMsg.ok ? <Check className="h-4 w-4 mt-0.5 shrink-0" /> : <X className="h-4 w-4 mt-0.5 shrink-0" />}
+          <span>{seedMsg.text}</span>
+          <button onClick={() => setSeedMsg(null)} className="ml-auto shrink-0 opacity-60 hover:opacity-100"><X className="h-3.5 w-3.5" /></button>
+        </div>
+      )}
 
       {/* Search + Status filter */}
       <div className="flex flex-wrap gap-3 items-center">

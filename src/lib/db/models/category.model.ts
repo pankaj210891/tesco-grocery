@@ -27,6 +27,12 @@ export type CategoryDoc = InferSchemaType<typeof CategorySchema> & {
   updatedAt: Date;
 };
 
+// Delete cached model in development so schema changes are always picked up
+// after hot-module reloads (avoids Mongoose strict-mode silently dropping new fields).
+if (process.env.NODE_ENV === "development") {
+  delete mongoose.models.Category;
+}
+
 const CategoryModel =
   (mongoose.models.Category as mongoose.Model<CategoryDoc>) ||
   mongoose.model<CategoryDoc>("Category", CategorySchema);
