@@ -145,6 +145,26 @@ describe("Navigation", () => {
     cy.get('[aria-label="Open menu"]').should("be.visible");
   });
 
+  it("mobile drawer category links navigate to /products?category= (not /categories/)", () => {
+    cy.viewport(375, 812);
+    cy.get('[aria-label="Open menu"]').click();
+    cy.wait("@categories");
+
+    // First category in the stubbed list is "Fresh Food" → slug "fresh-food"
+    cy.get("header").contains("Fresh Food").should("be.visible").click();
+    cy.url().should("include", "/products").and("include", "category=fresh-food");
+    cy.url().should("not.include", "/categories/");
+  });
+
+  it("mobile drawer category links do not navigate to /categories/slug", () => {
+    cy.viewport(375, 812);
+    cy.get('[aria-label="Open menu"]').click();
+    cy.wait("@categories");
+
+    cy.get("header").contains("Bakery").should("be.visible").click();
+    cy.url().should("include", "/products?category=bakery");
+  });
+
   /* ── Page title ──────────────────────────────────────────────── */
   it("sets the correct document title on the homepage", () => {
     cy.title().should("include", "Prakash");
