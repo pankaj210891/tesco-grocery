@@ -5,7 +5,7 @@ import { Clock, Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw } from "lucide-
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
-import { SLOT_WINDOWS, type SlotWindow } from "@/lib/db/models/delivery-slot.model";
+import { SLOT_WINDOWS, type SlotWindow } from "@/lib/constants/delivery-slots";
 
 interface AdminSlot {
   _id:         string;

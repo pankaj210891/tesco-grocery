@@ -1,13 +1,8 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
+import { SLOT_WINDOWS } from "@/lib/constants/delivery-slots";
 
-export const SLOT_WINDOWS = [
-  "09:00-12:00",
-  "12:00-16:00",
-  "16:00-20:00",
-  "20:00-22:00",
-] as const;
-
-export type SlotWindow = typeof SLOT_WINDOWS[number];
+export { SLOT_WINDOWS } from "@/lib/constants/delivery-slots";
+export type { SlotWindow } from "@/lib/constants/delivery-slots";
 
 const DeliverySlotSchema = new Schema(
   {
