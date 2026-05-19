@@ -1,6 +1,7 @@
 import { registerSchema } from "@/lib/validations/auth";
 import { registerUser } from "@/services/auth.service";
 import { sendWelcome } from "@/services/email.service";
+import { setAuthCookie } from "@/lib/utils/authCookie";
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +20,9 @@ export async function POST(req: Request) {
 
     await sendWelcome(email, { customerName: name });
 
-    return Response.json({ success: true, data: { user, token } }, { status: 201 });
+    const res = Response.json({ success: true, data: { user, token } }, { status: 201 });
+    setAuthCookie(res, token);
+    return res;
   } catch (err) {
     const message = err instanceof Error ? err.message : "Registration failed.";
     const status  = message.includes("already exists") ? 409 : 500;
