@@ -20,7 +20,12 @@ export const useAuthStore = create<AuthState>()(
       token:          null,
       hasHydrated:    false,
       setAuth:        (user, token) => set({ user, token }),
-      logout:         () => set({ user: null, token: null }),
+      logout: () => {
+        // Fire-and-forget: clear the httpOnly auth cookie set by the login API.
+        // Failure is acceptable — the cookie expires naturally after 7 days.
+        void fetch("/api/auth/logout", { method: "POST" });
+        set({ user: null, token: null });
+      },
       setHasHydrated: (v) => set({ hasHydrated: v }),
       // Cart and wishlist are intentionally kept on logout:
       // - Cart is device-local (guest should be able to check out after login).
