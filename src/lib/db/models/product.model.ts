@@ -13,6 +13,8 @@ const ProductSchema = new Schema(
     brand:           { type: String, required: true },
     unit:            { type: String, required: true },
     inStock:         { type: Boolean, default: true },
+    stockQuantity:   { type: Number, default: null, min: 0 }, // null = untracked (unlimited)
+    lowStockThreshold: { type: Number, default: 5 },
     rating:          { type: Number, default: 0, min: 0, max: 5 },
     reviewCount:     { type: Number, default: 0, min: 0 },
     tags:            [String],
@@ -59,10 +61,12 @@ ProductSchema.index({ "attributes.organic": 1 });
 ProductSchema.index({ name: "text", description: "text", brand: "text", tags: "text" });
 
 export type ProductDoc = InferSchemaType<typeof ProductSchema> & {
-  _id: mongoose.Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
-  attributes?: Map<string, string>;
+  _id:               mongoose.Types.ObjectId;
+  createdAt:         Date;
+  updatedAt:         Date;
+  attributes?:       Map<string, string>;
+  stockQuantity?:    number | null;
+  lowStockThreshold?: number;
 };
 
 const ProductModel =

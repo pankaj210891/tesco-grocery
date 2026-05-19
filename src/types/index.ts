@@ -18,6 +18,8 @@ export interface Product {
   brand: string;
   unit: string;
   inStock: boolean;
+  stockQuantity?: number | null;   // null = untracked
+  lowStockThreshold?: number;
   rating: number;
   reviewCount: number;
   tags: string[];
@@ -282,6 +284,9 @@ export interface Order {
   discount:    number;
   promoCode?:  string;
   total:       number;
+  deliverySlotId?:     string | null;
+  deliverySlotDate?:   string | null;
+  deliverySlotWindow?: string | null;
   status:         "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   paymentMethod:  PaymentMethodType;
   paymentStatus:  PaymentStatus;
@@ -361,23 +366,46 @@ export interface PaymentMethod {
 // ─── Reviews ──────────────────────────────────────────────────────────────────
 
 export interface Review {
-  _id:          string;
-  productId:    string;
-  productSlug:  string;
-  userId:       string;
-  userName:     string;
-  rating:       number;
-  title:        string;
-  body:         string;
-  isApproved:   boolean;
-  helpfulCount: number;
-  createdAt:    string;
+  _id:                string;
+  productId:          string;
+  productSlug:        string;
+  userId:             string;
+  userName:           string;
+  rating:             number;
+  title:              string;
+  body:               string;
+  isApproved:         boolean;
+  isVerifiedPurchase: boolean;
+  helpfulCount:       number;
+  createdAt:          string;
 }
 
 export interface RatingSummary {
   average:      number;
   total:        number;
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+// ─── Delivery Slots ───────────────────────────────────────────────────────────
+
+export type SlotWindow = "09:00-12:00" | "12:00-16:00" | "16:00-20:00" | "20:00-22:00";
+
+export interface DeliverySlot {
+  _id:         string;
+  date:        string;      // "YYYY-MM-DD"
+  window:      SlotWindow;
+  capacity:    number;
+  bookedCount: number;
+  cutoffTime:  string;      // ISO
+  isActive:    boolean;
+  available:   number;      // capacity - bookedCount, computed by API
+  createdAt:   string;
+}
+
+export interface DeliverySlotBooking {
+  slotId:  string;
+  date:    string;
+  window:  SlotWindow;
 }
 
 // ─── Store Locator ────────────────────────────────────────────────────────────

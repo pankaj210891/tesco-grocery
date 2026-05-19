@@ -5,20 +5,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShoppingCart, MapPin, CreditCard } from "lucide-react";
+import { ShoppingCart, MapPin, CreditCard, Clock } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
 import { cn } from "@/lib/utils/cn";
-import type { Address, PaymentMethodType } from "@/types";
+import type { Address, PaymentMethodType, DeliverySlotBooking } from "@/types";
 import type { AddressFormData } from "@/lib/validations/address";
 import AddressSelectModal from "./AddressSelectModal";
 import AddressFormModal from "@/components/account/AddressFormModal";
 import OrderReview from "./OrderReview";
 import CheckoutPricingSummary from "./CheckoutPricingSummary";
 import PaymentMethodSelector from "./PaymentMethodSelector";
+import DeliverySlotSelector from "./DeliverySlotSelector";
 import CheckoutLoading from "@/app/(shop)/checkout/loading";
 
 // Razorpay window type augmentation
@@ -81,6 +82,7 @@ export default function CheckoutPageContent() {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showAddressFormModal, setShowAddressFormModal] = useState(false);
+  const [deliverySlot, setDeliverySlot] = useState<DeliverySlotBooking | null>(null);
 
   const {
     register,
@@ -182,9 +184,10 @@ export default function CheckoutPageContent() {
 
     const { data: json } = await axios.post("/api/payments/razorpay/create-order", {
       delivery,
-      items:     orderItems,
-      promoCode: promoCode ?? undefined,
-      userId:    user?._id,
+      items:        orderItems,
+      promoCode:    promoCode ?? undefined,
+      userId:       user?._id,
+      deliverySlot: deliverySlot ?? undefined,
     });
 
     const { razorpayOrderId, amount, currency, keyId } = json.data as {
@@ -219,9 +222,10 @@ export default function CheckoutPageContent() {
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
               delivery,
-              items:     orderItems,
-              promoCode: promoCode ?? undefined,
-              userId:    user?._id,
+              items:        orderItems,
+              promoCode:    promoCode ?? undefined,
+              userId:       user?._id,
+              deliverySlot: deliverySlot ?? undefined,
             });
 
             const { orderNumber, total: serverTotal } = verifyRes.data.data as {
@@ -255,9 +259,10 @@ export default function CheckoutPageContent() {
 
     const { data: json } = await axios.post("/api/payments/cod", {
       delivery,
-      items:     orderItems,
-      promoCode: promoCode ?? undefined,
-      userId:    user?._id,
+      items:        orderItems,
+      promoCode:    promoCode ?? undefined,
+      userId:       user?._id,
+      deliverySlot: deliverySlot ?? undefined,
     });
 
     const { orderNumber, total: serverTotal } = json.data as {
@@ -453,11 +458,28 @@ export default function CheckoutPageContent() {
               </div>
             </section>
 
-            {/* ── Section 2: Payment ── */}
+            {/* ── Section 2: Delivery Slot ── */}
             <section className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
                 <div className="w-7 h-7 rounded-full bg-[#FCA311] flex items-center justify-center shrink-0">
                   <span className="text-white text-xs font-black">2</span>
+                </div>
+                <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-[#FCA311]" aria-hidden />
+                  Delivery Slot
+                  <span className="text-xs font-normal text-gray-400">(optional)</span>
+                </h2>
+              </div>
+              <div className="p-5">
+                <DeliverySlotSelector value={deliverySlot} onChange={setDeliverySlot} />
+              </div>
+            </section>
+
+            {/* ── Section 3: Payment ── */}
+            <section className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <div className="w-7 h-7 rounded-full bg-[#FCA311] flex items-center justify-center shrink-0">
+                  <span className="text-white text-xs font-black">3</span>
                 </div>
                 <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-[#FCA311]" aria-hidden />

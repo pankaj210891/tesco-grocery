@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
+import { validateCheckoutOrder, firePromoUsage, fireStockDecrement } from "@/lib/checkout/validate-order";
 import { createOrder } from "@/services/order.service";
+import { bookDeliverySlot } from "@/services/delivery-slot.service";
 import { sendOrderConfirmation } from "@/services/email.service";
 
 const deliverySchema = z.object({
@@ -22,11 +23,18 @@ const itemSchema = z.object({
   category:  z.string().optional(),
 });
 
+const deliverySlotSchema = z.object({
+  slotId: z.string(),
+  date:   z.string(),
+  window: z.string(),
+}).optional();
+
 const bodySchema = z.object({
-  delivery:  deliverySchema,
-  items:     z.array(itemSchema).min(1),
-  promoCode: z.string().optional(),
-  userId:    z.string().optional(),
+  delivery:     deliverySchema,
+  items:        z.array(itemSchema).min(1),
+  promoCode:    z.string().optional(),
+  userId:       z.string().optional(),
+  deliverySlot: deliverySlotSchema,
 });
 
 export async function POST(req: Request) {
@@ -41,7 +49,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const { delivery, items, promoCode, userId } = parsed.data;
+    const { delivery, items, promoCode, userId, deliverySlot } = parsed.data;
+
+    // Validate slot capacity before placing order
+    if (deliverySlot) {
+      const slotOk = await bookDeliverySlot(deliverySlot.slotId);
+      if (!slotOk) {
+        return Response.json(
+          { success: false, error: "Selected delivery slot is no longer available. Please choose another." },
+          { status: 409 },
+        );
+      }
+    }
 
     const validated = await validateCheckoutOrder({
       items,
@@ -53,16 +72,19 @@ export async function POST(req: Request) {
 
     const result = await createOrder({
       userId,
-      items:         validated.items,
-      delivery:      validated.delivery,
-      subtotal:      validated.subtotal,
-      deliveryFee:   validated.deliveryFee,
-      codCharge:     validated.codCharge,
-      discount:      validated.discount,
-      promoCode:     validated.promoCode,
-      total:         validated.total,
-      paymentMethod: "cod",
-      paymentStatus: "pending",
+      items:              validated.items,
+      delivery:           validated.delivery,
+      subtotal:           validated.subtotal,
+      deliveryFee:        validated.deliveryFee,
+      codCharge:          validated.codCharge,
+      discount:           validated.discount,
+      promoCode:          validated.promoCode,
+      total:              validated.total,
+      paymentMethod:      "cod",
+      paymentStatus:      "pending",
+      deliverySlotId:     deliverySlot?.slotId,
+      deliverySlotDate:   deliverySlot?.date,
+      deliverySlotWindow: deliverySlot?.window,
     });
 
     await firePromoUsage(
@@ -72,6 +94,7 @@ export async function POST(req: Request) {
       result.orderId,
       validated.discount,
     );
+    void fireStockDecrement(validated.items);
 
     try {
       await sendOrderConfirmation(delivery.email, {

@@ -50,6 +50,10 @@ const OrderSchema = new Schema(
     razorpaySignature: String,
     cancellationReason:  String,
     cancellationComment: String,
+    // Delivery slot
+    deliverySlotId:     { type: Schema.Types.ObjectId, ref: "DeliverySlot", default: null },
+    deliverySlotDate:   { type: String, default: null },   // "YYYY-MM-DD"
+    deliverySlotWindow: { type: String, default: null },   // "09:00-12:00" etc.
     // Refund tracking
     refundId:     String,
     refundStatus: { type: String, enum: ["initiated", "processed", "failed"] },

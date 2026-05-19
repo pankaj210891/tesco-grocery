@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle } from "lucide-react";
+import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle, RotateCcw, Clock } from "lucide-react";
 import axios from "axios";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
+import { useCartStore } from "@/store/cart.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils/format";
 import OrderTimeline from "@/components/account/OrderTimeline";
 import type { Order } from "@/types";
+import type { ReorderResult } from "@/app/api/account/orders/[orderNumber]/reorder/route";
 import { use } from "react";
 
 const CANCEL_REASONS = [
@@ -47,6 +50,8 @@ export default function OrderDetailPage({
   const hydrated        = useHydrated();
   const { user, token } = useAuthStore();
 
+  const { fetchCart } = useCartStore();
+
   const [order,         setOrder]         = useState<Order | null>(null);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState("");
@@ -56,6 +61,7 @@ export default function OrderDetailPage({
   const [cancelComment, setCancelComment] = useState("");
   const [cancelling,    setCancelling]    = useState(false);
   const [cancelError,   setCancelError]   = useState("");
+  const [reordering,    setReordering]    = useState(false);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -109,8 +115,46 @@ export default function OrderDetailPage({
 
   if (!order) return null;
 
-  const isCOD       = order.paymentMethod === "cod";
+  const isCOD         = order.paymentMethod === "cod";
   const isCancellable = order.status === "pending" || order.status === "processing";
+
+  async function handleReorder() {
+    if (!token || !order) return;
+    setReordering(true);
+    try {
+      const { data: json } = await axios.post<{ success: boolean; data: ReorderResult }>(
+        `/api/account/orders/${order.orderNumber}/reorder`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const { added, unavailable } = json.data;
+
+      if (added.length > 0) {
+        await fetchCart(token);
+        toast.success(
+          added.length === 1
+            ? `${added[0].name} added to cart`
+            : `${added.length} items added to cart`,
+        );
+      }
+
+      if (unavailable.length > 0) {
+        const names = unavailable.map((u) => u.name).join(", ");
+        toast.warning(
+          `Not available: ${names}`,
+          { duration: 5000 },
+        );
+      }
+
+      if (added.length === 0) {
+        toast.error("None of the items are currently available");
+      }
+    } catch {
+      toast.error("Failed to reorder. Please try again.");
+    } finally {
+      setReordering(false);
+    }
+  }
 
   async function handleCancelConfirm() {
     if (!order) return;
@@ -151,10 +195,19 @@ export default function OrderDetailPage({
           <h1 className="text-xl font-black text-gray-900 dark:text-white">{order.orderNumber}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(order.createdAt)}</p>
         </div>
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border capitalize ${STATUS_STYLES[order.status]}`}>
             {order.status}
           </span>
+          <button
+            onClick={handleReorder}
+            disabled={reordering}
+            data-testid="reorder-btn"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border border-[#FCA311]/60 bg-amber-50 dark:bg-amber-900/20 text-[#FCA311] dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors disabled:opacity-60"
+          >
+            <RotateCcw className="h-4 w-4" aria-hidden />
+            {reordering ? "Adding…" : "Reorder"}
+          </button>
           {isCancellable && (
             <button
               onClick={() => { setShowCancel(true); setCancelError(""); }}
@@ -295,6 +348,25 @@ export default function OrderDetailPage({
           </section>
 
         </div>
+
+        {/* Delivery slot */}
+        {order.deliverySlotDate && order.deliverySlotWindow && (
+          <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+            <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-3">
+              <Clock className="h-4 w-4 text-[#FCA311]" aria-hidden />
+              Delivery Slot
+            </h2>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-semibold">
+                {new Date(order.deliverySlotDate + "T00:00:00").toLocaleDateString("en-IN", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                })}
+              </span>
+              {" — "}
+              {order.deliverySlotWindow}
+            </p>
+          </section>
+        )}
 
         {/* Payment method & transaction info */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">

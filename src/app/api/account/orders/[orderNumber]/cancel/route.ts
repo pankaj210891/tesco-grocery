@@ -2,6 +2,8 @@ import { z } from "zod";
 import Razorpay from "razorpay";
 import { getAuthUser } from "@/lib/utils/apiAuth";
 import { cancelOrder, setOrderRefund, CANCELLABLE_STATUSES } from "@/services/order.service";
+import { releaseDeliverySlot } from "@/services/delivery-slot.service";
+import { restoreStock } from "@/services/inventory.service";
 import { sendOrderCancellation } from "@/services/email.service";
 
 const bodySchema = z.object({
@@ -42,6 +44,20 @@ export async function POST(
       { status: 422 },
     );
   }
+
+  // ── Release delivery slot if one was booked ──────────────────────────────
+  if (order.deliverySlotId) {
+    await releaseDeliverySlot(order.deliverySlotId).catch((e) => {
+      console.error("[cancel] Failed to release delivery slot:", e);
+    });
+  }
+
+  // ── Restore stock for cancelled items ─────────────────────────────────────
+  await restoreStock(
+    order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+  ).catch((e) => {
+    console.error("[cancel] Failed to restore stock:", e);
+  });
 
   // ── Initiate Razorpay refund if applicable ────────────────────────────────
   let refundInitiated = false;
