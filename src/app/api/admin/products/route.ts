@@ -16,9 +16,8 @@ const SORT_MAP: Record<string, Record<string, 1 | -1>> = {
 };
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdmin(req);
-  if (auth instanceof NextResponse) return auth;
-
+  // Validate query params first so callers get a 400 for invalid input
+  // even before auth — avoids misleading "401" for clearly bad requests.
   const parsed = AdminProductQuerySchema.safeParse(
     Object.fromEntries(new URL(req.url).searchParams),
   );
@@ -28,6 +27,9 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  const auth = await requireAdmin(req);
+  if (auth instanceof NextResponse) return auth;
 
   const {
     page, limit, search, category, subcategory, brand, vendorId,

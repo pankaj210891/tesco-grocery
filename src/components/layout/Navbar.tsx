@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ShoppingCart,
   User,
@@ -52,7 +52,8 @@ function getInitials(name: string): string {
 function MobileCategoryList({ onNavigate }: { onNavigate: () => void }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading,    setLoading]    = useState(true);
-  const pathname = usePathname();
+  const pathname     = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     axios
@@ -78,11 +79,11 @@ function MobileCategoryList({ onNavigate }: { onNavigate: () => void }) {
   return (
     <ul className="divide-y divide-gray-100 dark:divide-gray-800">
       {categories.map((cat) => {
-        const isActive = pathname === `/categories/${cat.slug}`;
+        const isActive = pathname === "/products" && searchParams.get("category") === cat.slug;
         return (
           <li key={cat._id}>
             <Link
-              href={`/categories/${cat.slug}`}
+              href={`/products?category=${cat.slug}`}
               onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 px-6 py-3 text-sm border-l-2 transition-colors",
