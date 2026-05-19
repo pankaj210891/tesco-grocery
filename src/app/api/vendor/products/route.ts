@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json() as Record<string, unknown>;
-    const { name, slug, description, price, originalPrice, images, category, brand, unit, inStock, stockQuantity, lowStockThreshold, tags, badge, attributes } = body;
+    const { name, slug, description, price, originalPrice, images, category, brand, unit, inStock, stockQuantity, lowStockThreshold, tags, badge, attributes, variants } = body;
 
     if (!name || !slug || !description || price === undefined || !category || !brand || !unit) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 422 });
@@ -57,6 +57,24 @@ export async function POST(req: NextRequest) {
     }
 
     const vendor = await VendorModel.findById(auth.vendorId).lean<{ name: string }>();
+
+    // Sanitise variants — only safe fields allowed
+    const safeVariants: Array<{ label: string; sku: string; price: number | null; originalPrice: number | null; stockQuantity: number | null; inStock: boolean }> = [];
+    if (Array.isArray(variants)) {
+      for (const v of variants as unknown[]) {
+        if (typeof v !== "object" || v === null) continue;
+        const vv = v as Record<string, unknown>;
+        if (!vv.label || typeof vv.label !== "string" || !vv.label.trim()) continue;
+        safeVariants.push({
+          label:         vv.label.trim(),
+          sku:           typeof vv.sku === "string" ? vv.sku.trim() : "",
+          price:         typeof vv.price === "number" ? vv.price : null,
+          originalPrice: typeof vv.originalPrice === "number" ? vv.originalPrice : null,
+          stockQuantity: typeof vv.stockQuantity === "number" ? vv.stockQuantity : null,
+          inStock:       typeof vv.inStock === "boolean" ? vv.inStock : true,
+        });
+      }
+    }
 
     const product = await ProductModel.create({
       name:          name as string,
@@ -77,6 +95,7 @@ export async function POST(req: NextRequest) {
       vendorId:      auth.vendorId,
       vendorName:    vendor?.name ?? null,
       attributes:    safeAttrs,
+      variants:      safeVariants,
       rating: 0,
       reviewCount: 0,
     });

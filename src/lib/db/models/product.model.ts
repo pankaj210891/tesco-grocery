@@ -1,5 +1,17 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
+const VariantSchema = new Schema(
+  {
+    label:         { type: String, required: true, trim: true },
+    sku:           { type: String, default: "" },
+    price:         { type: Number, default: null },
+    originalPrice: { type: Number, default: null },
+    stockQuantity: { type: Number, default: null },
+    inStock:       { type: Boolean, default: true },
+  },
+  { _id: true }
+);
+
 const ProductSchema = new Schema(
   {
     name:            { type: String, required: true, trim: true },
@@ -28,6 +40,8 @@ const ProductSchema = new Schema(
     // Dynamic category-specific attributes (e.g. { ram: "8GB", storage: "128GB" })
     // Stored as a Map for O(1) dot-notation queries: { "attributes.ram": "8GB" }
     attributes:      { type: Map, of: String, default: {} },
+    // Product variants (e.g. sizes, colours) — empty array means no variants
+    variants:        { type: [VariantSchema], default: [] },
   },
   { timestamps: true }
 );

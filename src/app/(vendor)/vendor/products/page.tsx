@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Package, AlertTriangle } from "lucide-react";
+import { Plus, X, Package, AlertTriangle, Layers, Trash2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
 import { ProductsTable } from "@/components/common/ProductsTable";
 import DynamicAttributeFields from "@/components/product/DynamicAttributeFields";
-import type { Product, ProductBadge } from "@/types";
+import type { Product, ProductBadge, ProductVariant } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PageData {
@@ -37,6 +37,16 @@ const EMPTY_FORM = {
   inStock:           true,
 };
 
+interface VariantForm {
+  label:         string;
+  sku:           string;
+  price:         string;
+  originalPrice: string;
+  inStock:       boolean;
+}
+
+const EMPTY_VARIANT: VariantForm = { label: "", sku: "", price: "", originalPrice: "", inStock: true };
+
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
@@ -57,6 +67,7 @@ export default function VendorProductsPage() {
   const [editing, setEditing]       = useState<Product | null>(null);
   const [form, setForm]             = useState({ ...EMPTY_FORM });
   const [formAttrs, setFormAttrs]   = useState<Record<string, string>>({});
+  const [formVariants, setFormVariants] = useState<VariantForm[]>([]);
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState("");
   useScrollLock(modal !== null);
@@ -96,6 +107,7 @@ export default function VendorProductsPage() {
   function openAdd() {
     setForm({ ...EMPTY_FORM });
     setFormAttrs({});
+    setFormVariants([]);
     setEditing(null);
     setError("");
     setModal("add");
@@ -121,6 +133,15 @@ export default function VendorProductsPage() {
       inStock:           p.inStock,
     });
     setFormAttrs(p.attributes ?? {});
+    setFormVariants(
+      (p.variants ?? []).map((v: ProductVariant) => ({
+        label:         v.label,
+        sku:           v.sku,
+        price:         v.price != null ? String(v.price) : "",
+        originalPrice: v.originalPrice != null ? String(v.originalPrice) : "",
+        inStock:       v.inStock,
+      }))
+    );
     setEditing(p);
     setError("");
     setModal("edit");
@@ -160,6 +181,16 @@ export default function VendorProductsPage() {
         attributes:    Object.fromEntries(
           Object.entries(formAttrs).filter(([, v]) => v.trim() !== ""),
         ),
+        variants: formVariants
+          .filter((v) => v.label.trim())
+          .map((v) => ({
+            label:         v.label.trim(),
+            sku:           v.sku.trim(),
+            price:         v.price !== "" ? Number(v.price) : null,
+            originalPrice: v.originalPrice !== "" ? Number(v.originalPrice) : null,
+            stockQuantity: null,
+            inStock:       v.inStock,
+          })),
       };
 
       if (editing) {
@@ -427,6 +458,145 @@ export default function VendorProductsPage() {
                     </span>
                   </label>
                 )}
+              </div>
+
+              {/* ── Variants section ─────────────────────────────────── */}
+              <div
+                className="rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30"
+                data-testid="variants-section"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-gray-500" />
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                      Variants
+                    </span>
+                    {formVariants.length > 0 && (
+                      <span className="text-[10px] font-semibold bg-[#1a7a4a]/10 text-[#1a7a4a] rounded-full px-2 py-0.5">
+                        {formVariants.length}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="add-variant-btn"
+                    onClick={() => setFormVariants((vs) => [...vs, { ...EMPTY_VARIANT }])}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#1a7a4a] hover:text-[#145e38] transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Variant
+                  </button>
+                </div>
+
+                {formVariants.length === 0 && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    No variants — product has a single option. Add variants for sizes, colours, weights, etc.
+                  </p>
+                )}
+
+                {formVariants.map((v, i) => (
+                  <div
+                    key={i}
+                    data-testid={`variant-row-${i}`}
+                    className="grid grid-cols-[1fr_auto] gap-2 items-start border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-900"
+                  >
+                    <div className="space-y-2">
+                      {/* Label + SKU */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className={labelCls}>Label *</label>
+                          <input
+                            type="text"
+                            value={v.label}
+                            data-testid={`variant-label-${i}`}
+                            placeholder="e.g. 500g, Red / M"
+                            onChange={(e) =>
+                              setFormVariants((vs) =>
+                                vs.map((x, j) => j === i ? { ...x, label: e.target.value } : x)
+                              )
+                            }
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>SKU</label>
+                          <input
+                            type="text"
+                            value={v.sku}
+                            data-testid={`variant-sku-${i}`}
+                            placeholder="Optional"
+                            onChange={(e) =>
+                              setFormVariants((vs) =>
+                                vs.map((x, j) => j === i ? { ...x, sku: e.target.value } : x)
+                              )
+                            }
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
+                      {/* Price override */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className={labelCls}>Price override (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={v.price}
+                            data-testid={`variant-price-${i}`}
+                            placeholder="Leave blank = product price"
+                            onChange={(e) =>
+                              setFormVariants((vs) =>
+                                vs.map((x, j) => j === i ? { ...x, price: e.target.value } : x)
+                              )
+                            }
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Original price (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={v.originalPrice}
+                            data-testid={`variant-original-price-${i}`}
+                            placeholder="Optional"
+                            onChange={(e) =>
+                              setFormVariants((vs) =>
+                                vs.map((x, j) => j === i ? { ...x, originalPrice: e.target.value } : x)
+                              )
+                            }
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
+                      {/* In stock */}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={v.inStock}
+                          data-testid={`variant-instock-${i}`}
+                          onChange={(e) =>
+                            setFormVariants((vs) =>
+                              vs.map((x, j) => j === i ? { ...x, inStock: e.target.checked } : x)
+                            )
+                          }
+                          className="h-3.5 w-3.5 rounded accent-[#1a7a4a]"
+                        />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">In Stock</span>
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      data-testid={`remove-variant-${i}`}
+                      onClick={() => setFormVariants((vs) => vs.filter((_, j) => j !== i))}
+                      className="mt-1 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
 
               {/* Badge */}
