@@ -1,0 +1,67 @@
+{
+  "name": "product_search",
+  "collectionName": "products",
+  "database": "prakash",
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "name": [
+        {
+          "type": "autocomplete",
+          "analyzer": "lucene.standard",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        },
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        }
+      ],
+      "brand": [
+        {
+          "type": "autocomplete",
+          "analyzer": "lucene.standard",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        },
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        }
+      ],
+      "category": {
+        "type": "string",
+        "analyzer": "lucene.standard"
+      },
+      "subcategory": {
+        "type": "string",
+        "analyzer": "lucene.standard"
+      },
+      "description": {
+        "type": "string",
+        "analyzer": "lucene.standard"
+      },
+      "tags": {
+        "type": "string",
+        "analyzer": "lucene.standard"
+      },
+      "status": {
+        "type": "string",
+        "analyzer": "lucene.keyword"
+      },
+      "inStock": {
+        "type": "boolean"
+      },
+      "price": {
+        "type": "number"
+      },
+      "rating": {
+        "type": "number"
+      }
+    }
+  }
+}
