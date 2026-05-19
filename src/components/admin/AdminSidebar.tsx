@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Store,
-  LogOut, Menu, X, FolderOpen, Tag, Sliders, Clock, BarChart2, Percent, Banknote,
+  LogOut, Menu, X, FolderOpen, Tag, Sliders, Clock, BarChart2, Percent, Banknote, Receipt,
 } from "lucide-react";
 import { useState } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -24,6 +24,7 @@ const NAV = [
   { href: "/admin/inventory",            label: "Inventory",          icon: BarChart2        },
   { href: "/admin/commission",           label: "Commission",         icon: Percent          },
   { href: "/admin/earnings",             label: "Earnings",           icon: Banknote         },
+  { href: "/admin/transactions",         label: "Transactions",       icon: Receipt          },
 ];
 
 interface NavLinksProps { pathname: string; onClose: () => void; }
