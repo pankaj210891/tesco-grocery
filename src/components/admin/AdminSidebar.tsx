@@ -25,6 +25,7 @@ const NAV = [
   { href: "/admin/commission",           label: "Commission",         icon: Percent          },
   { href: "/admin/earnings",             label: "Earnings",           icon: Banknote         },
   { href: "/admin/transactions",         label: "Transactions",       icon: Receipt          },
+  { href: "/admin/analytics",            label: "Analytics",          icon: BarChart2        },
 ];
 
 interface NavLinksProps { pathname: string; onClose: () => void; }
