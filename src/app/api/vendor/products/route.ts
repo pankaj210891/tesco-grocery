@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json() as Record<string, unknown>;
-    const { name, slug, description, price, originalPrice, images, category, brand, unit, inStock, tags, badge, attributes } = body;
+    const { name, slug, description, price, originalPrice, images, category, brand, unit, inStock, stockQuantity, lowStockThreshold, tags, badge, attributes } = body;
 
     if (!name || !slug || !description || price === undefined || !category || !brand || !unit) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 422 });
@@ -68,7 +68,10 @@ export async function POST(req: NextRequest) {
       category:      category as string,
       brand:         brand as string,
       unit:          unit as string,
-      inStock:       (inStock as boolean | undefined) ?? true,
+      // If stockQuantity is provided derive inStock from it; otherwise honour the explicit flag
+      stockQuantity:     typeof stockQuantity === "number" ? (stockQuantity as number) : null,
+      inStock:           typeof stockQuantity === "number" ? (stockQuantity as number) > 0 : ((inStock as boolean | undefined) ?? true),
+      lowStockThreshold: typeof lowStockThreshold === "number" ? (lowStockThreshold as number) : 5,
       tags:          (tags as string[] | undefined) ?? [],
       badge:         (badge as "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | null | undefined) ?? null,
       vendorId:      auth.vendorId,

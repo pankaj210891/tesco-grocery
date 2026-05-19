@@ -20,11 +20,22 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json() as Record<string, unknown>;
-    const allowed = ["name", "description", "price", "originalPrice", "images", "category", "brand", "unit", "inStock", "tags", "badge"];
+    const allowed = [
+      "name", "description", "price", "originalPrice",
+      "images", "category", "brand", "unit",
+      "inStock", "stockQuantity", "lowStockThreshold",
+      "tags", "badge",
+    ];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {
       if (body[key] !== undefined) update[key] = body[key];
     }
+
+    // When stockQuantity is explicitly tracked, derive inStock automatically
+    if (typeof body.stockQuantity === "number") {
+      update.inStock = body.stockQuantity > 0;
+    }
+
     // Merge dynamic attributes safely
     if (body.attributes && typeof body.attributes === "object" && !Array.isArray(body.attributes)) {
       const safeAttrs: Record<string, string> = {};
