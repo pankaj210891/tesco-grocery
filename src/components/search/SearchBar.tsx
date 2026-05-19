@@ -164,6 +164,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
             aria-label="Search products"
             aria-autocomplete="list"
             autoComplete="off"
+            data-testid="search-input"
             className={inputCls}
           />
 
@@ -171,6 +172,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
             <button
               type="button"
               aria-label="Clear search"
+              data-testid="search-clear"
               onClick={() => { setQuery(""); setSuggestions(EMPTY); setOpen(false); }}
               className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             >
@@ -187,6 +189,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
           <button
             type="submit"
             aria-label="Submit search"
+            data-testid="search-submit"
             className="shrink-0 flex items-center justify-center w-12 h-full text-white rounded-r-xl transition-colors hover:brightness-105 active:scale-95"
             style={{ backgroundColor: AMBER }}
           >
@@ -200,6 +203,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
         <div
           role="listbox"
           aria-label="Search suggestions"
+          data-testid="search-suggestions"
           className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl z-[60] overflow-hidden max-h-[420px] overflow-y-auto"
         >
           {/* Categories */}
@@ -215,6 +219,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
                     key={cat._id}
                     role="option"
                     aria-selected={activeIdx === idx}
+                    data-testid="suggestion-category"
                     onMouseDown={() => navigate(`/categories/${cat.slug}`)}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors",
@@ -245,6 +250,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
                     key={brand}
                     role="option"
                     aria-selected={activeIdx === idx}
+                    data-testid="suggestion-brand"
                     onMouseDown={() => navigate(`/search?q=${encodeURIComponent(brand)}`)}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors",
@@ -274,6 +280,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
                     key={product._id}
                     role="option"
                     aria-selected={activeIdx === idx}
+                    data-testid="suggestion-product"
                     onMouseDown={() => navigate(`/products/${product.slug}`)}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2 text-sm text-left transition-colors",
@@ -312,6 +319,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
           <div className="border-t border-gray-100 dark:border-gray-800">
             <button
               onMouseDown={() => navigate(`/search?q=${encodeURIComponent(query)}`)}
+              data-testid="search-see-all"
               className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
               style={{ color: AMBER }}
             >
