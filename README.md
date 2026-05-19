@@ -68,12 +68,13 @@ A production-quality, full-stack grocery eCommerce application built with Next.j
 ### Admin Panel
 
 - [x] Admin dashboard with sitewide stats (revenue, orders, users, products)
-- [x] Product management — full CRUD across all vendors
+- [x] Product management — full CRUD across all vendors; Zod param validation returns 400 before auth for invalid enums
 - [x] Category management — create, edit, delete, reorder
-- [x] Order management — view all orders, update status, date filtering
+- [x] Order management — view all orders, update status, date filtering, refund flow (full / partial)
 - [x] User management — list users, suspend/activate accounts
 - [x] Vendor management — approve, suspend, view vendor profiles
 - [x] Promo code management — full CRUD with eligibility rules
+- [x] Inventory management — bulk stock quantity editing, low-stock filter, per-product threshold controls
 
 ### UI & DX
 
@@ -250,40 +251,57 @@ npm run cypress:ci     # starts server + runs E2E + stops server
 
 ```
 cypress/
-├── e2e/                        # End-to-end specs (run against the live dev server)
-│   ├── navigation.cy.ts        # Navbar, page routing, search bar, mobile menu
-│   ├── auth.cy.ts              # Login, register, forgot password flows + validation
-│   ├── products.cy.ts          # Product listing, detail page, search results
-│   ├── cart.cy.ts              # Cart page, add-to-cart, empty state, checkout redirect
-│   └── theme.cy.ts             # Dark mode toggle, localStorage persistence
-├── component/                  # Isolated component specs (no server required)
-│   ├── Button.cy.tsx           # Variants, sizes, loading, disabled, click handler
-│   ├── Badge.cy.tsx            # Variant labels, custom label, styling
-│   └── ThemeToggle.cy.tsx      # Mode switching, aria-pressed, dark class side-effect
-├── fixtures/                   # Static JSON used by cy.intercept()
-│   ├── user.json               # Mock auth responses (login, register)
-│   ├── products.json           # Mock product list and detail responses
-│   └── categories.json         # Mock category list and cart responses
+├── e2e/                               # End-to-end specs (run against the live dev server)
+│   ├── navigation.cy.ts               # Navbar, page routing, search bar, mobile menu
+│   ├── auth.cy.ts                     # Login, register, forgot password flows + validation
+│   ├── products.cy.ts                 # Product listing, detail page, search results
+│   ├── cart.cy.ts                     # Cart page, add-to-cart, empty state, checkout redirect
+│   ├── theme.cy.ts                    # Dark mode toggle, localStorage persistence
+│   ├── admin-inventory.cy.ts          # Inventory page rendering, search/low-stock filter, bulk save
+│   ├── admin-orders-detail.cy.ts      # Order detail modal, refund flow (full/partial), RBAC
+│   ├── admin-products-filters.cy.ts   # Product filters, sorting, date range, URL persistence, API validation
+│   ├── admin-products-vendor-mapping.cy.ts # Vendor column, vendor selector in Add/Edit forms, RBAC
+│   ├── admin-advanced-filters.cy.ts   # Advanced filter combinations
+│   ├── admin-users-filters.cy.ts      # User management filters and pagination
+│   ├── admin-vendors-filters.cy.ts    # Vendor management filters
+│   ├── dynamic-filters.cy.ts          # Amazon-style dynamic attribute filters
+│   ├── marketplace-mapping.cy.ts      # Vendor → product mapping flows
+│   ├── department-mega-menu.cy.ts     # Mega-menu department navigation
+│   ├── delivery-slots.cy.ts           # Delivery slot selection in checkout
+│   ├── reorder.cy.ts                  # Reorder from order history
+│   └── verified-purchase-reviews.cy.ts # Verified-purchase review gating
+├── component/                         # Isolated component specs (no server required)
+│   ├── Button.cy.tsx                  # Variants, sizes, loading, disabled, click handler
+│   ├── Badge.cy.tsx                   # Variant labels, custom label, styling
+│   └── ThemeToggle.cy.tsx             # Mode switching, aria-pressed, dark class side-effect
+├── fixtures/                          # Static JSON used by cy.intercept()
+│   ├── user.json                      # Mock auth responses (login, register)
+│   ├── products.json                  # Mock product list and detail responses
+│   └── categories.json               # Mock category list and cart responses
 ├── support/
-│   ├── commands.ts             # Custom commands: cy.loginByApi(), cy.logoutByStorage()
-│   ├── e2e.ts                  # E2E support entry (imports commands, sets up listeners)
-│   └── component.ts            # Component support entry (imports globals.css)
-└── tsconfig.json               # Cypress-scoped TypeScript config
+│   ├── commands.ts                    # Custom commands: cy.loginByApi(), cy.logoutByStorage()
+│   ├── e2e.ts                         # E2E support entry (imports commands, sets up listeners)
+│   └── component.ts                   # Component support entry (imports globals.css)
+└── tsconfig.json                      # Cypress-scoped TypeScript config
 ```
 
 ### Test Coverage Summary
 
-| Area           | Type      | # Tests | Key Scenarios                                                            |
-| -------------- | --------- | ------- | ------------------------------------------------------------------------ |
-| Navigation     | E2E       | 14      | Navbar links, search, hamburger menu, page titles                        |
-| Authentication | E2E       | 17      | Login/register validation, mocked API login/register, error toasts       |
-| Products       | E2E       | 12      | Listing, detail page, search results, sort/filter UI                     |
-| Cart           | E2E       | 12      | Empty state, add-to-cart, quantity controls, checkout redirect           |
-| Theme          | E2E       | 11      | Toggle modes, aria-pressed, localStorage persistence, reload persistence |
-| Button         | Component | 13      | All variants/sizes, fullWidth, loading, disabled, click handler          |
-| Badge          | Component | 9       | All variants, custom label, className, uppercase styling                 |
-| ThemeToggle    | Component | 12      | Render, mode switching, aria-pressed, dark class side-effect             |
-| **Total**      |           | **100** |                                                                          |
+| Area                    | Type      | # Tests | Key Scenarios                                                                       |
+| ----------------------- | --------- | ------- | ----------------------------------------------------------------------------------- |
+| Navigation              | E2E       | 14      | Navbar links, search, hamburger menu, page titles                                   |
+| Authentication          | E2E       | 17      | Login/register validation, mocked API login/register, error toasts                  |
+| Products                | E2E       | 12      | Listing, detail page, search results, sort/filter UI                                |
+| Cart                    | E2E       | 12      | Empty state, add-to-cart, quantity controls, checkout redirect                      |
+| Theme                   | E2E       | 11      | Toggle modes, aria-pressed, localStorage persistence, reload persistence            |
+| Admin — Inventory       | E2E       | 18      | Page render, search filter, low-stock filter, edit/save stock, refresh, empty state |
+| Admin — Order Detail    | E2E       | 16      | Order modal, timeline, refund form (full/partial), error handling, RBAC             |
+| Admin — Product Filters | E2E       | 27      | Search, status/inStock/badge/sort/date filters, URL persistence, API validation     |
+| Admin — Vendor Mapping  | E2E       | 14      | Vendor column, vendor selector in Add/Edit, RBAC, dropdown API validation           |
+| Button                  | Component | 13      | All variants/sizes, fullWidth, loading, disabled, click handler                     |
+| Badge                   | Component | 9       | All variants, custom label, className, uppercase styling                            |
+| ThemeToggle             | Component | 12      | Render, mode switching, aria-pressed, dark class side-effect                        |
+| **Total**               |           | **175** |                                                                                     |
 
 ### Custom Commands
 
@@ -392,6 +410,15 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org) — e
 ---
 
 ## Changelog
+
+### v1.11.1
+
+- **fix(test):** `admin-inventory.cy.ts` — reordered intercept registration so the specific `search=Milk` alias takes priority over the generic `@initial` alias (Cypress uses the last-registered matching intercept).
+- **fix(test):** `admin-orders-detail.cy.ts` — added missing `delivery` and `items` fields to `ORDERS_STUB`; the admin orders page was crashing with `TypeError: Cannot read properties of undefined (reading 'filter')` because the stub lacked the `items` array.
+- **fix(test):** `admin-products-filters.cy.ts` — updated date-range test to open the `AdminDateFilter` popup panel before filling inputs (`date-filter-btn` → `date-from-input` / `date-to-input` → `date-filter-apply`); updated API validation assertions to accept `oneOf([400, 401])` for unauthenticated requests.
+- **fix(test):** `admin-products-vendor-mapping.cy.ts` — scoped "opens Add Product modal" assertion to `[data-testid='add-product-modal']` (Cypress 13 WebDriver visibility marks elements behind a `z-50` overlay as not visible); used `cy.contains("p", "Mapped to:")` to avoid matching `<option>` elements in vendor confirmation assertion.
+- **fix(api):** `GET /api/admin/products` — moved Zod query-param validation before `requireAdmin()` so requests with invalid `status`/`badge` enum values return `400` even without an auth token, instead of the misleading `401`.
+- **feat(dx):** Added `data-testid="add-product-modal"` to the Add/Edit Product modal overlay in `admin/products/page.tsx` for stable Cypress targeting.
 
 ### v1.8.0
 

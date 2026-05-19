@@ -153,7 +153,11 @@ describe("Admin Products — Add Product with Vendor", () => {
   });
 
   it("opens Add Product modal", () => {
-    cy.contains("Add Product").should("be.visible");
+    // Use the modal overlay as a scope so we don't match the "Add Product" button
+    // that sits behind the overlay (Cypress 13 WebDriver visibility treats
+    // elements covered by a fixed z-50 overlay as not visible).
+    cy.get("[data-testid='add-product-modal']").should("be.visible");
+    cy.get("[data-testid='add-product-modal']").contains("Add Product").should("exist");
   });
 
   it("renders vendor selector in the form", () => {
@@ -174,8 +178,11 @@ describe("Admin Products — Add Product with Vendor", () => {
 
   it("shows vendor name confirmation text when vendor is selected", () => {
     cy.get("[data-testid='vendor-select']").select("Fresh Farm Co");
-    cy.contains("Mapped to:").should("be.visible");
-    cy.contains("Fresh Farm Co").should("be.visible");
+    // Use cy.contains(selector, text) to target the <p> element specifically,
+    // avoiding the <option> element that also contains "Fresh Farm Co".
+    // scrollIntoView ensures it is in view within the overflow-y-auto modal.
+    cy.contains("p", "Mapped to:").scrollIntoView().should("be.visible");
+    cy.contains("p", "Mapped to:").should("contain.text", "Fresh Farm Co");
   });
 
   it("clears vendor confirmation when Platform is re-selected", () => {
