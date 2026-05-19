@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, Store, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, Store, ShieldCheck, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils/cn";
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/vendor/orders",   label: "Orders",    icon: ShoppingBag },
   { href: "/vendor/profile",  label: "Profile",   icon: Store },
   { href: "/vendor/kyc",      label: "KYC",        icon: ShieldCheck },
+  { href: "/vendor/earnings", label: "Earnings",   icon: TrendingUp  },
 ];
 
 interface NavLinksProps { pathname: string; onClose: () => void; }

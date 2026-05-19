@@ -280,6 +280,43 @@ export interface OrderLineItem {
   vendorEarning?:    number;
 }
 
+// ─── Vendor Earnings ──────────────────────────────────────────────────────────
+
+export type EarningStatus = "pending" | "confirmed" | "released";
+
+export interface EarningLineItem {
+  productId:        string;
+  name:             string;
+  quantity:         number;
+  price:            number;
+  commissionRate:   number;
+  commissionAmount: number;
+  netEarning:       number;
+}
+
+export interface VendorEarning {
+  _id:             string;
+  vendorId:        string;
+  orderId:         string;
+  orderNumber:     string;
+  orderDate:       string;
+  items:           EarningLineItem[];
+  grossAmount:     number;
+  commissionTotal: number;
+  netAmount:       number;
+  status:          EarningStatus;
+  releasedAt?:     string | null;
+  payoutRef:       string;
+  createdAt:       string;
+}
+
+export interface VendorEarningsSummary {
+  totalPending:   number;
+  totalConfirmed: number;
+  totalReleased:  number;
+  totalEarned:    number;
+}
+
 // ─── Commission ────────────────────────────────────────────────────────────────
 
 export interface CommissionVendorRate {
