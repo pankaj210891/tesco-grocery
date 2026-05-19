@@ -67,7 +67,7 @@ export default function VendorDashboard() {
 
       {/* Core Stats */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="vendor-stats-grid">
           <StatsCard label="Total Products"  value={stats.totalProducts}      icon={Package}     color="blue"   href="/vendor/products" />
           <StatsCard label="In Stock"        value={stats.inStockProducts}    icon={CheckCircle} color="green"  href="/vendor/products" />
           <StatsCard label="Out of Stock"    value={stats.outOfStockProducts} icon={XCircle}     color="red"    href="/vendor/products" />
@@ -152,7 +152,7 @@ export default function VendorDashboard() {
       )}
 
       {/* Quick Navigation */}
-      <div>
+      <div data-testid="vendor-quick-nav">
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Manage</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link href="/vendor/products"
@@ -195,7 +195,7 @@ export default function VendorDashboard() {
 
       {/* Profile */}
       {profile && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6" data-testid="vendor-profile-card">
           <h2 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm">Vendor Profile</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             {[
