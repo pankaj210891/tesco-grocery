@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle, ShieldCheck, ShieldAlert, Clock, FileText } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import {
   useAdminVendorsStore,
@@ -11,7 +11,7 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import type { Vendor, VendorStatus, VendorInvite } from "@/types";
+import type { Vendor, VendorStatus, VendorInvite, KycStatus } from "@/types";
 
 interface PageData { vendors: Vendor[]; total: number; page: number; totalPages: number; }
 interface InvitePageData { invites: VendorInvite[]; total: number; }
@@ -20,6 +20,20 @@ const STATUS_COLORS: Record<string, string> = {
   active:    "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
   pending:   "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
   suspended: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300",
+};
+
+const KYC_COLORS: Record<KycStatus, string> = {
+  not_submitted: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  pending:       "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+  verified:      "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  rejected:      "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300",
+};
+
+const KYC_ICONS: Record<KycStatus, React.ElementType> = {
+  not_submitted: FileText,
+  pending:       Clock,
+  verified:      ShieldCheck,
+  rejected:      ShieldAlert,
 };
 
 const STATUS_TABS = ["", "active", "pending", "suspended"] as const;
@@ -88,6 +102,11 @@ function AdminVendorsPageInner() {
   const [editForm, setEditForm]     = useState<VendorForm>({ ...EMPTY_FORM });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError]   = useState("");
+
+  // KYC review
+  const [kycReviewing,   setKycReviewing]   = useState(false);
+  const [kycRejReason,   setKycRejReason]   = useState("");
+  const [kycReviewError, setKycReviewError] = useState("");
 
   useScrollLock(addModal || inviteModal || viewVendor !== null);
 
@@ -240,11 +259,38 @@ function AdminVendorsPageInner() {
     void load();
   }
 
+  async function handleKycReview(action: "verified" | "rejected") {
+    if (!viewVendor) return;
+    setKycReviewing(true);
+    setKycReviewError("");
+    const res = await fetch(`/api/admin/vendors/${viewVendor._id}/kyc`, {
+      method:  "PUT",
+      headers: { ...authHeader, "Content-Type": "application/json" },
+      body:    JSON.stringify({ action, rejectionReason: kycRejReason }),
+    });
+    const json = await res.json() as { success: boolean; error?: string; data?: Vendor["kyc"] };
+    setKycReviewing(false);
+    if (!json.success) { setKycReviewError(json.error ?? "Failed to update KYC"); return; }
+    setViewVendor((v) => v ? { ...v, kyc: json.data } : v);
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        vendors: prev.vendors.map((v) =>
+          v._id === viewVendor._id ? { ...v, kyc: json.data } : v,
+        ),
+      };
+    });
+    setKycRejReason("");
+  }
+
   function openView(v: Vendor) {
     setViewVendor(v);
     setEditForm(vendorToForm(v));
     setEditMode(false);
     setEditError("");
+    setKycRejReason("");
+    setKycReviewError("");
   }
 
   const filteredInvites = (inviteData?.invites ?? []).filter((inv) => {
@@ -419,6 +465,7 @@ function AdminVendorsPageInner() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">City</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Email</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">KYC</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden lg:table-cell">Joined</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Actions</th>
                   </tr>
@@ -441,6 +488,21 @@ function AdminVendorsPageInner() {
                       <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{v.email}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        {(() => {
+                          const kycSt = v.kyc?.status ?? "not_submitted";
+                          const KycIcon = KYC_ICONS[kycSt];
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${KYC_COLORS[kycSt]}`}
+                              data-testid={`kyc-badge-${v._id}`}
+                            >
+                              <KycIcon className="h-3 w-3" />
+                              {kycSt.replace("_", " ")}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap hidden lg:table-cell">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
                       <td className="px-4 py-3">
@@ -801,6 +863,89 @@ function AdminVendorsPageInner() {
                 </dl>
               )}
             </div>
+
+            {/* KYC review section — shown only in view mode */}
+            {!editMode && viewVendor.kyc && (
+              <div className="mx-6 mb-4 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden" data-testid="vendor-kyc-section">
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">KYC Documents</h3>
+                  {(() => {
+                    const kycSt = viewVendor.kyc!.status;
+                    const KycIcon = KYC_ICONS[kycSt];
+                    return (
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${KYC_COLORS[kycSt]}`} data-testid="vendor-modal-kyc-badge">
+                        <KycIcon className="h-3 w-3" />
+                        {kycSt.replace("_", " ")}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <div className="p-4 text-sm space-y-2">
+                  {viewVendor.kyc.status === "not_submitted" && (
+                    <p className="text-gray-400 text-xs">Vendor has not submitted KYC documents yet.</p>
+                  )}
+                  {(viewVendor.kyc.status === "pending" || viewVendor.kyc.status === "verified" || viewVendor.kyc.status === "rejected") && (
+                    <dl className="space-y-1.5">
+                      <div className="flex gap-3">
+                        <dt className="w-24 shrink-0 text-xs font-semibold text-gray-400 uppercase">PAN</dt>
+                        <dd className="font-mono text-gray-900 dark:text-gray-100 text-xs">{viewVendor.kyc.panNumber || "—"}</dd>
+                      </div>
+                      {viewVendor.kyc.gstNumber && (
+                        <div className="flex gap-3">
+                          <dt className="w-24 shrink-0 text-xs font-semibold text-gray-400 uppercase">GST</dt>
+                          <dd className="font-mono text-gray-900 dark:text-gray-100 text-xs">{viewVendor.kyc.gstNumber}</dd>
+                        </div>
+                      )}
+                      <div className="flex gap-3">
+                        <dt className="w-24 shrink-0 text-xs font-semibold text-gray-400 uppercase">Aadhaar</dt>
+                        <dd className="font-mono text-gray-900 dark:text-gray-100 text-xs">XXXX XXXX {viewVendor.kyc.aadhaarLast4}</dd>
+                      </div>
+                      {viewVendor.kyc.rejectionReason && (
+                        <div className="flex gap-3">
+                          <dt className="w-24 shrink-0 text-xs font-semibold text-gray-400 uppercase">Reason</dt>
+                          <dd className="text-red-600 dark:text-red-400 text-xs">{viewVendor.kyc.rejectionReason}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  )}
+                  {viewVendor.kyc.status === "pending" && (
+                    <div className="pt-3 space-y-2" data-testid="kyc-review-panel">
+                      {kycReviewError && (
+                        <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/30 rounded px-2 py-1">{kycReviewError}</p>
+                      )}
+                      <input
+                        type="text"
+                        value={kycRejReason}
+                        onChange={(e) => setKycRejReason(e.target.value)}
+                        placeholder="Rejection reason (required if rejecting)"
+                        className="w-full px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                        data-testid="kyc-rejection-reason-input"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => void handleKycReview("verified")}
+                          disabled={kycReviewing}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-300 rounded-lg disabled:opacity-50 transition-colors"
+                          data-testid="kyc-approve-btn"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          {kycReviewing ? "Processing…" : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => void handleKycReview("rejected")}
+                          disabled={kycReviewing}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 rounded-lg disabled:opacity-50 transition-colors"
+                          data-testid="kyc-reject-btn"
+                        >
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="px-6 pb-6 flex gap-3 justify-end border-t border-gray-100 dark:border-gray-800 pt-4">
               {editMode ? (

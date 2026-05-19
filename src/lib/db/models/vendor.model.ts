@@ -1,5 +1,18 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
+const KycSchema = new Schema(
+  {
+    panNumber:       { type: String, default: "" },
+    gstNumber:       { type: String, default: "" },
+    aadhaarLast4:    { type: String, default: "" },
+    status:          { type: String, enum: ["not_submitted", "pending", "verified", "rejected"], default: "not_submitted" },
+    rejectionReason: { type: String, default: "" },
+    submittedAt:     { type: Date },
+    reviewedAt:      { type: Date },
+  },
+  { _id: false }
+);
+
 const VendorSchema = new Schema(
   {
     name:        { type: String, required: true, trim: true },
@@ -13,6 +26,7 @@ const VendorSchema = new Schema(
     status:      { type: String, enum: ["pending", "active", "suspended"], default: "pending" },
     ownerId:     { type: Schema.Types.ObjectId, ref: "User", required: true },
     ownerName:   { type: String, required: true },
+    kyc:         { type: KycSchema, default: () => ({}) },
   },
   { timestamps: true }
 );

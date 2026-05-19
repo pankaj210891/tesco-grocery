@@ -211,6 +211,18 @@ export interface AuthFormData {
 
 export type VendorStatus = "pending" | "active" | "suspended";
 
+export type KycStatus = "not_submitted" | "pending" | "verified" | "rejected";
+
+export interface VendorKyc {
+  panNumber:       string;
+  gstNumber:       string;
+  aadhaarLast4:    string;
+  status:          KycStatus;
+  rejectionReason: string;
+  submittedAt?:    string;
+  reviewedAt?:     string;
+}
+
 export interface Vendor {
   _id:         string;
   name:        string;
@@ -224,6 +236,7 @@ export interface Vendor {
   status:      VendorStatus;
   ownerId:     string;
   ownerName:   string;
+  kyc?:        VendorKyc;
   createdAt:   string;
 }
 
