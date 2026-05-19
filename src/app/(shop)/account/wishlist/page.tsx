@@ -22,7 +22,7 @@ function WishlistItem({ product }: { product: Product }) {
   }
 
   return (
-    <li className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors sm:flex-row sm:items-center sm:gap-4">
+    <li data-testid="wishlist-item" className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors sm:flex-row sm:items-center sm:gap-4">
       <Link href={`/products/${product.slug}`} className="shrink-0">
         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600">
           <Image
@@ -49,6 +49,7 @@ function WishlistItem({ product }: { product: Product }) {
         <button
           onClick={handleAddToCart}
           disabled={!product.inStock}
+          data-testid="wishlist-add-to-cart"
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FCA311] disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 text-white text-xs font-semibold rounded-lg hover:bg-[#E8920A] transition-colors"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
@@ -74,7 +75,7 @@ export default function WishlistPage() {
 
   if (!user || !token) {
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
+      <div data-testid="wishlist-signin-prompt" className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
         <div className="inline-flex bg-red-50 rounded-full p-5 mb-5">
           <Heart className="h-10 w-10 text-red-300" />
         </div>
@@ -111,7 +112,7 @@ export default function WishlistPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="text-center py-16">
+        <div data-testid="wishlist-empty-state" className="text-center py-16">
           <div className="inline-flex bg-red-50 dark:bg-red-900/20 rounded-full p-5 mb-5">
             <Heart className="h-10 w-10 text-red-300 dark:text-red-500" />
           </div>
