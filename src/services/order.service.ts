@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import OrderModel, { type OrderDoc } from "@/lib/db/models/order.model";
 import ProductModel from "@/lib/db/models/product.model";
 import { getConfig, getRateForVendor } from "@/services/commission.service";
+import { createEarningsForOrder } from "@/services/vendor-earning.service";
 import type { Order, PaymentMethodType, PaymentStatus, RefundStatus } from "@/types";
 
 export interface OrderItem {
@@ -179,6 +180,10 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
 
   const orderNumber = generateOrderNumber();
   const doc = await OrderModel.create({ ...input, items: enrichedItems, orderNumber });
+
+  // Fire-and-forget — build earnings ledger entries asynchronously
+  void createEarningsForOrder(doc._id.toString());
+
   return { orderId: doc._id.toString(), orderNumber: doc.orderNumber };
 }
 
