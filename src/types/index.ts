@@ -5,6 +5,16 @@ export type ProductStatus = "pending" | "approved" | "rejected";
 export type DeliveryOption = "express" | "standard" | "collection";
 export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";
 
+export interface ProductVariant {
+  _id:           string;
+  label:         string;
+  sku:           string;
+  price:         number | null;
+  originalPrice: number | null;
+  stockQuantity: number | null;
+  inStock:       boolean;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -30,6 +40,7 @@ export interface Product {
   status?: ProductStatus;
   // Dynamic category-specific attributes e.g. { ram: "8GB", storage: "128GB" }
   attributes?: Record<string, string>;
+  variants?: ProductVariant[];
   createdAt: string;
   updatedAt: string;
 }

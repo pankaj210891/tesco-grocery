@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CheckCircle, Truck, ShieldCheck, RefreshCw, Tag } from "lucide-react";
-import { slugify, formatPrice } from "@/lib/utils/format";
+import { slugify } from "@/lib/utils/format";
 import { getProductBySlug, getAllProductSlugs } from "@/services/product.service";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import ImageGallery from "@/components/product/ImageGallery";
 import RatingStars from "@/components/product/RatingStars";
-import ProductAddToCart from "@/components/product/ProductAddToCart";
+import ProductVariantSection from "@/components/product/ProductVariantSection";
 import RelatedProducts from "@/components/product/RelatedProducts";
 import Badge from "@/components/ui/Badge";
 import ProductTabs from "@/components/product/ProductTabs";
@@ -141,33 +141,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
           <hr className="border-gray-100 dark:border-gray-800" />
 
-          {/* Price card */}
-          <div className="bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-4">
-            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Price</p>
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
-                {formatPrice(product.price)}
-              </span>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <>
-                  <span className="text-lg text-gray-400 dark:text-gray-500 line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                  {discount && (
-                    <span className="text-sm font-bold text-[#25A244] dark:text-green-400">
-                      Save {discount}%
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-            {product.unit && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{product.unit}</p>
-            )}
-          </div>
-
-          {/* Add to cart */}
-          <ProductAddToCart product={product} />
+          {/* Variant selector + price + add to cart (client component — manages selection state) */}
+          <ProductVariantSection product={product} />
         </div>
       </div>
 

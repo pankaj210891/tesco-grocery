@@ -4,7 +4,7 @@ import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
 import Review from "@/lib/db/models/review.model";
 import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
-import type { Product, ProductFilters, PaginatedProducts, FilterMeta } from "@/types";
+import type { Product, ProductFilters, PaginatedProducts, FilterMeta, ProductVariant } from "@/types";
 
 // ── Category slug resolver ────────────────────────────────────────────────────
 // CATEGORY_NAME_MAP covers original grocery categories.
@@ -57,6 +57,20 @@ function toProduct(doc: ProductDoc): Product {
     vendorId:        doc.vendorId?.toString() ?? null,
     vendorName:      doc.vendorName ?? null,
     attributes,
+    variants: ((doc as ProductDoc & { variants?: unknown[] }).variants ?? []).map(
+      (v): ProductVariant => {
+        const vv = v as unknown as Record<string, unknown>;
+        return {
+          _id:           String(vv._id ?? ""),
+          label:         String(vv.label ?? ""),
+          sku:           String(vv.sku ?? ""),
+          price:         (vv.price as number | null | undefined) ?? null,
+          originalPrice: (vv.originalPrice as number | null | undefined) ?? null,
+          stockQuantity: (vv.stockQuantity as number | null | undefined) ?? null,
+          inStock:       (vv.inStock as boolean | undefined) ?? true,
+        };
+      }
+    ),
     createdAt:       doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
     updatedAt:       doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
   };

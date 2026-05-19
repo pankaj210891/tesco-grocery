@@ -10,16 +10,17 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { savePendingAction } from "@/lib/pending-action";
 import WishlistButton from "./WishlistButton";
-import type { Product } from "@/types";
+import type { Product, ProductVariant } from "@/types";
 
 const AMBER = "#FCA311";
 const AMBER_DARK = "#E8920A";
 
 interface ProductAddToCartProps {
-  product: Product;
+  product:         Product;
+  selectedVariant?: ProductVariant | null;
 }
 
-export default function ProductAddToCart({ product }: ProductAddToCartProps) {
+export default function ProductAddToCart({ product, selectedVariant }: ProductAddToCartProps) {
   const [qty, setQty] = useState(1);
   const { addItem, items } = useCartStore();
   const { token } = useAuthStore();
@@ -29,6 +30,9 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
   const cartItem = items.find((i) => i.product._id === product._id);
   const cartQty  = cartItem?.quantity ?? 0;
 
+  // When a variant is selected, its inStock overrides the product-level flag
+  const isInStock = selectedVariant != null ? selectedVariant.inStock : product.inStock;
+
   function handleAdd() {
     if (!token) {
       savePendingAction({ type: "addToCart", product, quantity: qty });
@@ -37,7 +41,8 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
       return;
     }
     void addItem(product, qty, token);
-    toast.success(`${product.name} × ${qty} added to cart`);
+    const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
+    toast.success(`${label} × ${qty} added to cart`);
   }
 
   return (
@@ -87,17 +92,17 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
       <div className="flex gap-3">
         <button
           onClick={handleAdd}
-          disabled={!product.inStock}
+          disabled={!isInStock}
           className={cn(
             "flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl",
             "text-base font-bold transition-colors transition-shadow transition-transform duration-200 active:scale-[0.98]",
-            product.inStock
+            isInStock
               ? "bg-[#FCA311] text-white hover:bg-[#E8920A] shadow-sm hover:shadow-md"
               : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed",
           )}
         >
           <ShoppingCart className="h-5 w-5" aria-hidden />
-          {product.inStock ? (token ? "Add to Cart" : "Sign in to Add") : "Out of Stock"}
+          {isInStock ? (token ? "Add to Cart" : "Sign in to Add") : "Out of Stock"}
         </button>
 
         <WishlistButton
@@ -106,7 +111,7 @@ export default function ProductAddToCart({ product }: ProductAddToCartProps) {
         />
       </div>
 
-      {product.inStock && (
+      {isInStock && (
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
           Free delivery on orders over <strong className="text-gray-600 dark:text-gray-300">₹500</strong>
         </p>
