@@ -267,14 +267,29 @@ export interface VendorInvite {
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 export interface OrderLineItem {
-  productId:  string;
-  vendorId?:  string | null;
-  vendorName?: string | null;
-  name:       string;
-  slug:       string;
-  price:      number;
-  quantity:   number;
-  image:      string;
+  productId:         string;
+  vendorId?:         string | null;
+  vendorName?:       string | null;
+  name:              string;
+  slug:              string;
+  price:             number;
+  quantity:          number;
+  image:             string;
+  commissionRate?:   number;
+  commissionAmount?: number;
+  vendorEarning?:    number;
+}
+
+// ─── Commission ────────────────────────────────────────────────────────────────
+
+export interface CommissionVendorRate {
+  vendorId: string;
+  rate:     number;
+}
+
+export interface CommissionConfig {
+  defaultRate: number;
+  vendorRates: CommissionVendorRate[];
 }
 
 export type PaymentMethodType = "razorpay" | "cod";
