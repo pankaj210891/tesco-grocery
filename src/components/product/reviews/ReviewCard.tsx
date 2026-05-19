@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Trash2, Pencil, Check, X } from "lucide-react";
+import { Star, Trash2, Pencil, Check, X, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { Review } from "@/types";
 
@@ -96,7 +96,15 @@ export default function ReviewCard({ review, currentUserId, token, onDeleted, on
             {review.userName.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{review.userName}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{review.userName}</p>
+              {review.isVerifiedPurchase && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800/40 px-1.5 py-0.5 rounded-full">
+                  <BadgeCheck className="h-3 w-3" />
+                  Verified Purchase
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-400">{date}</p>
           </div>
         </div>

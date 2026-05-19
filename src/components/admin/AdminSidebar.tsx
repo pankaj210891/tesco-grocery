@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Store,
-  LogOut, Menu, X, FolderOpen, Tag, Sliders,
+  LogOut, Menu, X, FolderOpen, Tag, Sliders, Clock, BarChart2,
 } from "lucide-react";
 import { useState } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -20,6 +20,8 @@ const NAV = [
   { href: "/admin/categories",           label: "Categories",         icon: FolderOpen       },
   { href: "/admin/category-attributes",  label: "Product Attributes", icon: Sliders          },
   { href: "/admin/promocodes",           label: "Promo Codes",        icon: Tag              },
+  { href: "/admin/delivery-slots",       label: "Delivery Slots",     icon: Clock            },
+  { href: "/admin/inventory",            label: "Inventory",          icon: BarChart2        },
 ];
 
 interface NavLinksProps { pathname: string; onClose: () => void; }

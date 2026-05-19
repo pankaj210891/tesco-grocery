@@ -21,20 +21,23 @@ export interface DeliveryInfo {
 }
 
 export interface CreateOrderInput {
-  userId?:            string;
-  items:              OrderItem[];
-  delivery:           DeliveryInfo;
-  subtotal:           number;
-  deliveryFee:        number;
-  codCharge?:         number;
-  discount:           number;
-  promoCode?:         string;
-  total:              number;
-  paymentMethod:      PaymentMethodType;
-  paymentStatus:      PaymentStatus;
-  razorpayOrderId?:   string;
-  razorpayPaymentId?: string;
-  razorpaySignature?: string;
+  userId?:             string;
+  items:               OrderItem[];
+  delivery:            DeliveryInfo;
+  subtotal:            number;
+  deliveryFee:         number;
+  codCharge?:          number;
+  discount:            number;
+  promoCode?:          string;
+  total:               number;
+  paymentMethod:       PaymentMethodType;
+  paymentStatus:       PaymentStatus;
+  razorpayOrderId?:    string;
+  razorpayPaymentId?:  string;
+  razorpaySignature?:  string;
+  deliverySlotId?:     string;
+  deliverySlotDate?:   string;
+  deliverySlotWindow?: string;
 }
 
 export interface OrderResult {

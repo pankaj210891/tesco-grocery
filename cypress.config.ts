@@ -107,7 +107,7 @@ export default defineConfig({
          * Called once before cart e2e tests so cy.loginByApi() can succeed
          * even on a fresh database.
          */
-        async seedTestUser({ email, password, name }: { email: string; password: string; name: string }) {
+        async seedTestUser({ email, password, name, role = "customer" }: { email: string; password: string; name: string; role?: string }) {
           const uri = process.env.MONGODB_URI;
           if (!uri) throw new Error("MONGODB_URI is not set — check .env.local");
 
@@ -132,9 +132,12 @@ export default defineConfig({
             );
 
           const existing = await UserModel.findOne({ email });
-          if (!existing) {
+          if (existing) {
+            // Update role in case it changed (e.g., promoting a user to admin)
+            await UserModel.findOneAndUpdate({ email }, { $set: { role } });
+          } else {
             const hashed = await bcrypt.default.hash(password, 12);
-            await UserModel.create({ name, email, password: hashed, role: "customer", status: "active" });
+            await UserModel.create({ name, email, password: hashed, role, status: "active" });
           }
 
           return null;

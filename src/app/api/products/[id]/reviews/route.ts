@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import Review from "@/lib/db/models/review.model";
 import ProductModel from "@/lib/db/models/product.model";
+import OrderModel from "@/lib/db/models/order.model";
 import { getAuthUser } from "@/lib/utils/apiAuth";
 import type { RatingSummary } from "@/types";
 
@@ -80,14 +81,29 @@ export async function POST(req: NextRequest, { params }: Params) {
     const product = await ProductModel.findOne({ slug }).lean<{ _id: import("mongoose").Types.ObjectId }>();
     if (!product) return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
 
+    // Verified purchase: user must have a delivered/shipped order containing this product
+    const verifiedOrder = await OrderModel.findOne({
+      userId: authUser.userId,
+      status: { $in: ["delivered", "shipped"] },
+      "items.productId": product._id.toString(),
+    }).select("_id").lean();
+
+    if (!verifiedOrder) {
+      return NextResponse.json(
+        { success: false, error: "You can only review products you have purchased and received" },
+        { status: 403 },
+      );
+    }
+
     const review = await Review.create({
-      productId:   product._id,
-      productSlug: slug,
-      userId:      authUser.userId,
-      userName:    authUser.name ?? "Customer",
-      rating:      body.rating,
-      title:       body.title.trim(),
-      body:        body.body.trim(),
+      productId:          product._id,
+      productSlug:        slug,
+      userId:             authUser.userId,
+      userName:           authUser.name ?? "Customer",
+      rating:             body.rating,
+      title:              body.title.trim(),
+      body:               body.body.trim(),
+      isVerifiedPurchase: true,
     });
 
     await recalcProduct(slug);

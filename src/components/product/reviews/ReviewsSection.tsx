@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, ChevronDown } from "lucide-react";
+import { MessageSquare, ChevronDown, ShoppingBag } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import RatingBreakdown from "./RatingBreakdown";
 import ReviewCard from "./ReviewCard";
@@ -24,15 +24,29 @@ interface Props {
 export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
   const { user, token } = useAuthStore();
   const router = useRouter();
-  const [data,    setData]    = useState<ReviewsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [page,    setPage]    = useState(1);
-  const [allReviews, setAllReviews] = useState<Review[]>([]);
+  const [data,         setData]         = useState<ReviewsData | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [page,         setPage]         = useState(1);
+  const [allReviews,   setAllReviews]   = useState<Review[]>([]);
+  const [hasPurchased, setHasPurchased] = useState<boolean | null>(null);
 
   const hasReviewed = useMemo(
     () => !!user && allReviews.some((r) => r.userId === user._id),
     [user, allReviews]
   );
+
+  // Check purchase eligibility when user is logged in
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!user || !token) { setHasPurchased(null); return; }
+
+    fetch(`/api/account/orders/has-purchased?slug=${productSlug}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json() as Promise<{ success: boolean; data: { hasPurchased: boolean } }>)
+      .then((json) => { if (json.success) setHasPurchased(json.data.hasPurchased); })
+      .catch(() => setHasPurchased(null));
+  }, [user, token, productSlug]);
 
   useEffect(() => {
     async function load() {
@@ -126,6 +140,21 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
             You have already reviewed this product. Edit or delete your review below.
           </p>
         </div>
+      ) : hasPurchased === false ? (
+        <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/40 p-5 flex items-start gap-3">
+          <ShoppingBag className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
+              Purchase required to review
+            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              Only customers who have purchased and received this product can leave a review.
+            </p>
+          </div>
+        </div>
+      ) : hasPurchased === null && user ? (
+        // Still checking purchase status
+        <div className="h-24 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
       ) : (
         <ReviewForm productSlug={productSlug} token={token!} onSubmitted={handleSubmitted} />
       )}

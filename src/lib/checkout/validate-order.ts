@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db/mongoose";
 import { applyPromo, recordPromoUsage } from "@/services/promo.service";
+import { checkStock, decrementStock } from "@/services/inventory.service";
 import Offer from "@/lib/db/models/offer.model";
 import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST, COD_CHARGE } from "@/lib/constants/promos";
 import type { OrderItem } from "@/services/order.service";
@@ -36,6 +37,17 @@ export async function validateCheckoutOrder(params: {
   paymentMethod?: PaymentMethodType;
 }): Promise<ValidatedOrder> {
   const { items, delivery, promoCode: rawPromo, userId, paymentMethod } = params;
+
+  // ── Stock availability check (prevents overselling) ─────────────────────
+  const stockCheck = await checkStock(
+    items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+  );
+  if (!stockCheck.ok) {
+    const names = stockCheck.unavailable.map((u) =>
+      u.available === 0 ? `${u.name} (out of stock)` : `${u.name} (only ${u.available} left)`
+    ).join(", ");
+    throw new Error(`Some items are no longer available: ${names}`);
+  }
 
   const subtotal    = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const rawDelivery = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
@@ -93,6 +105,14 @@ export async function validateCheckoutOrder(params: {
     promoDocId,
     total,
   };
+}
+
+/**
+ * Decrements stock after a successful order.
+ * Fire-and-forget — called after createOrder, non-blocking.
+ */
+export async function fireStockDecrement(items: OrderItem[]): Promise<void> {
+  void decrementStock(items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
 }
 
 export async function firePromoUsage(

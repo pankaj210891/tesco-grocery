@@ -47,6 +47,9 @@ A production-quality, full-stack grocery eCommerce application built with Next.j
 - [x] Eligible promo cards shown in cart and checkout (shared `EligiblePromoCard` component)
 - [x] "Add new address" in checkout address dialog opens inline form, saves to account, and auto-selects the new address
 - [x] Order confirmation page with order number and summary
+- [x] Delivery slot selection — customers pick a named time window at checkout; atomic overbooking prevention via MongoDB `$expr` guard
+- [x] Reorder from history — one-click re-adds all available items from a past order to cart, with toast feedback for unavailable items
+- [x] Verified purchase reviews — only customers with a delivered/shipped order containing the product can leave a review; "Verified Purchase" badge displayed on eligible reviews
 
 ### Authentication & Accounts
 
@@ -74,7 +77,8 @@ A production-quality, full-stack grocery eCommerce application built with Next.j
 - [x] User management — list users, suspend/activate accounts
 - [x] Vendor management — approve, suspend, view vendor profiles
 - [x] Promo code management — full CRUD with eligibility rules
-- [x] Inventory management — bulk stock quantity editing, low-stock filter, per-product threshold controls
+- [x] Inventory management — bulk stock quantity editing, low-stock filter, per-product threshold controls; real-time stock decrement on order placement (oversell prevention)
+- [x] Delivery slot management — create/edit time-window slots with capacity limits; seed endpoint for bulk slot generation
 
 ### UI & DX
 
@@ -99,15 +103,16 @@ A production-quality, full-stack grocery eCommerce application built with Next.j
 - Categories: list, detail
 - Cart: get, add, update, remove (per-user)
 - Wishlist: get, add, remove, sync
-- Orders: create, list (user), detail (user)
+- Orders: create, list (user), detail (user), cancel, reorder
 - Payments: Razorpay create-order, verify; COD
 - Offers: list, validate, apply, eligible-check
 - Stores: list, detail
 - FAQs: list, detail
 - Homepage sections: list
-- Account: addresses CRUD, payment methods CRUD, orders
-- Admin: products, categories, orders, users, vendors, promo codes, stats
+- Account: addresses CRUD, payment methods CRUD, orders, reorder, has-purchased check
+- Admin: products, categories, orders, users, vendors, promo codes, stats, inventory, delivery slots
 - Vendor: products, orders, profile, stats
+- Delivery Slots: available dates, slot listing; Admin CRUD + seed
 
 ---
 
@@ -267,9 +272,9 @@ cypress/
 │   ├── dynamic-filters.cy.ts          # Amazon-style dynamic attribute filters
 │   ├── marketplace-mapping.cy.ts      # Vendor → product mapping flows
 │   ├── department-mega-menu.cy.ts     # Mega-menu department navigation
-│   ├── delivery-slots.cy.ts           # Delivery slot selection in checkout
-│   ├── reorder.cy.ts                  # Reorder from order history
-│   └── verified-purchase-reviews.cy.ts # Verified-purchase review gating
+│   ├── delivery-slots.cy.ts           # Delivery slot selection in checkout, slot availability, overbooking prevention
+│   ├── reorder.cy.ts                  # Reorder from order history, partial availability, toast feedback
+│   └── verified-purchase-reviews.cy.ts # Verified-purchase gating, badge display, purchase-check API
 ├── component/                         # Isolated component specs (no server required)
 │   ├── Button.cy.tsx                  # Variants, sizes, loading, disabled, click handler
 │   ├── Badge.cy.tsx                   # Variant labels, custom label, styling
@@ -287,21 +292,24 @@ cypress/
 
 ### Test Coverage Summary
 
-| Area                    | Type      | # Tests | Key Scenarios                                                                       |
-| ----------------------- | --------- | ------- | ----------------------------------------------------------------------------------- |
-| Navigation              | E2E       | 14      | Navbar links, search, hamburger menu, page titles                                   |
-| Authentication          | E2E       | 17      | Login/register validation, mocked API login/register, error toasts                  |
-| Products                | E2E       | 12      | Listing, detail page, search results, sort/filter UI                                |
-| Cart                    | E2E       | 12      | Empty state, add-to-cart, quantity controls, checkout redirect                      |
-| Theme                   | E2E       | 11      | Toggle modes, aria-pressed, localStorage persistence, reload persistence            |
-| Admin — Inventory       | E2E       | 18      | Page render, search filter, low-stock filter, edit/save stock, refresh, empty state |
-| Admin — Order Detail    | E2E       | 16      | Order modal, timeline, refund form (full/partial), error handling, RBAC             |
-| Admin — Product Filters | E2E       | 27      | Search, status/inStock/badge/sort/date filters, URL persistence, API validation     |
-| Admin — Vendor Mapping  | E2E       | 14      | Vendor column, vendor selector in Add/Edit, RBAC, dropdown API validation           |
-| Button                  | Component | 13      | All variants/sizes, fullWidth, loading, disabled, click handler                     |
-| Badge                   | Component | 9       | All variants, custom label, className, uppercase styling                            |
-| ThemeToggle             | Component | 12      | Render, mode switching, aria-pressed, dark class side-effect                        |
-| **Total**               |           | **175** |                                                                                     |
+| Area                      | Type      | # Tests | Key Scenarios                                                                       |
+| ------------------------- | --------- | ------- | ----------------------------------------------------------------------------------- |
+| Navigation                | E2E       | 14      | Navbar links, search, hamburger menu, page titles                                   |
+| Authentication            | E2E       | 17      | Login/register validation, mocked API login/register, error toasts                  |
+| Products                  | E2E       | 12      | Listing, detail page, search results, sort/filter UI                                |
+| Cart                      | E2E       | 12      | Empty state, add-to-cart, quantity controls, checkout redirect                      |
+| Theme                     | E2E       | 11      | Toggle modes, aria-pressed, localStorage persistence, reload persistence            |
+| Admin — Inventory         | E2E       | 18      | Page render, search filter, low-stock filter, edit/save stock, refresh, empty state |
+| Admin — Order Detail      | E2E       | 16      | Order modal, timeline, refund form (full/partial), error handling, RBAC             |
+| Admin — Product Filters   | E2E       | 27      | Search, status/inStock/badge/sort/date filters, URL persistence, API validation     |
+| Admin — Vendor Mapping    | E2E       | 14      | Vendor column, vendor selector in Add/Edit, RBAC, dropdown API validation           |
+| Delivery Slots            | E2E       | 16      | Slot listing in checkout, slot selection, overbooking prevention, admin CRUD        |
+| Reorder                   | E2E       | 12      | Reorder button, full/partial availability, unavailable items toast, cart sync       |
+| Verified Purchase Reviews | E2E       | 14      | Purchase gate, "Verified Purchase" badge, has-purchased API, review form visibility |
+| Button                    | Component | 13      | All variants/sizes, fullWidth, loading, disabled, click handler                     |
+| Badge                     | Component | 9       | All variants, custom label, className, uppercase styling                            |
+| ThemeToggle               | Component | 12      | Render, mode switching, aria-pressed, dark class side-effect                        |
+| **Total**                 |           | **217** |                                                                                     |
 
 ### Custom Commands
 
@@ -338,7 +346,7 @@ src/
 │   ├── (shop)/          # Storefront — Home, Products, Categories, Cart,
 │   │                    #   Checkout, Offers, Search, Store Locator, Help, Account
 │   ├── (admin)/         # Admin panel — Dashboard, Products, Categories,
-│   │                    #   Orders, Users, Vendors, Promo Codes
+│   │                    #   Orders, Users, Vendors, Promo Codes, Inventory, Delivery Slots
 │   ├── (vendor)/        # Vendor portal — Dashboard, Products, Orders
 │   └── api/             # REST API route handlers (60+ routes)
 ├── components/
@@ -410,6 +418,15 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org) — e
 ---
 
 ## Changelog
+
+### v1.12.0
+
+- **feat(checkout):** Delivery slot selection — customers choose a named time window (09:00–12:00, 12:00–16:00, 16:00–20:00, 20:00–22:00) at checkout; `DeliverySlotSelector` component fetches available slots by date; slot booking is atomic (MongoDB `$expr` + `$inc`) to prevent overbooking; `deliverySlotId/Date/Window` persisted on the `Order` model for both Razorpay and COD paths; slot released on cancellation.
+- **feat(orders):** Reorder from history — "Reorder" button on order detail page calls `POST /api/account/orders/:orderNumber/reorder`; available items are added to cart, unavailable ones reported via warning toast; cart refreshes via `fetchCart()`.
+- **feat(reviews):** Verified purchase enforcement — `POST /api/products/:id/reviews` now checks that the user has a `delivered` or `shipped` order containing the product; blocked users see a purchase-required callout; eligible reviews display a "Verified Purchase" badge (`BadgeCheck` icon); `isVerifiedPurchase` field added to `Review` model and `Review` TypeScript interface.
+- **feat(inventory):** Real-time stock decrement — `checkStock()` runs inside `validateCheckoutOrder()` and rejects orders when items are out of stock or quantity exceeds `stockQuantity`; `fireStockDecrement()` atomically reduces `stockQuantity` and sets `inStock=false` at 0 after order creation (both COD and Razorpay paths); admin inventory page (`/admin/inventory`) with bulk save and low-stock filter.
+- **feat(admin):** Delivery slot admin management at `/admin/delivery-slots`; seed endpoint at `POST /api/admin/delivery-slots/seed`; CRUD via `GET/POST /api/admin/delivery-slots` and `GET/PUT/DELETE /api/admin/delivery-slots/:id`.
+- **test:** 42 new E2E tests across `delivery-slots.cy.ts` (16), `reorder.cy.ts` (12), and `verified-purchase-reviews.cy.ts` (14); total coverage 175 → 217 tests.
 
 ### v1.11.1
 
