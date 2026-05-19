@@ -320,6 +320,7 @@ export default function Navbar() {
             <Link
               href="/account/wishlist"
               aria-label={`Wishlist, ${hydrated ? wishlistCount : 0} items`}
+              data-testid="nav-wishlist-link"
               className="relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-colors transition-transform"
             >
               <Heart className="h-5 w-5" />
@@ -329,6 +330,7 @@ export default function Navbar() {
                   className="absolute -top-0.5 right-1 min-w-[17px] h-[17px] px-1 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
                   style={{ backgroundColor: AMBER }}
                   aria-hidden
+                  data-testid="wishlist-count-badge"
                 >
                   {wishlistCount > 99 ? "99+" : wishlistCount}
                 </span>

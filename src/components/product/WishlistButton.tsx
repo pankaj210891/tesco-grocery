@@ -43,6 +43,8 @@ export default function WishlistButton({ product, className }: Props) {
     <button
       onClick={handleToggle}
       aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+      data-testid="wishlist-btn"
+      data-saved={saved ? "true" : "false"}
       className={cn(
         "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
         saved ? "bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50" : "bg-white/80 hover:bg-white dark:bg-gray-700/80 dark:hover:bg-gray-700",
