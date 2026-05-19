@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { apiClient } from "@/lib/axios";
 import type { User } from "@/types";
 
 interface AuthState {
@@ -23,7 +24,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         // Fire-and-forget: clear the httpOnly auth cookie set by the login API.
         // Failure is acceptable — the cookie expires naturally after 7 days.
-        void fetch("/api/auth/logout", { method: "POST" });
+        void apiClient.post("/api/auth/logout");
         set({ user: null, token: null });
       },
       setHasHydrated: (v) => set({ hasHydrated: v }),
