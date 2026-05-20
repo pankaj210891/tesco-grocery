@@ -51,7 +51,7 @@ export default async function ProductDetailPage({ params }: Props) {
   const breadcrumbs = [
     { label: "Home",     href: "/" },
     { label: "Products", href: "/products" },
-    { label: product.category, href: `/categories/${slugify(product.category)}` },
+    { label: product.category, href: `/products?category=${slugify(product.category)}` },
     { label: product.name },
   ];
 

@@ -19,12 +19,12 @@ function IconYoutube() {
 
 const footerLinks = {
   Shop: [
-    { label: "Fresh Food",           href: "/categories/fresh-food"        },
-    { label: "Bakery",               href: "/categories/bakery"             },
-    { label: "Drinks",               href: "/categories/drinks"             },
-    { label: "Treats & Snacks",      href: "/categories/treats-snacks"      },
-    { label: "Electronics & Gaming", href: "/categories/electronics-gaming" },
-    { label: "All Departments",      href: "/categories"                    },
+    { label: "Fresh Food",           href: "/products?category=fresh-food"        },
+    { label: "Bakery",               href: "/products?category=bakery"             },
+    { label: "Drinks",               href: "/products?category=drinks"             },
+    { label: "Treats & Snacks",      href: "/products?category=treats-snacks"      },
+    { label: "Electronics & Gaming", href: "/products?category=electronics-gaming" },
+    { label: "All Departments",      href: "/categories"                           },
   ],
   Help: [
     { label: "Help Centre",          href: "/help"          },

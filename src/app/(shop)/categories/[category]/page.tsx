@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils/cn";
 import type { ProductFilters } from "@/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import SortControl from "@/components/product/SortControl";
-import CategoryFilters from "@/components/category/CategoryFilters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,12 +57,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const filters: ProductFilters = {
     category,
-    sortBy:   str(sp.sortBy)   as ProductFilters["sortBy"] | undefined,
-    inStock:  str(sp.inStock) === "true" ? true : undefined,
-    minPrice: str(sp.minPrice) ? Number(str(sp.minPrice)) : undefined,
-    maxPrice: str(sp.maxPrice) && str(sp.maxPrice) !== ""
-                ? Number(str(sp.maxPrice))
-                : undefined,
+    sortBy: str(sp.sortBy) as ProductFilters["sortBy"] | undefined,
   };
 
   const { products, total } = await getProducts(filters);
@@ -98,10 +92,6 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
       {/* Controls row */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <Suspense fallback={null}>
-          <CategoryFilters />
-        </Suspense>
-
         <Suspense fallback={<SortSkeleton />}>
           <SortControl />
         </Suspense>
