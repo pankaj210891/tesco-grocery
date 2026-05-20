@@ -3,7 +3,7 @@ import OrderModel, { type OrderDoc } from "@/lib/db/models/order.model";
 import ProductModel from "@/lib/db/models/product.model";
 import { getConfig, getRateForVendor } from "@/services/commission.service";
 import { createEarningsForOrder } from "@/services/vendor-earning.service";
-import type { Order, PaymentMethodType, PaymentStatus, RefundStatus } from "@/types";
+import type { Order, ParentOrderStatus, PaymentMethodType, PaymentStatus, RefundStatus } from "@/types";
 
 export interface OrderItem {
   productId:         string;
@@ -99,7 +99,7 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     discount:    doc.discount ?? 0,
     promoCode:   doc.promoCode ?? undefined,
     total:       doc.total,
-    status:        doc.status as Order["status"],
+    status:        doc.status as ParentOrderStatus,
     paymentMethod: doc.paymentMethod as PaymentMethodType,
     paymentStatus: (doc.paymentStatus ?? "pending") as PaymentStatus,
     razorpayOrderId:   doc.razorpayOrderId ?? undefined,
@@ -192,7 +192,7 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
   return { orderId: doc._id.toString(), orderNumber: doc.orderNumber };
 }
 
-export const CANCELLABLE_STATUSES = ["pending", "processing"] as const;
+export const CANCELLABLE_STATUSES: ParentOrderStatus[] = ["pending", "processing", "partially_confirmed"];
 
 export async function cancelOrder(
   orderNumber: string,

@@ -35,9 +35,22 @@ const OrderSchema = new Schema(
     discount:    { type: Number, default: 0 },
     promoCode:   String,
     total:       { type: Number, required: true },
+    // Links to vendor sub-orders created from this parent order
+    vendorOrderIds: [{ type: Schema.Types.ObjectId, ref: "VendorOrder" }],
+
     status: {
-      type:    String,
-      enum:    ["pending", "processing", "shipped", "delivered", "cancelled"],
+      type: String,
+      enum: [
+        "pending",
+        "partially_confirmed",
+        "processing",
+        "partially_delivered",
+        "completed",
+        "partially_cancelled",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
       default: "pending",
     },
     paymentMethod: {
