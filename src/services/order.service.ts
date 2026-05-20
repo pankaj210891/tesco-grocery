@@ -321,7 +321,46 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
   // Post-transaction: mark out-of-stock products (non-critical, fire-and-forget)
   void markOutOfStockProducts(enrichedItems);
 
+  // Fire-and-forget: notify each vendor of their new sub-order
+  void fireVendorNewOrderNotifications(orderId, orderNumber, vendorGroups);
+
   return { orderId, orderNumber, vendorOrderIds };
+}
+
+async function fireVendorNewOrderNotifications(
+  parentOrderId:  string,
+  orderNumber:    string,
+  vendorGroups:   Map<string, Array<{ vendorId: string | null; vendorName: string | null; price: number; quantity: number; name: string }>>,
+): Promise<void> {
+  try {
+    const VendorModel = (await import("@/lib/db/models/vendor.model")).default;
+    await connectDB();
+
+    const vendorIds = Array.from(vendorGroups.keys());
+    const vendors = await VendorModel
+      .find({ _id: { $in: vendorIds } })
+      .select("_id email name")
+      .lean<Array<{ _id: { toString(): string }; email: string; name: string }>>();
+
+    const { sendVendorNewOrder } = await import("@/services/email.service");
+    const dashboardBase = process.env.NEXT_PUBLIC_APP_URL ?? "";
+
+    await Promise.allSettled(
+      vendors.map(async (vendor) => {
+        const items = vendorGroups.get(vendor._id.toString()) ?? [];
+        await sendVendorNewOrder(vendor.email, {
+          vendorName:        vendor.name,
+          vendorOrderId:     parentOrderId,
+          parentOrderNumber: orderNumber,
+          items:             items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+          subtotal:          items.reduce((s, i) => s + i.price * i.quantity, 0),
+          dashboardUrl:      `${dashboardBase}/vendor/orders`,
+        });
+      }),
+    );
+  } catch (err) {
+    console.error("[order] Failed to send vendor new-order notifications:", err);
+  }
 }
 
 async function markOutOfStockProducts(

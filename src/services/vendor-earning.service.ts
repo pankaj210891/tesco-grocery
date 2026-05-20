@@ -117,7 +117,39 @@ export async function releaseEarning(earningId: string, payoutRef?: string): Pro
   ).lean();
 
   if (!doc) return null;
-  return toEarning(doc as unknown as Record<string, unknown>);
+  const earning = toEarning(doc as unknown as Record<string, unknown>);
+
+  // Fire-and-forget: notify vendor of payout
+  void notifyVendorPayout(earning.vendorId, earning.netAmount, payoutRef ?? "", [earning.orderNumber]);
+
+  return earning;
+}
+
+async function notifyVendorPayout(
+  vendorId:     string,
+  amount:       number,
+  payoutRef:    string,
+  orderNumbers: string[],
+): Promise<void> {
+  try {
+    const VendorModel = (await import("@/lib/db/models/vendor.model")).default;
+    const vendor = await VendorModel
+      .findById(vendorId)
+      .select("email name")
+      .lean<{ email: string; name: string }>();
+
+    if (!vendor?.email) return;
+
+    const { sendVendorPayout } = await import("@/services/email.service");
+    await sendVendorPayout(vendor.email, {
+      vendorName:   vendor.name,
+      amount,
+      payoutRef,
+      orderNumbers,
+    });
+  } catch (err) {
+    console.error("[earning] Failed to send vendor payout notification:", err);
+  }
 }
 
 export async function getVendorEarnings(
