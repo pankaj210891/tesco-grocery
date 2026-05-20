@@ -13,7 +13,8 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils/format";
 import OrderTimeline from "@/components/account/OrderTimeline";
-import type { Order } from "@/types";
+import VendorOrderTracking from "@/components/account/VendorOrderTracking";
+import type { Order, VendorOrder } from "@/types";
 import type { ReorderResult } from "@/app/api/account/orders/[orderNumber]/reorder/route";
 import { use } from "react";
 
@@ -57,6 +58,7 @@ export default function OrderDetailPage({
   const { fetchCart } = useCartStore();
 
   const [order,         setOrder]         = useState<Order | null>(null);
+  const [vendorOrders,  setVendorOrders]  = useState<VendorOrder[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState("");
   const [showCancel,    setShowCancel]    = useState(false);
@@ -79,7 +81,9 @@ export default function OrderDetailPage({
         const { data: json } = await axios.get(`/api/account/orders/${orderNumber}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOrder(json.data);
+        const { vendorOrders: vos, ...orderData } = json.data;
+        setOrder(orderData);
+        setVendorOrders(vos ?? []);
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           setError("Order not found.");
@@ -120,7 +124,7 @@ export default function OrderDetailPage({
   if (!order) return null;
 
   const isCOD         = order.paymentMethod === "cod";
-  const isCancellable = order.status === "pending" || order.status === "processing";
+  const isCancellable = (["pending", "processing", "partially_confirmed"] as Order["status"][]).includes(order.status);
 
   async function handleReorder() {
     if (!token || !order) return;
@@ -266,6 +270,9 @@ export default function OrderDetailPage({
           </h2>
           <OrderTimeline status={order.status} />
         </section>
+
+        {/* Per-vendor tracking (shown when order has vendor sub-orders) */}
+        {vendorOrders.length > 0 && <VendorOrderTracking vendorOrders={vendorOrders} />}
 
         {/* Items */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
