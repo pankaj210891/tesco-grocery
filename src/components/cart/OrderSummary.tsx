@@ -6,7 +6,7 @@ import { Tag, X, Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react"
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
-import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST, COD_CHARGE } from "@/lib/constants/promos";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { apiClient } from "@/lib/axios";
@@ -166,6 +166,10 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
           value={effectiveDelivery === 0 ? "Free" : formatPrice(effectiveDelivery)}
           valueClassName={effectiveDelivery === 0 ? "text-green-600 font-semibold" : ""}
         />
+        <li className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 italic">
+          <span>COD charge (if paying on delivery)</span>
+          <span>+{formatPrice(COD_CHARGE)}</span>
+        </li>
         {promoInfo && (
           <SummaryRow
             label={`${promoCode} saving`}
