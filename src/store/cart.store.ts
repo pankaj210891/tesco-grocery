@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CartItem, SavedCartItem, Product } from "@/types";
+import type { CartItem, SavedCartItem, Product, ProductVariant } from "@/types";
 
 export interface PromoInfo {
   label:          string;
@@ -9,14 +9,19 @@ export interface PromoInfo {
   minOrderValue:  number;
 }
 
-// ── Debounce map (module-level, persists across renders) ──────────────────────
+// Stable composite key for a cart slot (productId + optional variantId)
+function slotKey(productId: string, variantId?: string | null): string {
+  return `${productId}:${variantId ?? ""}`;
+}
+
+// ── Debounce map keyed by slot (productId:variantId) ─────────────────────────
 const qtyDebounceMap = new Map<string, ReturnType<typeof setTimeout>>();
 
-function debounceQtyUpdate(productId: string, fn: () => void, delay = 600) {
-  const existing = qtyDebounceMap.get(productId);
+function debounceQtyUpdate(key: string, fn: () => void, delay = 600) {
+  const existing = qtyDebounceMap.get(key);
   if (existing) clearTimeout(existing);
-  qtyDebounceMap.set(productId, setTimeout(() => {
-    qtyDebounceMap.delete(productId);
+  qtyDebounceMap.set(key, setTimeout(() => {
+    qtyDebounceMap.delete(key);
     fn();
   }, delay));
 }
@@ -43,24 +48,27 @@ interface CartState {
 
   // ── Cart actions ────────────────────────────────────────────────────────────
   fetchCart:      (token: string) => Promise<void>;
-  // token: string → syncs with server; token: null → guest local-only
-  addItem:        (product: Product, quantity: number, token: string | null) => Promise<void>;
-  removeItem:     (productId: string, token: string | null) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number, token: string | null) => Promise<void>;
+  addItem:        (product: Product, quantity: number, token: string | null, selectedVariant?: ProductVariant | null) => Promise<void>;
+  removeItem:     (productId: string, variantId: string | null, token: string | null) => Promise<void>;
+  updateQuantity: (productId: string, variantId: string | null, quantity: number, token: string | null) => Promise<void>;
   clearCart:      (token: string) => Promise<void>;
   reset:          () => void;
 
   // ── Save-for-later actions ──────────────────────────────────────────────────
   fetchSavedItems: (token: string) => Promise<void>;
-  saveForLater:    (productId: string, token: string) => Promise<void>;
+  saveForLater:    (productId: string, variantId: string | null, token: string) => Promise<void>;
   moveToCart:      (productId: string, token: string) => Promise<void>;
   removeSaved:     (productId: string, token: string) => Promise<void>;
+}
+
+function effectiveItemPrice(item: CartItem): number {
+  return item.selectedVariant?.price != null ? item.selectedVariant.price : item.product.price;
 }
 
 function computeTotals(items: CartItem[]) {
   return {
     totalItems: items.reduce((s, i) => s + i.quantity, 0),
-    totalPrice: items.reduce((s, i) => s + i.product.price * i.quantity, 0),
+    totalPrice: items.reduce((s, i) => s + effectiveItemPrice(i) * i.quantity, 0),
   };
 }
 
@@ -100,14 +108,19 @@ export const useCartStore = create<CartState>()((set, get) => ({
     }
   },
 
-  addItem: async (product, quantity, token) => {
-    const existing = get().items.find((i) => i.product._id === product._id);
+  addItem: async (product, quantity, token, selectedVariant) => {
+    const variantId = selectedVariant?._id ?? null;
+    const key       = slotKey(product._id, variantId);
+
+    const existing = get().items.find((i) => slotKey(i.product._id, i.variantId) === key);
     const newQty   = (existing?.quantity ?? 0) + quantity;
 
     set((s) => {
       const items = existing
-        ? s.items.map((i) => i.product._id === product._id ? { ...i, quantity: newQty } : i)
-        : [...s.items, { product, quantity: newQty }];
+        ? s.items.map((i) =>
+            slotKey(i.product._id, i.variantId) === key ? { ...i, quantity: newQty } : i
+          )
+        : [...s.items, { product, quantity: newQty, variantId, selectedVariant: selectedVariant ?? undefined }];
       return { items, ...computeTotals(items), loaded: true };
     });
 
@@ -117,7 +130,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
       const res = await fetch("/api/account/cart", {
         method:  "POST",
         headers: AUTH(token),
-        body:    JSON.stringify({ productId: product._id, quantity: newQty }),
+        body:    JSON.stringify({ productId: product._id, variantId, quantity: newQty }),
       });
       if (res.ok) {
         const json = await res.json() as { success: boolean; data: CartItem[] };
@@ -128,35 +141,42 @@ export const useCartStore = create<CartState>()((set, get) => ({
     }
   },
 
-  removeItem: async (productId, token) => {
+  removeItem: async (productId, variantId, token) => {
+    const key = slotKey(productId, variantId);
     set((s) => {
-      const items = s.items.filter((i) => i.product._id !== productId);
+      const items = s.items.filter((i) => slotKey(i.product._id, i.variantId) !== key);
       return { items, ...computeTotals(items), loaded: true };
     });
     if (!token) return;
     try {
-      await fetch(`/api/account/cart/${productId}`, { method: "DELETE", headers: AUTH(token) });
+      const url = variantId
+        ? `/api/account/cart/${productId}?variantId=${encodeURIComponent(variantId)}`
+        : `/api/account/cart/${productId}`;
+      await fetch(url, { method: "DELETE", headers: AUTH(token) });
     } catch { /* network error */ }
   },
 
-  updateQuantity: async (productId, quantity, token) => {
-    if (quantity <= 0) { await get().removeItem(productId, token); return; }
+  updateQuantity: async (productId, variantId, quantity, token) => {
+    if (quantity <= 0) { await get().removeItem(productId, variantId, token); return; }
 
-    // Optimistic update immediately
+    const key = slotKey(productId, variantId);
+
     set((s) => {
-      const items = s.items.map((i) => i.product._id === productId ? { ...i, quantity } : i);
+      const items = s.items.map((i) =>
+        slotKey(i.product._id, i.variantId) === key ? { ...i, quantity } : i
+      );
       return { items, ...computeTotals(items), loaded: true };
     });
 
     if (!token) return;
 
-    // Debounce the API call to batch rapid stepper clicks
-    debounceQtyUpdate(productId, async () => {
+    debounceQtyUpdate(key, async () => {
       try {
+        const currentQty = get().items.find((i) => slotKey(i.product._id, i.variantId) === key)?.quantity ?? quantity;
         const res = await fetch("/api/account/cart", {
           method:  "POST",
           headers: AUTH(token),
-          body:    JSON.stringify({ productId, quantity: get().items.find((i) => i.product._id === productId)?.quantity ?? quantity }),
+          body:    JSON.stringify({ productId, variantId, quantity: currentQty }),
         });
         if (res.ok) {
           const json = await res.json() as { success: boolean; data: CartItem[] };
@@ -197,15 +217,15 @@ export const useCartStore = create<CartState>()((set, get) => ({
     }
   },
 
-  saveForLater: async (productId, token) => {
-    // Optimistic: remove from items, add to savedItems
-    const item = get().items.find((i) => i.product._id === productId);
+  saveForLater: async (productId, variantId, token) => {
+    const key  = slotKey(productId, variantId);
+    const item = get().items.find((i) => slotKey(i.product._id, i.variantId) === key);
     if (!item) return;
 
     set((s) => {
-      const items = s.items.filter((i) => i.product._id !== productId);
+      const items = s.items.filter((i) => slotKey(i.product._id, i.variantId) !== key);
       const alreadySaved = s.savedItems.some((si) => si.product._id === productId);
-      const savedItems = alreadySaved
+      const savedItems   = alreadySaved
         ? s.savedItems
         : [...s.savedItems, { product: item.product, savedAt: new Date().toISOString() }];
       return { items, ...computeTotals(items), savedItems };
@@ -215,7 +235,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
       const res  = await fetch("/api/account/cart/save-for-later", {
         method:  "POST",
         headers: AUTH(token),
-        body:    JSON.stringify({ productId }),
+        body:    JSON.stringify({ productId, variantId }),
       });
       const json = await res.json() as { success: boolean; data: SavedCartItem[] };
       if (json.success) set({ savedItems: json.data });
@@ -223,16 +243,17 @@ export const useCartStore = create<CartState>()((set, get) => ({
   },
 
   moveToCart: async (productId, token) => {
-    // Optimistic: remove from savedItems, add to cart items
     const saved = get().savedItems.find((si) => si.product._id === productId);
     if (!saved) return;
 
+    // Move base product (no variant) back — user can pick variant on product page
+    const baseKey  = slotKey(productId, null);
     set((s) => {
       const savedItems = s.savedItems.filter((si) => si.product._id !== productId);
-      const existing   = s.items.find((i) => i.product._id === productId);
+      const existing   = s.items.find((i) => slotKey(i.product._id, i.variantId) === baseKey);
       const items = existing
-        ? s.items.map((i) => i.product._id === productId ? { ...i, quantity: i.quantity + 1 } : i)
-        : [...s.items, { product: saved.product, quantity: 1 }];
+        ? s.items.map((i) => slotKey(i.product._id, i.variantId) === baseKey ? { ...i, quantity: i.quantity + 1 } : i)
+        : [...s.items, { product: saved.product, quantity: 1, variantId: null }];
       return { items, ...computeTotals(items), savedItems };
     });
 

@@ -128,11 +128,13 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   }
 
   function handleQuantityChange(newQty: number) {
+    // ProductCard has no variant selector — use null variantId (base product slot)
+    const variantId = cartItem?.variantId ?? null;
     if (!token) {
-      void updateQuantity(product._id, newQty, null);
+      void updateQuantity(product._id, variantId, newQty, null);
       return;
     }
-    void updateQuantity(product._id, newQty, token);
+    void updateQuantity(product._id, variantId, newQty, token);
   }
 
 
