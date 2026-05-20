@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/utils/format";
 import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
+import { apiClient } from "@/lib/axios";
 import type { EligiblePromo } from "@/services/promo.service";
 import { EligiblePromoCard, type ApplyData } from "@/components/checkout/EligiblePromoCard";
 
@@ -45,13 +46,13 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/offers/eligible", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user?._id, items: promoItems, subtotal }),
-    })
-      .then((r) => r.json())
-      .then((json: { success: boolean; data: EligiblePromo[] }) => {
+    apiClient
+      .post<{ success: boolean; data: EligiblePromo[] }>("/api/offers/eligible", {
+        userId: user?._id,
+        items:  promoItems,
+        subtotal,
+      })
+      .then(({ data: json }) => {
         if (!cancelled) setEligiblePromos(json.success ? json.data : []);
       })
       .catch(() => { if (!cancelled) setEligiblePromos([]); });
@@ -65,13 +66,14 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
     if (!promoCode || items.length === 0) return;
     let cancelled = false;
 
-    fetch("/api/offers/apply", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ code: promoCode, userId: user?._id, items: promoItems, subtotal }),
-    })
-      .then((r) => r.json())
-      .then((json: { success: boolean; data?: ApplyData; error?: string }) => {
+    apiClient
+      .post<{ success: boolean; data?: ApplyData; error?: string }>("/api/offers/apply", {
+        code:    promoCode,
+        userId:  user?._id,
+        items:   promoItems,
+        subtotal,
+      })
+      .then(({ data: json }) => {
         if (cancelled) return;
         if (!json.success || !json.data) {
           clearPromo();
@@ -111,12 +113,10 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
     if (!upper) return;
     setApplying(true);
     try {
-      const res  = await fetch("/api/offers/apply", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ code: upper, userId: user?._id, items: promoItems, subtotal }),
-      });
-      const json = await res.json() as { success: boolean; data?: ApplyData; error?: string };
+      const { data: json } = await apiClient.post<{ success: boolean; data?: ApplyData; error?: string }>(
+        "/api/offers/apply",
+        { code: upper, userId: user?._id, items: promoItems, subtotal }
+      );
       if (json.success && json.data) {
         setPromoCode(json.data.code);
         setPromoInfo({
