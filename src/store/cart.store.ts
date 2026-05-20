@@ -51,7 +51,7 @@ interface CartState {
   addItem:        (product: Product, quantity: number, token: string | null, selectedVariant?: ProductVariant | null) => Promise<void>;
   removeItem:     (productId: string, variantId: string | null, token: string | null) => Promise<void>;
   updateQuantity: (productId: string, variantId: string | null, quantity: number, token: string | null) => Promise<void>;
-  clearCart:      (token: string) => Promise<void>;
+  clearCart:      (token: string | null) => Promise<void>;
   reset:          () => void;
 
   // ── Save-for-later actions ──────────────────────────────────────────────────
@@ -188,7 +188,9 @@ export const useCartStore = create<CartState>()((set, get) => ({
 
   clearCart: async (token) => {
     set({ items: [], totalItems: 0, totalPrice: 0, promoCode: null, promoInfo: null });
-    await fetch("/api/account/cart", { method: "DELETE", headers: AUTH(token) });
+    if (token) {
+      await fetch("/api/account/cart", { method: "DELETE", headers: AUTH(token) });
+    }
   },
 
   reset: () => set({
