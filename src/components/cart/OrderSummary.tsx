@@ -38,7 +38,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   const promoItems = items.map((i) => ({
     productId: i.product._id,
     category:  i.product.category,
-    price:     i.product.price,
+    price:     i.selectedVariant?.price != null ? i.selectedVariant.price : i.product.price,
     quantity:  i.quantity,
   }));
 
@@ -229,9 +229,11 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
               </button>
             </div>
             <p className="text-xs text-green-600 dark:text-green-500 pl-[22px]">{promoInfo.label}</p>
-            <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">
-              You save {formatPrice(discountAmount)}
-            </p>
+            {promoInfo.discountType === "freeDelivery" ? (
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">Free delivery applied</p>
+            ) : discountAmount > 0 ? (
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">You save {formatPrice(discountAmount)}</p>
+            ) : null}
           </div>
         ) : (
           /* Not applied — input + eligible promo cards */

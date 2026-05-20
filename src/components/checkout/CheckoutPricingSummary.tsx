@@ -54,7 +54,7 @@ export default function CheckoutPricingSummary({
   const promoItems = items.map((i) => ({
     productId: i.product._id,
     category:  i.product.category,
-    price:     i.product.price,
+    price:     i.selectedVariant?.price != null ? i.selectedVariant.price : i.product.price,
     quantity:  i.quantity,
   }));
 
@@ -180,34 +180,35 @@ export default function CheckoutPricingSummary({
               </button>
             </div>
             <p className="text-xs text-green-600 dark:text-green-500 pl-[22px]">{promoInfo.label}</p>
-            <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">
-              You save {formatPrice(discountAmount)}
-            </p>
+            {promoInfo.discountType === "freeDelivery" ? (
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">Free delivery applied</p>
+            ) : discountAmount > 0 ? (
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">You save {formatPrice(discountAmount)}</p>
+            ) : null}
           </div>
         ) : (
           <div className="space-y-3">
-            <form
-              onSubmit={(e) => { e.preventDefault(); void applyCode(promoInput); }}
-              className="flex gap-2"
-            >
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={promoInput}
                 onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void applyCode(promoInput); } }}
                 placeholder="Enter promo code"
                 aria-label="Promo code"
                 disabled={applying}
                 className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-base md:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:normal-case placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] disabled:opacity-50"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={() => void applyCode(promoInput)}
                 disabled={applying || !promoInput.trim()}
                 className="shrink-0 px-4 py-2 bg-gray-900 dark:bg-gray-600 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
                 {applying && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Apply
               </button>
-            </form>
+            </div>
 
             {eligiblePromos.length > 0 && (
               <div className="space-y-2">
