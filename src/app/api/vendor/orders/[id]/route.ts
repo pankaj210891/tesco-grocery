@@ -1,73 +1,114 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { connectDB } from "@/lib/db/mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
-import OrderModel from "@/lib/db/models/order.model";
-import { sendOrderStatus } from "@/services/email.service";
+import {
+  getVendorOrderById,
+  updateVendorOrderStatus,
+  VENDOR_TRANSITIONS,
+} from "@/services/vendor-order.service";
+import { syncParentOrderStatus } from "@/services/order-status.service";
 import { confirmEarningsForOrder } from "@/services/vendor-earning.service";
+import { sendOrderStatus } from "@/services/email.service";
+import { connectDB } from "@/lib/db/mongoose";
+import OrderModel from "@/lib/db/models/order.model";
+import type { VendorOrderStatus } from "@/lib/db/models/vendor-order.model";
 
 type Params = { params: Promise<{ id: string }> };
 
-// Vendors may only advance shipment status — not cancel or regress orders.
-const VENDOR_ALLOWED_STATUSES = ["processing", "shipped", "delivered"] as const;
-type VendorStatus = typeof VENDOR_ALLOWED_STATUSES[number];
+export async function GET(req: NextRequest, { params }: Params) {
+  const auth = await requireVendor(req);
+  if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
+  if (!mongoose.isValidObjectId(id)) {
+    return NextResponse.json({ success: false, error: "Invalid vendor order ID" }, { status: 400 });
+  }
+
+  try {
+    const vendorOrder = await getVendorOrderById(id, auth.vendorId);
+    if (!vendorOrder) {
+      return NextResponse.json({ success: false, error: "Order not found or access denied" }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, data: vendorOrder });
+  } catch {
+    return NextResponse.json({ success: false, error: "Failed to fetch order" }, { status: 500 });
+  }
+}
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const auth = await requireVendor(req);
   if (auth instanceof NextResponse) return auth;
 
-  try {
-    await connectDB();
-    const { id } = await params;
+  const { id } = await params;
+  if (!mongoose.isValidObjectId(id)) {
+    return NextResponse.json({ success: false, error: "Invalid vendor order ID" }, { status: 400 });
+  }
 
-    if (!mongoose.isValidObjectId(id)) {
-      return NextResponse.json({ success: false, error: "Invalid order ID" }, { status: 400 });
+  try {
+    const body: { status?: string; note?: string; trackingNumber?: string } = await req.json();
+    const { status, note, trackingNumber } = body;
+
+    if (!status) {
+      return NextResponse.json({ success: false, error: "status is required" }, { status: 422 });
     }
 
-    const { status } = await req.json() as { status: string };
-
-    if (!VENDOR_ALLOWED_STATUSES.includes(status as VendorStatus)) {
+    // Validate the requested status is a known vendor status
+    const allowedKeys = Object.keys(VENDOR_TRANSITIONS) as VendorOrderStatus[];
+    if (!allowedKeys.includes(status as VendorOrderStatus)) {
       return NextResponse.json(
-        { success: false, error: `Vendors may only set status to: ${VENDOR_ALLOWED_STATUSES.join(", ")}` },
+        { success: false, error: `Invalid status: ${status}. Allowed: ${allowedKeys.join(", ")}` },
         { status: 422 },
       );
     }
 
-    // Verify this order actually contains items from this vendor (IDOR prevention)
-    const order = await OrderModel.findOne({
-      _id:              id,
-      "items.vendorId": new mongoose.Types.ObjectId(auth.vendorId),
-    }).lean();
-
-    if (!order) {
+    const updated = await updateVendorOrderStatus(id, auth.vendorId, status as VendorOrderStatus, note);
+    if (!updated) {
       return NextResponse.json({ success: false, error: "Order not found or access denied" }, { status: 404 });
     }
 
-    const updated = await OrderModel.findByIdAndUpdate(id, { status }, { new: true });
-    if (!updated) {
-      return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
+    // Optionally persist tracking number on OUT_FOR_DELIVERY
+    if (trackingNumber && status === "OUT_FOR_DELIVERY") {
+      const { connectDB: _cd } = await import("@/lib/db/mongoose");
+      await _cd();
+      const VendorOrderModel = (await import("@/lib/db/models/vendor-order.model")).default;
+      await VendorOrderModel.findByIdAndUpdate(id, { trackingNumber });
     }
+
+    // Sync parent order status after every sub-order status change
+    await syncParentOrderStatus(updated.parentOrderId);
 
     // When delivered, confirm earnings so admin can release payout
-    if (status === "delivered") {
-      void confirmEarningsForOrder(id);
-    }
-
-    if (updated.delivery?.email) {
-      try {
-        await sendOrderStatus(updated.delivery.email, {
-          orderNumber:  updated.orderNumber,
-          customerName: updated.delivery.fullName,
-          newStatus:    status,
-          total:        updated.total,
-        });
-      } catch {
-        // Email failure is non-critical
+    if (status === "DELIVERED") {
+      await connectDB();
+      const parentOrder = await OrderModel.findById(updated.parentOrderId).select("_id").lean();
+      if (parentOrder) {
+        void confirmEarningsForOrder(String(parentOrder._id));
       }
     }
 
+    // Notify customer of this vendor's delivery status change
+    try {
+      await connectDB();
+      const parentOrder = await OrderModel
+        .findById(updated.parentOrderId)
+        .select("delivery orderNumber total")
+        .lean<{ delivery: { email: string; fullName: string }; orderNumber: string; total: number }>();
+
+      if (parentOrder?.delivery?.email) {
+        await sendOrderStatus(parentOrder.delivery.email, {
+          orderNumber:  parentOrder.orderNumber,
+          customerName: parentOrder.delivery.fullName,
+          newStatus:    `${updated.vendorName}: ${status}`,
+          total:        parentOrder.total,
+        });
+      }
+    } catch {
+      // Email failure is non-critical
+    }
+
     return NextResponse.json({ success: true, data: updated });
-  } catch {
-    return NextResponse.json({ success: false, error: "Failed to update order" }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update order";
+    return NextResponse.json({ success: false, error: message }, { status: 400 });
   }
 }
