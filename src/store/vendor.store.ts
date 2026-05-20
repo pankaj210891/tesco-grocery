@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Product, Order, VendorAnalytics } from "@/types";
+import type { Product, VendorOrder, VendorAnalytics } from "@/types";
 
 // ── Shared pagination shape ───────────────────────────────────────────────────
 
@@ -24,16 +24,15 @@ interface VendorProductsState {
 // ── Vendor Orders slice ───────────────────────────────────────────────────────
 
 interface VendorOrdersState {
-  orders:          Order[];
+  orders:          VendorOrder[];
   ordersMeta:      PageMeta;
   ordersPage:      number;
   ordersStatus:    string;
   ordersLoading:   boolean;
-  setOrders:       (orders: Order[], meta: PageMeta) => void;
+  setOrders:       (orders: VendorOrder[], meta: PageMeta) => void;
   setOrdersPage:   (page: number) => void;
   setOrdersStatus: (status: string) => void;
   setOrdersLoading: (v: boolean) => void;
-  // Optimistic status update for a single order
   updateOrderStatus: (id: string, status: string) => void;
 }
 
@@ -75,7 +74,7 @@ export const useVendorStore = create<VendorStore>((set) => ({
   updateOrderStatus: (id, status)   =>
     set((s) => ({
       orders: s.orders.map((o) =>
-        o._id === id ? { ...o, status: status as Order["status"] } : o,
+        o._id === id ? { ...o, status: status as VendorOrder["status"] } : o,
       ),
     })),
 

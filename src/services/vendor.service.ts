@@ -1,6 +1,6 @@
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
-import type { Product, Order, VendorAnalytics, ProductBadge } from "@/types";
+import type { Product, VendorOrder, VendorAnalytics, ProductBadge } from "@/types";
 
 interface PaginatedData<T> {
   data:       T[];
@@ -71,28 +71,28 @@ export async function fetchVendorOrders(
   page    = 1,
   limit   = 20,
   status  = "",
-): Promise<PaginatedData<Order>> {
+): Promise<PaginatedData<VendorOrder>> {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (status) params.set("status", status);
 
   const client = authClient(token);
-  const res    = await client.get<ApiResponse<PaginatedData<Order>>>(
+  const res    = await client.get<ApiResponse<PaginatedData<VendorOrder>>>(
     `/api/vendor/orders?${params.toString()}`,
   );
-  return res.data.data as PaginatedData<Order>;
+  return res.data.data as PaginatedData<VendorOrder>;
 }
 
 export async function updateVendorOrderStatus(
   token:  string,
   id:     string,
   status: string,
-): Promise<Order> {
+): Promise<VendorOrder> {
   const client = authClient(token);
-  const res    = await client.patch<ApiResponse<Order>>(
+  const res    = await client.patch<ApiResponse<VendorOrder>>(
     `/api/vendor/orders/${id}`,
     { status },
   );
-  return res.data.data as Order;
+  return res.data.data as VendorOrder;
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

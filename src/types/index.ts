@@ -387,6 +387,14 @@ export interface VendorOrder {
   vendorId:          string;
   vendorName:        string;
   customerId?:       string | null;
+  delivery?: {
+    fullName: string;
+    email:    string;
+    phone:    string;
+    address:  string;
+    city:     string;
+    postcode: string;
+  };
   items:             VendorOrderItem[];
   subtotal:          number;
   commissionTotal:   number;

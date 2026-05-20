@@ -4,6 +4,7 @@ import VendorOrderModel, {
   VENDOR_ORDER_STATUSES,
   type VendorOrderStatus,
 } from "@/lib/db/models/vendor-order.model";
+import OrderModel from "@/lib/db/models/order.model";
 import type { VendorOrder, VendorOrderItem } from "@/types";
 
 // ─── Serialization ────────────────────────────────────────────────────────────
@@ -119,8 +120,33 @@ export async function getVendorOrders(filters: VendorOrderFilters): Promise<{
     VendorOrderModel.countDocuments(query),
   ]);
 
+  // Populate delivery info from parent orders so the vendor can see customer details
+  const parentOrderIds = [...new Set(
+    (docs as unknown as Array<{ parentOrderId: mongoose.Types.ObjectId }>)
+      .map((d) => d.parentOrderId),
+  )];
+
+  const parentOrders = await OrderModel
+    .find({ _id: { $in: parentOrderIds } })
+    .select("_id delivery")
+    .lean<Array<{
+      _id: mongoose.Types.ObjectId;
+      delivery: { fullName: string; email: string; phone: string; address: string; city: string; postcode: string };
+    }>>();
+
+  const deliveryByOrderId = new Map(
+    parentOrders.map((o) => [o._id.toString(), o.delivery]),
+  );
+
+  const vendorOrders = (docs as unknown as Record<string, unknown>[]).map((doc) => {
+    const vo       = toVendorOrder(doc);
+    const delivery = deliveryByOrderId.get(vo.parentOrderId);
+    if (delivery) vo.delivery = delivery;
+    return vo;
+  });
+
   return {
-    data:       (docs as unknown as Record<string, unknown>[]).map(toVendorOrder),
+    data:       vendorOrders,
     total,
     page,
     totalPages: Math.ceil(total / limit),
