@@ -112,7 +112,7 @@ export default function AdminEarningsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 280px)" }}>
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <div className="h-8 w-8 border-4 border-[#0F4C75]/30 border-t-[#0F4C75] rounded-full animate-spin" />
@@ -123,9 +123,9 @@ export default function AdminEarningsPage() {
             <p className="font-semibold">No earnings found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto flex-1">
             <table className="w-full text-sm" data-testid="admin-earnings-table">
-              <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-10">
                 <tr>
                   {["Order", "Date", "Vendor", "Gross", "Commission", "Net", "Status", "Action"].map((h) => (
                     <th key={h} className="text-left text-xs font-bold text-gray-500 uppercase tracking-wide px-4 py-3">
