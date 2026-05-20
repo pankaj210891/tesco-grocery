@@ -31,7 +31,7 @@ function CategoryChips({ categories }: { categories: Category[] }) {
         {categories.map((cat) => (
           <Link
             key={cat._id}
-            href={`/categories/${cat.slug}`}
+            href={`/products?category=${cat.slug}`}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#FCA311]/40 bg-amber-50 dark:bg-amber-950/20 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-[#FCA311] transition-colors"
           >
             <span className="text-base leading-none">{cat.emoji}</span>
