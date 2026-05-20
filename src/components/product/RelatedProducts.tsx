@@ -28,7 +28,7 @@ export default async function RelatedProducts({ currentProduct }: RelatedProduct
           You might also like
         </h2>
         <Link
-          href={`/categories/${categorySlug}`}
+          href={`/products?category=${categorySlug}`}
           className="text-sm font-semibold text-[#FCA311] dark:text-amber-400 hover:underline"
         >
           View all →

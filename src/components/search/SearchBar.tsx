@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Search, X, Tag, Package } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { apiClient } from "@/lib/axios";
 
 const AMBER = "#FCA311";
 
@@ -65,8 +66,10 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`);
-        const json = (await res.json()) as { success: boolean; data: Suggestions };
+        const res  = await apiClient.get<{ success: boolean; data: Suggestions }>(
+          `/api/search/suggestions?q=${encodeURIComponent(q)}`
+        );
+        const json = res.data;
         if (json.success && hasSuggestions(json.data)) {
           setSuggestions(json.data);
           setOpen(true);
@@ -107,7 +110,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
   // Build flat list of navigable items for keyboard nav
   const allItems: Array<{ href: string; label: string }> = [
     ...suggestions.categories.map((c) => ({
-      href:  `/categories/${c.slug}`,
+      href:  `/products?category=${c.slug}`,
       label: c.name,
     })),
     ...suggestions.brands.map((b) => ({
@@ -220,7 +223,7 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
                     role="option"
                     aria-selected={activeIdx === idx}
                     data-testid="suggestion-category"
-                    onMouseDown={() => navigate(`/categories/${cat.slug}`)}
+                    onMouseDown={() => navigate(`/products?category=${cat.slug}`)}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors",
                       activeIdx === idx

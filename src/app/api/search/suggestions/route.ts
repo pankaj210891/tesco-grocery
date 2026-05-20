@@ -56,15 +56,19 @@ export async function GET(req: NextRequest) {
 
   if (atlasAvailable) {
     const { products, brands } = await atlasSearchSuggestions(q);
-    return Response.json({ success: true, data: { categories, products, brands } });
+    // Only return Atlas results if they found something; otherwise fall through to regex
+    if (products.length > 0 || brands.length > 0) {
+      return Response.json({ success: true, data: { categories, products, brands } });
+    }
   }
 
-  // Regex fallback
+  // Regex fallback (also used when Atlas returns empty results)
   const rawProducts = await ProductModel.find({
     status: "approved",
     $or: [
       { name: regex },
       { brand: regex },
+      { description: regex },
       { tags: regex },
       { category: regex },
       { subcategory: regex },

@@ -56,7 +56,7 @@ export default function NoResults({ query }: NoResultsProps) {
           {POPULAR_CATEGORIES.map((cat) => (
             <Link
               key={cat}
-              href={`/categories/${slugify(cat)}`}
+              href={`/products?category=${slugify(cat)}`}
               className="px-4 py-1.5 border border-gray-200 dark:border-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
             >
               {cat}

@@ -20,7 +20,7 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
       {categories.map((cat) => (
         <Link
           key={cat.slug}
-          href={`/categories/${cat.slug}`}
+          href={`/products?category=${cat.slug}`}
           className={cn(
             "flex-shrink-0 flex flex-col items-center gap-2.5 p-3 sm:p-4 rounded-2xl",
             "w-[88px] sm:w-[100px]",
