@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { z } from "zod";
-import { validateCheckoutOrder, firePromoUsage, fireStockDecrement } from "@/lib/checkout/validate-order";
+import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
 import { createOrder } from "@/services/order.service";
 import { bookDeliverySlot } from "@/services/delivery-slot.service";
 import { sendOrderConfirmation } from "@/services/email.service";
@@ -124,7 +124,6 @@ export async function POST(req: Request) {
       result.orderId,
       validated.discount,
     );
-    void fireStockDecrement(validated.items);
 
     try {
       await sendOrderConfirmation(delivery.email, {
