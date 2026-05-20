@@ -27,10 +27,13 @@ export default function ProductAddToCart({ product, selectedVariant }: ProductAd
   const router    = useRouter();
   const pathname  = usePathname();
 
-  const cartItem = items.find((i) => i.product._id === product._id);
-  const cartQty  = cartItem?.quantity ?? 0;
+  // Show quantity for this specific variant slot, not the whole product
+  const variantId = selectedVariant?._id ?? null;
+  const cartItem  = items.find(
+    (i) => i.product._id === product._id && (i.variantId ?? null) === variantId
+  );
+  const cartQty = cartItem?.quantity ?? 0;
 
-  // When a variant is selected, its inStock overrides the product-level flag
   const isInStock = selectedVariant != null ? selectedVariant.inStock : product.inStock;
 
   function handleAdd() {
@@ -40,19 +43,24 @@ export default function ProductAddToCart({ product, selectedVariant }: ProductAd
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
-    void addItem(product, qty, token);
+    void addItem(product, qty, token, selectedVariant);
     const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
     toast.success(`${label} × ${qty} added to cart`);
   }
 
   return (
     <div className="space-y-4">
-      {/* Already-in-cart indicator */}
+      {/* Already-in-cart indicator for this specific variant */}
       {cartQty > 0 && (
         <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 text-green-700 dark:text-green-400 text-sm font-medium">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             {cartQty} {cartQty === 1 ? "unit" : "units"} in your cart
+            {selectedVariant && (
+              <span className="text-green-600 dark:text-green-500 font-normal">
+                · {selectedVariant.label}
+              </span>
+            )}
           </div>
           <Link href="/cart" className="text-sm font-bold text-[#FCA311] hover:underline">
             View Cart →

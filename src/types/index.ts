@@ -168,8 +168,10 @@ export interface SeedResult {
 // ─── Cart ───────────────────────────────────────────────────────────────────
 
 export interface CartItem {
-  product: Product;
-  quantity: number;
+  product:          Product;
+  quantity:         number;
+  variantId?:       string | null;
+  selectedVariant?: ProductVariant;
 }
 
 export interface SavedCartItem {
@@ -268,6 +270,8 @@ export interface VendorInvite {
 
 export interface OrderLineItem {
   productId:         string;
+  variantId?:        string | null;
+  variantLabel?:     string | null;
   vendorId?:         string | null;
   vendorName?:       string | null;
   name:              string;

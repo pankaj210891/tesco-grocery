@@ -46,9 +46,10 @@ export default function CartPageContent() {
       if (!map.has(key)) {
         map.set(key, { vendorId: item.product.vendorId ?? null, vendorName: name, items: [], subtotal: 0 });
       }
-      const g = map.get(key)!;
+      const g             = map.get(key)!;
+      const effectivePrice = item.selectedVariant?.price != null ? item.selectedVariant.price : item.product.price;
       g.items.push(item);
-      g.subtotal += item.product.price * item.quantity;
+      g.subtotal += effectivePrice * item.quantity;
     }
     return Array.from(map.values());
   }, [items]);
@@ -175,7 +176,7 @@ export default function CartPageContent() {
                 </div>
                 <div className="space-y-3">
                   {group.items.map((item) => (
-                    <CartItem key={item.product._id} item={item} />
+                    <CartItem key={`${item.product._id}:${item.variantId ?? ""}`} item={item} />
                   ))}
                 </div>
               </div>
@@ -183,7 +184,7 @@ export default function CartPageContent() {
             : (
               <div className="space-y-3">
                 {items.map((item) => (
-                  <CartItem key={item.product._id} item={item} />
+                  <CartItem key={`${item.product._id}:${item.variantId ?? ""}`} item={item} />
                 ))}
               </div>
             )

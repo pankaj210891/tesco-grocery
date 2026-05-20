@@ -153,13 +153,16 @@ export default function CheckoutPageContent() {
 
   const buildOrderItems = useCallback(() =>
     items.map((i) => ({
-      productId: i.product._id,
-      name:      i.product.name,
-      slug:      i.product.slug,
-      price:     i.product.price,
-      quantity:  i.quantity,
-      image:     i.product.images[0] ?? "",
-      category:  i.product.category,
+      productId:    i.product._id,
+      variantId:    i.variantId    ?? undefined,
+      variantLabel: i.selectedVariant?.label ?? undefined,
+      name:         i.product.name,
+      slug:         i.product.slug,
+      // Use variant price when a variant is selected so the order total is correct
+      price:        i.selectedVariant?.price != null ? i.selectedVariant.price : i.product.price,
+      quantity:     i.quantity,
+      image:        i.product.images[0] ?? "",
+      category:     i.product.category,
     }))
   , [items]);
 

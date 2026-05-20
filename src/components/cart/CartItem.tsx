@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, Bookmark, Truck, Zap, Store, AlertCircle } from "lucide-react";
+import { Minus, Plus, Trash2, Bookmark, Truck, Zap, Store, AlertCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -46,31 +46,40 @@ const AMBER_DARK = "#E8920A";
 export default function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeItem, saveForLater } = useCartStore();
   const token   = useAuthStore((s) => s.token) ?? "";
-  const { product, quantity } = item;
+  const { product, quantity, variantId = null, selectedVariant } = item;
+
+  // Effective price: variant price if a variant is selected, else product base price
+  const effectivePrice         = selectedVariant?.price        != null ? selectedVariant.price        : product.price;
+  const effectiveOriginalPrice = selectedVariant?.originalPrice != null ? selectedVariant.originalPrice : product.originalPrice;
+
+  const lineTotal = effectivePrice * quantity;
+  const discount  = effectiveOriginalPrice && effectiveOriginalPrice > effectivePrice
+    ? Math.round(((effectiveOriginalPrice - effectivePrice) / effectiveOriginalPrice) * 100)
+    : null;
+
+  // Stock is determined by the variant when one is selected
+  const isInStock = selectedVariant != null ? selectedVariant.inStock : product.inStock;
 
   function handleQtyChange(newQty: number) {
     if (newQty <= 0) {
       handleRemove();
     } else {
-      void updateQuantity(product._id, newQty, token);
+      void updateQuantity(product._id, variantId, newQty, token);
     }
   }
 
   function handleRemove() {
-    void removeItem(product._id, token);
-    toast.success(`${product.name} removed from cart`);
+    void removeItem(product._id, variantId, token);
+    const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
+    toast.success(`${label} removed from cart`);
   }
 
   function handleSaveForLater() {
     if (!token) { toast.error("Sign in to save items"); return; }
-    void saveForLater(product._id, token);
-    toast.success(`${product.name} saved for later`);
+    void saveForLater(product._id, variantId, token);
+    const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
+    toast.success(`${label} saved for later`);
   }
-
-  const lineTotal = product.price * quantity;
-  const discount  = product.originalPrice && product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
 
   return (
     <article
@@ -97,7 +106,7 @@ export default function CartItem({ item }: CartItemProps) {
             {discount}% off
           </span>
         )}
-        {!product.inStock && (
+        {!isInStock && (
           <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 flex items-center justify-center">
             <span className="text-[9px] font-black text-red-600 uppercase tracking-wide">Out of stock</span>
           </div>
@@ -126,6 +135,15 @@ export default function CartItem({ item }: CartItemProps) {
                 <p className="text-xs text-[#FCA311] font-medium">· {product.vendorName}</p>
               )}
             </div>
+            {/* Variant label */}
+            {selectedVariant && (
+              <div className="flex items-center gap-1 mt-1">
+                <Tag className="h-3 w-3 text-gray-400 dark:text-gray-500 shrink-0" />
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                  {selectedVariant.label}
+                </span>
+              </div>
+            )}
           </div>
           <button
             onClick={handleRemove}
@@ -138,7 +156,7 @@ export default function CartItem({ item }: CartItemProps) {
 
         {/* Delivery & stock badges */}
         <div className="flex flex-wrap gap-1.5">
-          {!product.inStock ? (
+          {!isInStock ? (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-md">
               <AlertCircle className="h-2.5 w-2.5" />
               Out of stock
@@ -148,14 +166,14 @@ export default function CartItem({ item }: CartItemProps) {
           )}
         </div>
 
-        {/* Price row */}
+        {/* Price row — uses variant price when applicable */}
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-bold text-gray-900 dark:text-white">
-            {formatPrice(product.price)}
+            {formatPrice(effectivePrice)}
           </span>
-          {product.originalPrice && product.originalPrice > product.price && (
+          {effectiveOriginalPrice && effectiveOriginalPrice > effectivePrice && (
             <span className="text-xs text-gray-400 line-through">
-              {formatPrice(product.originalPrice)}
+              {formatPrice(effectiveOriginalPrice)}
             </span>
           )}
         </div>
@@ -216,7 +234,7 @@ export default function CartItem({ item }: CartItemProps) {
               </p>
               {quantity > 1 && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {formatPrice(product.price)} each
+                  {formatPrice(effectivePrice)} each
                 </p>
               )}
             </div>

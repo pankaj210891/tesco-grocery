@@ -7,6 +7,8 @@ import type { Order, PaymentMethodType, PaymentStatus, RefundStatus } from "@/ty
 
 export interface OrderItem {
   productId:         string;
+  variantId?:        string | null;
+  variantLabel?:     string | null;
   vendorId?:         string | null;
   vendorName?:       string | null;
   name:              string;
@@ -64,11 +66,14 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     _id:         doc._id.toString(),
     orderNumber: doc.orderNumber,
     items:       (doc.items as Array<{
-      productId?: string | null; vendorId?: { toString(): string } | null; vendorName?: string | null;
+      productId?: string | null; variantId?: string | null; variantLabel?: string | null;
+      vendorId?: { toString(): string } | null; vendorName?: string | null;
       name: string; slug?: string | null; price: number; quantity: number; image?: string | null;
       commissionRate?: number; commissionAmount?: number; vendorEarning?: number;
     }>).map((i) => ({
       productId:        i.productId        ?? "",
+      variantId:        i.variantId        ?? null,
+      variantLabel:     i.variantLabel     ?? null,
       vendorId:         i.vendorId?.toString() ?? null,
       vendorName:       i.vendorName       ?? null,
       name:             i.name,

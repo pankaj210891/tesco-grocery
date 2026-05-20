@@ -12,13 +12,15 @@ const deliverySchema = z.object({
 });
 
 const itemSchema = z.object({
-  productId: z.string(),
-  name:      z.string(),
-  slug:      z.string(),
-  price:     z.number().positive(),
-  quantity:  z.number().int().positive(),
-  image:     z.string(),
-  category:  z.string().optional(),
+  productId:    z.string(),
+  variantId:    z.string().nullable().optional(),
+  variantLabel: z.string().nullable().optional(),
+  name:         z.string(),
+  slug:         z.string(),
+  price:        z.number().positive(),
+  quantity:     z.number().int().positive(),
+  image:        z.string(),
+  category:     z.string().optional(),
 });
 
 const bodySchema = z.object({
