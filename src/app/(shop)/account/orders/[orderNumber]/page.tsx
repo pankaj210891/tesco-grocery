@@ -27,11 +27,15 @@ const CANCEL_REASONS = [
 ];
 
 const STATUS_STYLES: Record<Order["status"], string> = {
-  pending:    "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
-  processing: "bg-amber-50  dark:bg-amber-900/20   text-amber-700  dark:text-amber-400   border-amber-200  dark:border-amber-800/40",
-  shipped:    "bg-purple-50 dark:bg-purple-900/20  text-purple-700 dark:text-purple-400  border-purple-200 dark:border-purple-800/40",
-  delivered:  "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
-  cancelled:  "bg-red-50    dark:bg-red-900/20     text-red-700    dark:text-red-400     border-red-200    dark:border-red-800/40",
+  pending:               "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
+  partially_confirmed:   "bg-blue-50   dark:bg-blue-900/20    text-blue-700   dark:text-blue-400    border-blue-200   dark:border-blue-800/40",
+  processing:            "bg-amber-50  dark:bg-amber-900/20   text-amber-700  dark:text-amber-400   border-amber-200  dark:border-amber-800/40",
+  shipped:               "bg-purple-50 dark:bg-purple-900/20  text-purple-700 dark:text-purple-400  border-purple-200 dark:border-purple-800/40",
+  partially_delivered:   "bg-teal-50   dark:bg-teal-900/20    text-teal-700   dark:text-teal-400    border-teal-200   dark:border-teal-800/40",
+  completed:             "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
+  delivered:             "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
+  partially_cancelled:   "bg-orange-50 dark:bg-orange-900/20  text-orange-700 dark:text-orange-400  border-orange-200 dark:border-orange-800/40",
+  cancelled:             "bg-red-50    dark:bg-red-900/20     text-red-700    dark:text-red-400     border-red-200    dark:border-red-800/40",
 };
 
 function formatDate(iso: string) {

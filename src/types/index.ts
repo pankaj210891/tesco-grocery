@@ -345,6 +345,76 @@ export interface RefundItem {
   amount:    number;
 }
 
+// ─── Vendor Sub-Orders ────────────────────────────────────────────────────────
+
+export type VendorOrderStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "PACKED"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "RETURNED"
+  | "REFUNDED";
+
+export type VendorRefundStatus = "none" | "partial" | "full";
+
+export interface VendorOrderStatusHistory {
+  status:    string;
+  note:      string;
+  changedAt: string;
+}
+
+export interface VendorOrderItem {
+  productId:        string;
+  variantId?:       string | null;
+  variantLabel?:    string | null;
+  name:             string;
+  slug:             string;
+  price:            number;
+  quantity:         number;
+  image:            string;
+  commissionRate:   number;
+  commissionAmount: number;
+  vendorEarning:    number;
+}
+
+export interface VendorOrder {
+  _id:               string;
+  parentOrderId:     string;
+  parentOrderNumber: string;
+  vendorId:          string;
+  vendorName:        string;
+  customerId?:       string | null;
+  items:             VendorOrderItem[];
+  subtotal:          number;
+  commissionTotal:   number;
+  vendorEarning:     number;
+  status:            VendorOrderStatus;
+  statusHistory:     VendorOrderStatusHistory[];
+  trackingNumber?:   string | null;
+  estimatedDelivery?: string | null;
+  rejectionReason?:  string | null;
+  cancellationReason?: string | null;
+  refundStatus:      VendorRefundStatus;
+  refundedAmount:    number;
+  earningId?:        string | null;
+  createdAt:         string;
+  updatedAt:         string;
+}
+
+export type ParentOrderStatus =
+  | "pending"
+  | "partially_confirmed"
+  | "processing"
+  | "partially_delivered"
+  | "completed"
+  | "partially_cancelled"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
 export interface Order {
   _id:         string;
   orderNumber: string;
@@ -367,7 +437,8 @@ export interface Order {
   deliverySlotId?:     string | null;
   deliverySlotDate?:   string | null;
   deliverySlotWindow?: string | null;
-  status:         "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  vendorOrderIds?: string[];
+  status:         ParentOrderStatus;
   paymentMethod:  PaymentMethodType;
   paymentStatus:  PaymentStatus;
   razorpayOrderId?:   string;
