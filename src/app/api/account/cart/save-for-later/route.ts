@@ -7,7 +7,10 @@ import CartModel from "@/lib/db/models/cart.model";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
 import type { Product, SavedCartItem } from "@/types";
 
-const BodySchema = z.object({ productId: z.string().min(1) });
+const BodySchema = z.object({
+  productId: z.string().min(1),
+  variantId: z.string().nullable().optional(),
+});
 
 async function buildSavedItems(
   saved: { productId: string; savedAt: Date }[]
@@ -58,15 +61,16 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: "productId required" }, { status: 422 });
   }
-  const { productId } = parsed.data;
+  const { productId, variantId = null } = parsed.data;
 
   try {
     await connectDB();
-    // Remove from items, push to savedItems (avoid duplicates)
+    // Remove the specific variant slot from cart; keep savedItems product-level
+    const pullCondition = variantId ? { productId, variantId } : { productId };
     await CartModel.findOneAndUpdate(
       { userId: auth.userId },
       {
-        $pull: { items: { productId }, savedItems: { productId } },
+        $pull: { items: pullCondition, savedItems: { productId } },
       },
       { upsert: true }
     );

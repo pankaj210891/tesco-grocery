@@ -1,5 +1,6 @@
 import { loginSchema } from "@/lib/validations/auth";
 import { loginUser } from "@/services/auth.service";
+import { setAuthCookie } from "@/lib/utils/authCookie";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +17,9 @@ export async function POST(req: Request) {
     const { email, password } = parsed.data;
     const { user, token } = await loginUser(email, password);
 
-    return Response.json({ success: true, data: { user, token } });
+    const res = Response.json({ success: true, data: { user, token } });
+    setAuthCookie(res, token);
+    return res;
   } catch (err) {
     const message = err instanceof Error ? err.message : "Login failed.";
     const status  = message.includes("Invalid email") ? 401 : 500;

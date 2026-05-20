@@ -3,6 +3,7 @@ import mongoose, { Schema, type InferSchemaType } from "mongoose";
 const CartItemSchema = new Schema(
   {
     productId: { type: String, required: true },
+    variantId: { type: String, default: null },   // null = no variant selected
     quantity:  { type: Number, required: true, min: 1 },
   },
   { _id: false }
@@ -26,6 +27,7 @@ const CartSchema = new Schema(
 );
 
 CartSchema.index({ "items.productId": 1 });
+CartSchema.index({ "items.productId": 1, "items.variantId": 1 });
 CartSchema.index({ "savedItems.productId": 1 });
 
 export type CartDoc = InferSchemaType<typeof CartSchema> & {

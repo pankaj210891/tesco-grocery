@@ -2,18 +2,22 @@ import type { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import CategoryModel from "@/lib/db/models/category.model";
 import ProductModel from "@/lib/db/models/product.model";
+import {
+  isAtlasSearchAvailable,
+  atlasSearchSuggestions,
+} from "@/lib/search/atlas-search";
 
 export const dynamic = "force-dynamic";
 
 type RawCat = { _id: { toString(): string }; name: string; slug: string; emoji?: string };
 type RawProduct = {
-  _id: { toString(): string };
-  name: string;
-  slug: string;
-  images?: string[];
-  price: number;
+  _id:      { toString(): string };
+  name:     string;
+  slug:     string;
+  images?:  string[];
+  price:    number;
   category: string;
-  brand: string;
+  brand:    string;
 };
 
 function escapeRegex(s: string) {
@@ -29,31 +33,46 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
 
+  // ── Category suggestions always use regex (no Atlas index for categories) ──
   const regex = new RegExp(escapeRegex(q), "i");
 
-  const [rawCats, rawProducts] = await Promise.all([
-    CategoryModel.find({
-      isActive: true,
-      $or: [{ name: regex }, { slug: regex }, { description: regex }],
-    })
-      .select("name slug emoji")
-      .limit(4)
-      .lean<RawCat[]>(),
+  const rawCats = await CategoryModel.find({
+    isActive: true,
+    $or: [{ name: regex }, { slug: regex }, { description: regex }],
+  })
+    .select("name slug emoji")
+    .limit(4)
+    .lean<RawCat[]>();
 
-    ProductModel.find({
-      status: "approved",
-      $or: [
-        { name: regex },
-        { brand: regex },
-        { tags: regex },
-        { category: regex },
-        { subcategory: regex },
-      ],
-    })
-      .select("name slug images price category brand")
-      .limit(6)
-      .lean<RawProduct[]>(),
-  ]);
+  const categories = rawCats.map((c) => ({
+    _id:   c._id.toString(),
+    name:  c.name,
+    slug:  c.slug,
+    emoji: c.emoji ?? "📦",
+  }));
+
+  // ── Product + brand suggestions: Atlas if available, regex fallback ─────────
+  const atlasAvailable = await isAtlasSearchAvailable();
+
+  if (atlasAvailable) {
+    const { products, brands } = await atlasSearchSuggestions(q);
+    return Response.json({ success: true, data: { categories, products, brands } });
+  }
+
+  // Regex fallback
+  const rawProducts = await ProductModel.find({
+    status: "approved",
+    $or: [
+      { name: regex },
+      { brand: regex },
+      { tags: regex },
+      { category: regex },
+      { subcategory: regex },
+    ],
+  })
+    .select("name slug images price category brand")
+    .limit(6)
+    .lean<RawProduct[]>();
 
   const brandSet = new Set<string>();
   rawProducts.forEach((p) => {
@@ -63,12 +82,7 @@ export async function GET(req: NextRequest) {
   return Response.json({
     success: true,
     data: {
-      categories: rawCats.map((c) => ({
-        _id:   c._id.toString(),
-        name:  c.name,
-        slug:  c.slug,
-        emoji: c.emoji ?? "📦",
-      })),
+      categories,
       products: rawProducts.map((p) => ({
         _id:      p._id.toString(),
         name:     p.name,

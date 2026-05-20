@@ -1,14 +1,24 @@
 import { connectDB } from "@/lib/db/mongoose";
 import OrderModel, { type OrderDoc } from "@/lib/db/models/order.model";
+import ProductModel from "@/lib/db/models/product.model";
+import { getConfig, getRateForVendor } from "@/services/commission.service";
+import { createEarningsForOrder } from "@/services/vendor-earning.service";
 import type { Order, PaymentMethodType, PaymentStatus, RefundStatus } from "@/types";
 
 export interface OrderItem {
-  productId: string;
-  name:      string;
-  slug:      string;
-  price:     number;
-  quantity:  number;
-  image:     string;
+  productId:         string;
+  variantId?:        string | null;
+  variantLabel?:     string | null;
+  vendorId?:         string | null;
+  vendorName?:       string | null;
+  name:              string;
+  slug:              string;
+  price:             number;
+  quantity:          number;
+  image:             string;
+  commissionRate?:   number;
+  commissionAmount?: number;
+  vendorEarning?:    number;
 }
 
 export interface DeliveryInfo {
@@ -56,15 +66,24 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
     _id:         doc._id.toString(),
     orderNumber: doc.orderNumber,
     items:       (doc.items as Array<{
-      productId?: string | null; name: string; slug?: string | null;
-      price: number; quantity: number; image?: string | null;
+      productId?: string | null; variantId?: string | null; variantLabel?: string | null;
+      vendorId?: { toString(): string } | null; vendorName?: string | null;
+      name: string; slug?: string | null; price: number; quantity: number; image?: string | null;
+      commissionRate?: number; commissionAmount?: number; vendorEarning?: number;
     }>).map((i) => ({
-      productId: i.productId ?? "",
-      name:      i.name,
-      slug:      i.slug      ?? "",
-      price:     i.price,
-      quantity:  i.quantity,
-      image:     i.image     ?? "",
+      productId:        i.productId        ?? "",
+      variantId:        i.variantId        ?? null,
+      variantLabel:     i.variantLabel     ?? null,
+      vendorId:         i.vendorId?.toString() ?? null,
+      vendorName:       i.vendorName       ?? null,
+      name:             i.name,
+      slug:             i.slug             ?? "",
+      price:            i.price,
+      quantity:         i.quantity,
+      image:            i.image            ?? "",
+      commissionRate:   i.commissionRate   ?? 0,
+      commissionAmount: i.commissionAmount ?? 0,
+      vendorEarning:    i.vendorEarning    ?? 0,
     })),
     delivery: {
       fullName: doc.delivery?.fullName ?? "",
@@ -131,8 +150,45 @@ export async function getOrderByNumber(orderNumber: string, userId: string): Pro
 
 export async function createOrder(input: CreateOrderInput): Promise<OrderResult> {
   await connectDB();
+
+  // Resolve vendorId/vendorName from product catalogue and compute commission per item
+  const productIds = input.items.map((i) => i.productId).filter(Boolean);
+  const [productDocs, commissionConfig] = await Promise.all([
+    ProductModel.find({ _id: { $in: productIds } })
+      .select("_id vendorId vendorName")
+      .lean<Array<{ _id: { toString(): string }; vendorId?: { toString(): string } | null; vendorName?: string | null }>>(),
+    getConfig(),
+  ]);
+
+  const vendorMap = new Map(productDocs.map((p) => [
+    p._id.toString(),
+    { vendorId: p.vendorId?.toString() ?? null, vendorName: p.vendorName ?? null },
+  ]));
+
+  const enrichedItems = input.items.map((item) => {
+    const meta          = vendorMap.get(item.productId) ?? { vendorId: null, vendorName: null };
+    const vendorId      = item.vendorId ?? meta.vendorId;
+    const vendorName    = item.vendorName ?? meta.vendorName;
+    const rate          = getRateForVendor(vendorId, commissionConfig);
+    const lineTotal     = item.price * item.quantity;
+    const commission    = vendorId ? Math.round(lineTotal * rate) / 100 : 0;
+
+    return {
+      ...item,
+      vendorId,
+      vendorName,
+      commissionRate:   vendorId ? rate : 0,
+      commissionAmount: commission,
+      vendorEarning:    lineTotal - commission,
+    };
+  });
+
   const orderNumber = generateOrderNumber();
-  const doc = await OrderModel.create({ ...input, orderNumber });
+  const doc = await OrderModel.create({ ...input, items: enrichedItems, orderNumber });
+
+  // Fire-and-forget — build earnings ledger entries asynchronously
+  void createEarningsForOrder(doc._id.toString());
+
   return { orderId: doc._id.toString(), orderNumber: doc.orderNumber };
 }
 

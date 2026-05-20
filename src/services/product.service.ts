@@ -4,7 +4,11 @@ import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
 import Review from "@/lib/db/models/review.model";
 import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
-import type { Product, ProductFilters, PaginatedProducts, FilterMeta } from "@/types";
+import type { Product, ProductFilters, PaginatedProducts, FilterMeta, ProductVariant } from "@/types";
+import {
+  isAtlasSearchAvailable,
+  atlasSearchProductsPipeline,
+} from "@/lib/search/atlas-search";
 
 // ── Category slug resolver ────────────────────────────────────────────────────
 // CATEGORY_NAME_MAP covers original grocery categories.
@@ -57,6 +61,20 @@ function toProduct(doc: ProductDoc): Product {
     vendorId:        doc.vendorId?.toString() ?? null,
     vendorName:      doc.vendorName ?? null,
     attributes,
+    variants: ((doc as ProductDoc & { variants?: unknown[] }).variants ?? []).map(
+      (v): ProductVariant => {
+        const vv = v as unknown as Record<string, unknown>;
+        return {
+          _id:           String(vv._id ?? ""),
+          label:         String(vv.label ?? ""),
+          sku:           String(vv.sku ?? ""),
+          price:         (vv.price as number | null | undefined) ?? null,
+          originalPrice: (vv.originalPrice as number | null | undefined) ?? null,
+          stockQuantity: (vv.stockQuantity as number | null | undefined) ?? null,
+          inStock:       (vv.inStock as boolean | undefined) ?? true,
+        };
+      }
+    ),
     createdAt:       doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
     updatedAt:       doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
   };
@@ -142,9 +160,6 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   if (deliveryOptions && deliveryOptions.length > 0) {
     query.deliveryOptions = { $in: deliveryOptions };
   }
-  if (search) {
-    query.$text = { $search: search };
-  }
   // Dynamic attribute filters — each key maps to one or more values (multiselect → $in)
   if (attrs && Object.keys(attrs).length > 0) {
     for (const [key, values] of Object.entries(attrs)) {
@@ -169,6 +184,42 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
 
   const skip = (page - 1) * limit;
 
+  // ── Atlas Search path (when search term is present and Atlas index is live) ──
+  if (search) {
+    const atlasAvailable = await isAtlasSearchAvailable();
+
+    if (atlasAvailable) {
+      const mongoSort = Object.fromEntries(
+        Object.entries(sort).map(([k, v]) => [k, v as 1 | -1])
+      );
+      const { pipeline, countPipeline } = await atlasSearchProductsPipeline({
+        search,
+        category:  typeof query.category === "string" ? query.category : undefined,
+        skip,
+        limit,
+        sort:      Object.keys(mongoSort).length > 0 ? mongoSort : undefined,
+      });
+
+      type CountDoc = { total: number };
+      const [docs, countResult] = await Promise.all([
+        ProductModel.aggregate<ProductDoc>(pipeline),
+        ProductModel.aggregate<CountDoc>(countPipeline),
+      ]);
+      const total = countResult[0]?.total ?? 0;
+
+      return {
+        products:   docs.map(toProduct),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
+    // Fallback to $text when Atlas is unavailable
+    query.$text = { $search: search };
+  }
+
+  // ── Standard Mongoose query path ─────────────────────────────────────────────
   const [docs, total] = await Promise.all([
     ProductModel.find(query).sort(sort).skip(skip).limit(limit).lean<ProductDoc[]>(),
     ProductModel.countDocuments(query),

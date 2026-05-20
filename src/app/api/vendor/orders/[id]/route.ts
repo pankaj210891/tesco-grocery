@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
 import { sendOrderStatus } from "@/services/email.service";
+import { confirmEarningsForOrder } from "@/services/vendor-earning.service";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -45,6 +46,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const updated = await OrderModel.findByIdAndUpdate(id, { status }, { new: true });
     if (!updated) {
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
+    }
+
+    // When delivered, confirm earnings so admin can release payout
+    if (status === "delivered") {
+      void confirmEarningsForOrder(id);
     }
 
     if (updated.delivery?.email) {

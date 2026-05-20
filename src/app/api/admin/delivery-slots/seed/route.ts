@@ -4,11 +4,12 @@ import { getAuthUser } from "@/lib/utils/apiAuth";
 import DeliverySlotModel, { SLOT_WINDOWS } from "@/lib/db/models/delivery-slot.model";
 
 /**
- * POST /api/admin/delivery-slots/seed
+ * POST /api/admin/delivery-slots/seed?force=true
  *
  * Seeds the next 14 days with all 4 time windows at 50 capacity each.
- * Cutoff = 06:00 UTC on the delivery day (can be adjusted).
- * Idempotent — skips existing slots.
+ * Cutoff = 06:00 UTC on the delivery day.
+ * By default idempotent — skips existing slots.
+ * Pass ?force=true to delete all future slots and recreate them.
  */
 export async function POST(req: NextRequest) {
   const auth = getAuthUser(req);
@@ -19,13 +20,18 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const now   = new Date();
-    const dates: string[] = [];
+    const force = new URL(req.url).searchParams.get("force") === "true";
+    const today = new Date().toISOString().slice(0, 10);
 
+    const dates: string[] = [];
     for (let i = 1; i <= 14; i++) {
-      const d = new Date(now);
+      const d = new Date();
       d.setDate(d.getDate() + i);
       dates.push(d.toISOString().slice(0, 10));
+    }
+
+    if (force) {
+      await DeliverySlotModel.deleteMany({ date: { $gte: today } });
     }
 
     const docs = dates.flatMap((date) =>
@@ -40,22 +46,25 @@ export async function POST(req: NextRequest) {
     );
 
     let created = 0;
+    let skipped = 0;
     for (const doc of docs) {
       try {
         await DeliverySlotModel.create(doc);
         created++;
       } catch (err: unknown) {
         if (typeof err === "object" && err !== null && "code" in err && (err as { code: number }).code === 11000) {
-          continue; // skip duplicate
+          skipped++;
+          continue;
         }
         throw err;
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Seeded ${created} slots (${dates.length} days × ${SLOT_WINDOWS.length} windows)`,
-    });
+    const message = created > 0
+      ? `Seeded ${created} slots across ${dates.length} days`
+      : `All ${skipped} slots already exist — nothing to seed. Use "Force Reseed" to recreate.`;
+
+    return NextResponse.json({ success: true, created, skipped, message });
   } catch (err) {
     console.error("[POST /api/admin/delivery-slots/seed]", err);
     return NextResponse.json({ success: false, error: "Seed failed" }, { status: 500 });

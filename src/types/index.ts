@@ -5,6 +5,16 @@ export type ProductStatus = "pending" | "approved" | "rejected";
 export type DeliveryOption = "express" | "standard" | "collection";
 export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";
 
+export interface ProductVariant {
+  _id:           string;
+  label:         string;
+  sku:           string;
+  price:         number | null;
+  originalPrice: number | null;
+  stockQuantity: number | null;
+  inStock:       boolean;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -30,6 +40,7 @@ export interface Product {
   status?: ProductStatus;
   // Dynamic category-specific attributes e.g. { ram: "8GB", storage: "128GB" }
   attributes?: Record<string, string>;
+  variants?: ProductVariant[];
   createdAt: string;
   updatedAt: string;
 }
@@ -157,8 +168,10 @@ export interface SeedResult {
 // ─── Cart ───────────────────────────────────────────────────────────────────
 
 export interface CartItem {
-  product: Product;
-  quantity: number;
+  product:          Product;
+  quantity:         number;
+  variantId?:       string | null;
+  selectedVariant?: ProductVariant;
 }
 
 export interface SavedCartItem {
@@ -211,6 +224,18 @@ export interface AuthFormData {
 
 export type VendorStatus = "pending" | "active" | "suspended";
 
+export type KycStatus = "not_submitted" | "pending" | "verified" | "rejected";
+
+export interface VendorKyc {
+  panNumber:       string;
+  gstNumber:       string;
+  aadhaarLast4:    string;
+  status:          KycStatus;
+  rejectionReason: string;
+  submittedAt?:    string;
+  reviewedAt?:     string;
+}
+
 export interface Vendor {
   _id:         string;
   name:        string;
@@ -224,6 +249,7 @@ export interface Vendor {
   status:      VendorStatus;
   ownerId:     string;
   ownerName:   string;
+  kyc?:        VendorKyc;
   createdAt:   string;
 }
 
@@ -243,14 +269,68 @@ export interface VendorInvite {
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 export interface OrderLineItem {
-  productId:  string;
-  vendorId?:  string | null;
-  vendorName?: string | null;
-  name:       string;
-  slug:       string;
-  price:      number;
-  quantity:   number;
-  image:      string;
+  productId:         string;
+  variantId?:        string | null;
+  variantLabel?:     string | null;
+  vendorId?:         string | null;
+  vendorName?:       string | null;
+  name:              string;
+  slug:              string;
+  price:             number;
+  quantity:          number;
+  image:             string;
+  commissionRate?:   number;
+  commissionAmount?: number;
+  vendorEarning?:    number;
+}
+
+// ─── Vendor Earnings ──────────────────────────────────────────────────────────
+
+export type EarningStatus = "pending" | "confirmed" | "released";
+
+export interface EarningLineItem {
+  productId:        string;
+  name:             string;
+  quantity:         number;
+  price:            number;
+  commissionRate:   number;
+  commissionAmount: number;
+  netEarning:       number;
+}
+
+export interface VendorEarning {
+  _id:             string;
+  vendorId:        string;
+  orderId:         string;
+  orderNumber:     string;
+  orderDate:       string;
+  items:           EarningLineItem[];
+  grossAmount:     number;
+  commissionTotal: number;
+  netAmount:       number;
+  status:          EarningStatus;
+  releasedAt?:     string | null;
+  payoutRef:       string;
+  createdAt:       string;
+}
+
+export interface VendorEarningsSummary {
+  totalPending:   number;
+  totalConfirmed: number;
+  totalReleased:  number;
+  totalEarned:    number;
+}
+
+// ─── Commission ────────────────────────────────────────────────────────────────
+
+export interface CommissionVendorRate {
+  vendorId: string;
+  rate:     number;
+}
+
+export interface CommissionConfig {
+  defaultRate: number;
+  vendorRates: CommissionVendorRate[];
 }
 
 export type PaymentMethodType = "razorpay" | "cod";

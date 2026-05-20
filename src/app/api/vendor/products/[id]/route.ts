@@ -20,11 +20,22 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json() as Record<string, unknown>;
-    const allowed = ["name", "description", "price", "originalPrice", "images", "category", "brand", "unit", "inStock", "tags", "badge"];
+    const allowed = [
+      "name", "description", "price", "originalPrice",
+      "images", "category", "brand", "unit",
+      "inStock", "stockQuantity", "lowStockThreshold",
+      "tags", "badge",
+    ];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {
       if (body[key] !== undefined) update[key] = body[key];
     }
+
+    // When stockQuantity is explicitly tracked, derive inStock automatically
+    if (typeof body.stockQuantity === "number") {
+      update.inStock = body.stockQuantity > 0;
+    }
+
     // Merge dynamic attributes safely
     if (body.attributes && typeof body.attributes === "object" && !Array.isArray(body.attributes)) {
       const safeAttrs: Record<string, string> = {};
@@ -35,6 +46,25 @@ export async function PUT(req: NextRequest, { params }: Params) {
         }
       }
       update.attributes = safeAttrs;
+    }
+
+    // Replace variants array when provided
+    if (Array.isArray(body.variants)) {
+      const safeVariants: Array<{ label: string; sku: string; price: number | null; originalPrice: number | null; stockQuantity: number | null; inStock: boolean }> = [];
+      for (const v of body.variants as unknown[]) {
+        if (typeof v !== "object" || v === null) continue;
+        const vv = v as Record<string, unknown>;
+        if (!vv.label || typeof vv.label !== "string" || !vv.label.trim()) continue;
+        safeVariants.push({
+          label:         vv.label.trim(),
+          sku:           typeof vv.sku === "string" ? vv.sku.trim() : "",
+          price:         typeof vv.price === "number" ? vv.price : null,
+          originalPrice: typeof vv.originalPrice === "number" ? vv.originalPrice : null,
+          stockQuantity: typeof vv.stockQuantity === "number" ? vv.stockQuantity : null,
+          inStock:       typeof vv.inStock === "boolean" ? vv.inStock : true,
+        });
+      }
+      update.variants = safeVariants;
     }
 
     const product = await ProductModel.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true });

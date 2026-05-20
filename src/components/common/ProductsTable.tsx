@@ -169,14 +169,36 @@ export function ProductsTable({
                   </td>
 
                   {/* Stock */}
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        p.inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      {p.inStock ? "In Stock" : "Out"}
-                    </span>
+                  <td className="px-4 py-3" data-testid={`stock-cell-${p._id}`}>
+                    {p.stockQuantity != null ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full w-fit ${
+                            p.stockQuantity === 0
+                              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                              : p.stockQuantity <= (p.lowStockThreshold ?? 5)
+                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                              : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          }`}
+                          data-testid={`stock-qty-${p._id}`}
+                        >
+                          {p.stockQuantity === 0 ? "Out of Stock" : `${p.stockQuantity} left`}
+                        </span>
+                        {p.stockQuantity > 0 && p.stockQuantity <= (p.lowStockThreshold ?? 5) && (
+                          <span className="text-[10px] text-orange-500 font-semibold">Low stock</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          p.inStock
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
+                      >
+                        {p.inStock ? "In Stock" : "Out of Stock"}
+                      </span>
+                    )}
                   </td>
 
                   {/* Status (admin only) */}

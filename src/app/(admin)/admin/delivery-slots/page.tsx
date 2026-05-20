@@ -53,15 +53,22 @@ export default function AdminDeliverySlotsPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetchSlots(); }, [fetchSlots]);
 
-  async function handleSeed() {
+  async function handleSeed(force = false) {
     setSeeding(true);
     try {
-      const { data } = await axios.post<{ message: string }>(
-        "/api/admin/delivery-slots/seed",
+      const url = force
+        ? "/api/admin/delivery-slots/seed?force=true"
+        : "/api/admin/delivery-slots/seed";
+      const { data } = await axios.post<{ created: number; skipped: number; message: string }>(
+        url,
         {},
         { headers: AUTH },
       );
-      toast.success(data.message ?? "Slots seeded");
+      if (data.created > 0) {
+        toast.success(data.message);
+      } else {
+        toast.info(data.message);
+      }
       void fetchSlots();
     } catch {
       toast.error("Seed failed");
@@ -103,7 +110,7 @@ export default function AdminDeliverySlotsPage() {
   }, {});
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
@@ -125,12 +132,24 @@ export default function AdminDeliverySlotsPage() {
             Refresh
           </button>
           <button
-            onClick={handleSeed}
+            onClick={() => handleSeed(false)}
             disabled={seeding}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-[#FCA311] text-white font-semibold rounded-xl hover:bg-[#E8920A] transition-colors disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
             {seeding ? "Seeding…" : "Seed 14 Days"}
+          </button>
+          <button
+            onClick={() => {
+              if (confirm("Force reseed will DELETE all existing future slots and recreate them. Continue?")) {
+                void handleSeed(true);
+              }
+            }}
+            disabled={seeding}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors disabled:opacity-60"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Force Reseed
           </button>
         </div>
       </div>
@@ -140,6 +159,7 @@ export default function AdminDeliverySlotsPage() {
       </p>
 
       {/* Slot table */}
+      <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((n) => (
@@ -151,7 +171,7 @@ export default function AdminDeliverySlotsPage() {
           <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 dark:text-gray-400 text-sm">No slots for this date.</p>
           <button
-            onClick={handleSeed}
+            onClick={() => void handleSeed(false)}
             className="mt-4 px-4 py-2 text-sm bg-[#FCA311] text-white font-semibold rounded-xl hover:bg-[#E8920A] transition-colors"
           >
             Seed Slots
@@ -230,6 +250,7 @@ export default function AdminDeliverySlotsPage() {
           </div>
         ))
       )}
+      </div>
     </div>
   );
 }
