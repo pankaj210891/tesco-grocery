@@ -63,30 +63,42 @@ export default function CartPageContent() {
     [items]
   );
 
+  const isGuest = !user || !token;
+
   if (!hasHydrated) return <CartSkeleton />;
 
-  if (!user || !token) {
+  // Guests with no local items: show a sign-in prompt
+  if (isGuest && items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-24 px-4">
         <div className="w-20 h-20 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-6">
           <ShoppingCart className="h-9 w-9 text-[#FCA311]" aria-hidden />
         </div>
-        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Sign in to view your cart</h2>
+        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Your trolley is empty</h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mb-8 leading-relaxed">
-          Your cart is saved to your account. Sign in to continue shopping and checkout.
+          Sign in to see your saved cart, or start browsing to add items.
         </p>
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-2 px-8 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors"
-        >
-          Sign in
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors"
+          >
+            Sign in
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/products"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Browse Products
+          </Link>
+        </div>
       </div>
     );
   }
 
-  if (!loaded || loading) return <CartSkeleton />;
+  // Logged-in users: wait for server cart to load
+  if (!isGuest && (!loaded || loading)) return <CartSkeleton />;
 
   if (items.length === 0) {
     return (
@@ -114,7 +126,7 @@ export default function CartPageContent() {
   }
 
   function handleClearCart() {
-    void clearCart(token!);
+    void clearCart(token ?? null);
     toast.success("Trolley cleared");
   }
 
@@ -200,8 +212,8 @@ export default function CartPageContent() {
             </Link>
           </div>
 
-          {/* Saved for later */}
-          <SavedItemsSection />
+          {/* Saved for later — only for logged-in users */}
+          {!isGuest && <SavedItemsSection />}
 
           {/* Recommendations */}
           <Suspense fallback={null}>
@@ -214,7 +226,11 @@ export default function CartPageContent() {
 
         {/* Right: Sticky summary (desktop) */}
         <div className="hidden lg:block">
-          <OrderSummary subtotal={totalPrice} />
+          {isGuest ? (
+            <GuestCheckoutPrompt totalPrice={totalPrice} totalItems={totalItems} />
+          ) : (
+            <OrderSummary subtotal={totalPrice} />
+          )}
         </div>
       </div>
 
@@ -229,15 +245,64 @@ export default function CartPageContent() {
               {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(totalPrice)}
             </p>
           </div>
-          <Link
-            href="/checkout"
-            data-testid="mobile-checkout-btn"
-            className="shrink-0 px-6 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors active:scale-[0.98]"
-          >
-            Checkout →
-          </Link>
+          {isGuest ? (
+            <Link
+              href="/login"
+              data-testid="mobile-checkout-btn"
+              className="shrink-0 px-6 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors active:scale-[0.98]"
+            >
+              Sign in to checkout
+            </Link>
+          ) : (
+            <Link
+              href="/checkout"
+              data-testid="mobile-checkout-btn"
+              className="shrink-0 px-6 py-3 bg-[#FCA311] text-white font-bold rounded-xl hover:bg-[#E8920A] transition-colors active:scale-[0.98]"
+            >
+              Checkout →
+            </Link>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Guest checkout prompt (replaces OrderSummary for unauthenticated users) ──
+
+function GuestCheckoutPrompt({ totalPrice, totalItems }: { totalPrice: number; totalItems: number }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
+        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+          {totalItems} {totalItems === 1 ? "item" : "items"}
+        </span>
+      </div>
+
+      <div className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-baseline justify-between">
+        <span className="text-base font-bold text-gray-900 dark:text-white">Estimated total</span>
+        <span className="text-2xl font-black text-gray-900 dark:text-white">
+          {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(totalPrice)}
+        </span>
+      </div>
+
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 text-center">
+        Sign in to apply promo codes and proceed to checkout.
+      </div>
+
+      <Link
+        href="/login"
+        className="block w-full text-center py-3.5 rounded-xl font-bold text-base bg-[#FCA311] text-white hover:bg-[#E8920A] transition-colors active:scale-[0.98] shadow-sm"
+      >
+        Sign in to Checkout →
+      </Link>
+      <Link
+        href="/products"
+        className="block text-center text-sm text-[#FCA311] hover:underline font-medium"
+      >
+        ← Continue Shopping
+      </Link>
     </div>
   );
 }
