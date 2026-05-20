@@ -135,12 +135,19 @@ export async function atlasSearchSuggestions(q: string): Promise<{
 
 // ── Full-text search pipeline for getProducts ─────────────────────────────────
 
-interface AtlasSearchParams {
-  search:     string;
-  category?:  string;
-  skip:       number;
-  limit:      number;
-  sort?:      Record<string, 1 | -1>;
+export interface AtlasSearchParams {
+  search:           string;
+  category?:        string;
+  brands?:          string[];
+  inStock?:         boolean;
+  minPrice?:        number;
+  maxPrice?:        number;
+  rating?:          number;
+  discount?:        number;
+  deliveryOptions?: string[];
+  skip:             number;
+  limit:            number;
+  sort?:            Record<string, 1 | -1>;
 }
 
 interface AtlasSearchResult {
@@ -151,7 +158,10 @@ interface AtlasSearchResult {
 export async function atlasSearchProductsPipeline(
   params: AtlasSearchParams
 ): Promise<{ pipeline: PipelineStage[]; countPipeline: PipelineStage[] }> {
-  const { search, category, skip, limit, sort } = params;
+  const {
+    search, category, brands, inStock, minPrice, maxPrice,
+    rating, discount, deliveryOptions, skip, limit, sort,
+  } = params;
 
   const mustFilters: object[] = [
     { equals: { path: "status", value: "approved" } },
@@ -159,10 +169,7 @@ export async function atlasSearchProductsPipeline(
 
   if (category) {
     mustFilters.push({
-      text: {
-        query: category,
-        path:  "category",
-      },
+      text: { query: category, path: "category" },
     });
   }
 
@@ -194,19 +201,69 @@ export async function atlasSearchProductsPipeline(
     },
   };
 
-  const sortStage  = sort ? [{ $sort: sort }] : [];
-  const countStage = { $count: "total" as const };
+  // Post-search $match applies non-text filters (inStock, price, brand, etc.)
+  // without disturbing Atlas relevance scoring from the $search stage.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const postMatch: Record<string, any> = {};
+
+  if (inStock) {
+    postMatch.inStock = true;
+  }
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    postMatch.price = {};
+    if (minPrice !== undefined) postMatch.price.$gte = minPrice;
+    if (maxPrice !== undefined) postMatch.price.$lte = maxPrice;
+  }
+  if (brands && brands.length > 0) {
+    postMatch.brand = {
+      $in: brands.map(
+        (b) => new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+      ),
+    };
+  }
+  if (rating !== undefined) {
+    postMatch.rating = { $gte: rating };
+  }
+  if (discount !== undefined && discount > 0) {
+    postMatch.$expr = {
+      $and: [
+        { $gt: [{ $ifNull: ["$originalPrice", 0] }, 0] },
+        { $gt: ["$originalPrice", "$price"] },
+        {
+          $gte: [
+            {
+              $floor: {
+                $multiply: [
+                  { $divide: [{ $subtract: ["$originalPrice", "$price"] }, "$originalPrice"] },
+                  100,
+                ],
+              },
+            },
+            discount,
+          ],
+        },
+      ],
+    };
+  }
+  if (deliveryOptions && deliveryOptions.length > 0) {
+    postMatch.deliveryOptions = { $in: deliveryOptions };
+  }
+
+  const matchStage  = Object.keys(postMatch).length > 0 ? [{ $match: postMatch }] : [];
+  const sortStage   = sort ? [{ $sort: sort }] : [];
+  const countStage  = { $count: "total" as const };
 
   // $search is an Atlas-specific stage not in Mongoose's PipelineStage union;
   // cast required for aggregate() compatibility.
   const pipeline = [
     searchStage,
+    ...matchStage,
     ...sortStage,
     { $skip: skip },
     { $limit: limit },
   ] as unknown as PipelineStage[];
 
-  const countPipeline = [searchStage, countStage] as unknown as PipelineStage[];
+  const countPipeline = [searchStage, ...matchStage, countStage] as unknown as PipelineStage[];
 
   return { pipeline, countPipeline };
 }
