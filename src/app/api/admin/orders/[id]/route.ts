@@ -5,10 +5,22 @@ import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
 import UserModel from "@/lib/db/models/user.model";
 import { sendOrderStatus } from "@/services/email.service";
+import { getVendorOrdersByParentOrder } from "@/services/vendor-order.service";
+import type { ParentOrderStatus } from "@/types";
 
 type Params = { params: Promise<{ id: string }> };
 
-const VALID_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
+const VALID_STATUSES: ParentOrderStatus[] = [
+  "pending",
+  "partially_confirmed",
+  "processing",
+  "partially_delivered",
+  "completed",
+  "shipped",
+  "delivered",
+  "partially_cancelled",
+  "cancelled",
+];
 
 export async function GET(req: NextRequest, { params }: Params) {
   const auth = await requireAdmin(req);
@@ -34,7 +46,10 @@ export async function GET(req: NextRequest, { params }: Params) {
         .lean();
     }
 
-    return NextResponse.json({ success: true, data: { ...order, user } });
+    // Include vendor sub-orders for admin visibility
+    const vendorOrders = await getVendorOrdersByParentOrder(id);
+
+    return NextResponse.json({ success: true, data: { ...order, user, vendorOrders } });
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch order" }, { status: 500 });
   }
@@ -49,8 +64,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const { id } = await params;
     const { status } = await req.json() as { status: string };
 
-    if (!VALID_STATUSES.includes(status)) {
-      return NextResponse.json({ success: false, error: "Invalid status" }, { status: 422 });
+    if (!VALID_STATUSES.includes(status as ParentOrderStatus)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid status. Allowed: ${VALID_STATUSES.join(", ")}` },
+        { status: 422 },
+      );
     }
 
     const order = await OrderModel.findByIdAndUpdate(id, { status }, { new: true });
@@ -64,12 +82,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
           newStatus:    status,
           total:        order.total,
         });
-        console.log("[orders] Status email sent to", order.delivery.email);
       } catch (emailErr) {
         console.error("[orders] Failed to send status email:", emailErr);
       }
-    } else {
-      console.warn("[orders] No delivery email on order", order.orderNumber);
     }
 
     return NextResponse.json({ success: true, data: order });
