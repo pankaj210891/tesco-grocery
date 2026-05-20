@@ -134,7 +134,7 @@ export default function AdminInventoryPage() {
   ).length;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6" data-testid="admin-inventory-page">
+    <div className="space-y-6" data-testid="admin-inventory-page">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
@@ -204,10 +204,11 @@ export default function AdminInventoryPage() {
           <p className="text-gray-500 dark:text-gray-400 text-sm">No products found.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="inventory-table">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 280px)" }} data-testid="inventory-table">
+          <div className="overflow-auto flex-1">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+              <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Product</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Category</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Stock</th>
@@ -262,6 +263,7 @@ export default function AdminInventoryPage() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (

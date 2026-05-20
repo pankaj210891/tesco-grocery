@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
 import { formatPrice } from "@/lib/utils/format";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 // Lazy-load recharts to avoid SSR issues (recharts requires browser APIs)
 const AreaChart    = dynamic(() => import("recharts").then((m) => m.AreaChart),    { ssr: false });
@@ -97,6 +98,18 @@ function ChartSkeleton() {
 export default function AdminAnalyticsPage() {
   const { user, token } = useAuthStore();
   const router = useRouter();
+
+  const { resolvedTheme }     = useTheme();
+  const isDark                = resolvedTheme === "dark";
+
+  const gridColor    = isDark ? "#374151" : "#E5E7EB";
+  const tickColor    = isDark ? "#9CA3AF" : "#6B7280";
+  const tooltipStyle = {
+    backgroundColor: isDark ? "#1F2937" : "#ffffff",
+    border:          `1px solid ${isDark ? "#374151" : "#E5E7EB"}`,
+    borderRadius:    8,
+    color:           isDark ? "#F9FAFB" : "#111827",
+  };
 
   const [data, setData]       = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -244,10 +257,10 @@ export default function AdminAnalyticsPage() {
                   <stop offset="95%" stopColor="#27AE60" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-              <YAxis tickFormatter={(v) => `₹${(v as number / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
-              <Tooltip formatter={(v: unknown) => formatPrice(Number(v))} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: tickColor }} tickLine={false} axisLine={false} />
+              <YAxis tickFormatter={(v) => `₹${(v as number / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: tickColor }} tickLine={false} axisLine={false} width={52} />
+              <Tooltip formatter={(v: unknown) => formatPrice(Number(v))} contentStyle={tooltipStyle} />
               <Legend />
               <Area type="monotone" dataKey="gross"      name="Gross Revenue"    stroke="#0F4C75" fill="url(#gGross)"      strokeWidth={2} dot={false} />
               <Area type="monotone" dataKey="commission" name="Platform Revenue" stroke="#27AE60" fill="url(#gCommission)" strokeWidth={2} dot={false} />
@@ -270,10 +283,10 @@ export default function AdminAnalyticsPage() {
           {loading || !data ? <ChartSkeleton /> : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={data.ordersByStatus} barSize={32} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis dataKey="status" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={36} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="status" tick={{ fontSize: 11, fill: tickColor }} tickLine={false} axisLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: tickColor }} tickLine={false} axisLine={false} width={36} />
+                <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="count" name="Orders" radius={[4, 4, 0, 0]}>
                   {data.ordersByStatus.map((entry) => (
                     <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? "#94A3B8"} />
@@ -314,7 +327,7 @@ export default function AdminAnalyticsPage() {
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: unknown) => formatPrice(Number(v))} />
+                  <Tooltip formatter={(v: unknown) => formatPrice(Number(v))} contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 space-y-1.5 min-w-0">
@@ -349,10 +362,10 @@ export default function AdminAnalyticsPage() {
               barSize={20}
               margin={{ top: 0, right: 60, bottom: 0, left: 8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-              <XAxis type="number" tickFormatter={(v) => `₹${(v as number / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-              <YAxis type="category" dataKey="category" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={110} />
-              <Tooltip formatter={(v: unknown) => formatPrice(Number(v))} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+              <XAxis type="number" tickFormatter={(v) => `₹${(v as number / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: tickColor }} tickLine={false} axisLine={false} />
+              <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: tickColor }} tickLine={false} axisLine={false} width={110} />
+              <Tooltip formatter={(v: unknown) => formatPrice(Number(v))} contentStyle={tooltipStyle} />
               <Bar dataKey="revenue" name="Revenue" fill="#0F4C75" radius={[0, 4, 4, 0]} label={{ position: "right", formatter: (v: unknown) => formatPrice(Number(v)), fontSize: 11 }} />
             </BarChart>
           </ResponsiveContainer>
