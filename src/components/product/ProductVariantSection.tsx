@@ -17,7 +17,15 @@ export default function ProductVariantSection({ product }: ProductVariantSection
     hasVariants ? (product.variants![0]) : null
   );
 
-  const effectivePrice         = selectedVariant?.price ?? product.price;
+  // Prefer variant price; if null, fall back to product.price.
+  // If product.price is also 0, scan other variants for the cheapest real price.
+  const variantPriceOrNull = selectedVariant?.price ?? null;
+  const fallbackPrice: number = (() => {
+    if (product.price > 0) return product.price;
+    const first = (product.variants ?? []).find((v) => v.price != null && v.price > 0);
+    return first?.price ?? 0;
+  })();
+  const effectivePrice         = variantPriceOrNull != null && variantPriceOrNull > 0 ? variantPriceOrNull : fallbackPrice;
   const effectiveOriginalPrice = selectedVariant?.originalPrice ?? product.originalPrice;
 
   const discount =
