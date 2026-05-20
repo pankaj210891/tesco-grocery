@@ -1,14 +1,25 @@
 import type { PipelineStage } from "mongoose";
 import ProductModel from "@/lib/db/models/product.model";
 
-// ── Availability check (cached per process lifetime) ─────────────────────────
+// ── Availability check (TTL cache — retries after 1 min on failure, 5 min on success) ──
 
-let _availabilityPromise: Promise<boolean> | null = null;
+const ATLAS_TTL_UP_MS   = 5 * 60 * 1000;  // 5 min when Atlas is healthy
+const ATLAS_TTL_DOWN_MS = 60 * 1000;       // 1 min retry when Atlas is down
 
-export function isAtlasSearchAvailable(): Promise<boolean> {
-  if (_availabilityPromise) return _availabilityPromise;
+let _atlasCache: { result: boolean; expiresAt: number } | null = null;
+let _atlasInflight: Promise<boolean> | null = null;
 
-  _availabilityPromise = (async () => {
+export async function isAtlasSearchAvailable(): Promise<boolean> {
+  const now = Date.now();
+
+  if (_atlasCache && now < _atlasCache.expiresAt) {
+    return _atlasCache.result;
+  }
+
+  // Coalesce concurrent callers onto one in-flight probe
+  if (_atlasInflight) return _atlasInflight;
+
+  _atlasInflight = (async () => {
     try {
       await ProductModel.aggregate([
         {
@@ -19,13 +30,17 @@ export function isAtlasSearchAvailable(): Promise<boolean> {
         },
         { $limit: 0 },
       ] as unknown as PipelineStage[]);
+      _atlasCache = { result: true,  expiresAt: Date.now() + ATLAS_TTL_UP_MS };
       return true;
     } catch {
+      _atlasCache = { result: false, expiresAt: Date.now() + ATLAS_TTL_DOWN_MS };
       return false;
+    } finally {
+      _atlasInflight = null;
     }
   })();
 
-  return _availabilityPromise;
+  return _atlasInflight;
 }
 
 // ── Suggestion pipeline (autocomplete + fuzzy on name/brand) ─────────────────
