@@ -91,13 +91,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
     page = 1, limit = PRODUCTS_PER_PAGE, slugs, attrs,
   } = filters;
 
-  // Price filter: only apply when BOTH bounds are present
-  const minPrice = filters.minPrice !== undefined && filters.maxPrice !== undefined
-    ? filters.minPrice
-    : undefined;
-  const maxPrice = filters.minPrice !== undefined && filters.maxPrice !== undefined
-    ? filters.maxPrice
-    : undefined;
+  const { minPrice, maxPrice } = filters;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const query: Record<string, any> = {};
@@ -119,25 +113,24 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   if (inStock) {
     query.inStock = true;
   }
-  if (minPrice !== undefined && maxPrice !== undefined) {
-    query.price = { $gte: minPrice, $lte: maxPrice };
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    query.price = {};
+    if (minPrice !== undefined) query.price.$gte = minPrice;
+    if (maxPrice !== undefined) query.price.$lte = maxPrice;
   }
   if (rating !== undefined) {
-    // Exact integer match: rating=4 returns only products stored with rating === 4
-    query.rating = rating;
+    // "At least N stars" — $gte so rating=4 returns 4★ and 5★ products
+    query.rating = { $gte: rating };
   }
   if (discount !== undefined && discount > 0) {
-    // Exact discount match:
-    // 1. Guard: originalPrice must be a positive number and greater than price
-    // 2. Compute: floor(((originalPrice - price) / originalPrice) * 100)
-    // 3. Match: computed integer discount === requested discount
-    // $floor is used so that e.g. 24.9% does NOT match discount=25
+    // "At least N% off" — $gte so discount=25 returns 25%, 30%, 50% etc.
+    // floor(((originalPrice - price) / originalPrice) * 100) >= discount
     query.$expr = {
       $and: [
         { $gt: [{ $ifNull: ["$originalPrice", 0] }, 0] },
         { $gt: ["$originalPrice", "$price"] },
         {
-          $eq: [
+          $gte: [
             {
               $floor: {
                 $multiply: [
