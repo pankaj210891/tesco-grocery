@@ -7,6 +7,8 @@ const OrderSchema = new Schema(
     items: [
       {
         productId:        String,
+        variantId:        { type: String, default: null },
+        variantLabel:     { type: String, default: null },
         vendorId:         { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
         vendorName:       { type: String, default: null },
         name:             { type: String, required: true },
