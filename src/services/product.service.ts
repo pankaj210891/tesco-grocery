@@ -187,10 +187,17 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
       );
       const { pipeline, countPipeline } = await atlasSearchProductsPipeline({
         search,
-        category:  typeof query.category === "string" ? query.category : undefined,
+        category:        typeof query.category === "string" ? query.category : undefined,
+        brands,
+        inStock,
+        minPrice,
+        maxPrice,
+        rating,
+        discount,
+        deliveryOptions: deliveryOptions as string[] | undefined,
         skip,
         limit,
-        sort:      Object.keys(mongoSort).length > 0 ? mongoSort : undefined,
+        sort:            Object.keys(mongoSort).length > 0 ? mongoSort : undefined,
       });
 
       type CountDoc = { total: number };
