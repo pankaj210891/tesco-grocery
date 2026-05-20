@@ -4,20 +4,43 @@ import { connectDB } from "@/lib/db/mongoose";
 import { getAuthUser } from "@/lib/utils/apiAuth";
 import CartModel from "@/lib/db/models/cart.model";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
-import type { CartItem, Product } from "@/types";
+import type { CartItem, Product, ProductVariant } from "@/types";
 
-async function buildCartItems(items: { productId: string; quantity: number }[]): Promise<CartItem[]> {
+type RawCartItem = { productId: string; variantId?: string | null; quantity: number };
+
+async function buildCartItems(items: RawCartItem[]): Promise<CartItem[]> {
   if (!items.length) return [];
   const ids = items
     .map((i) => { try { return new mongoose.Types.ObjectId(i.productId); } catch { return null; } })
     .filter(Boolean) as mongoose.Types.ObjectId[];
   if (!ids.length) return [];
+
   const docs = await ProductModel.find({ _id: { $in: ids } }).lean<ProductDoc[]>();
-  const map = new Map(docs.map((d) => [d._id.toString(), d]));
+  const map  = new Map(docs.map((d) => [d._id.toString(), d]));
+
   return items
     .map((i) => {
       const d = map.get(i.productId);
       if (!d) return null;
+
+      // Resolve the selected variant from the product's variants array
+      let selectedVariant: ProductVariant | undefined;
+      if (i.variantId && (d.variants as unknown[])?.length) {
+        const raw = (d.variants as Array<{
+          _id: { toString(): string };
+          label: string; sku: string;
+          price: number | null; originalPrice: number | null;
+          stockQuantity: number | null; inStock: boolean;
+        }>).find((v) => v._id.toString() === i.variantId);
+        if (raw) {
+          selectedVariant = {
+            _id: raw._id.toString(), label: raw.label, sku: raw.sku,
+            price: raw.price, originalPrice: raw.originalPrice,
+            stockQuantity: raw.stockQuantity, inStock: raw.inStock,
+          };
+        }
+      }
+
       const product: Product = {
         _id: d._id.toString(), name: d.name, slug: d.slug, description: d.description,
         price: d.price, originalPrice: d.originalPrice ?? undefined,
@@ -27,10 +50,12 @@ async function buildCartItems(items: { productId: string; quantity: number }[]):
         badge: d.badge as Product["badge"] ?? null,
         vendorId: d.vendorId?.toString() ?? null,
         vendorName: (d.vendorName as string) ?? null,
+        variants: (d.variants as unknown as ProductVariant[]) ?? [],
         createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : String(d.createdAt),
         updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : String(d.updatedAt),
       };
-      return { product, quantity: i.quantity };
+
+      return { product, quantity: i.quantity, variantId: i.variantId ?? null, selectedVariant };
     })
     .filter(Boolean) as CartItem[];
 }
@@ -41,8 +66,8 @@ export async function GET(req: NextRequest) {
   if (!auth) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   try {
     await connectDB();
-    const doc = await CartModel.findOne({ userId: auth.userId }).lean();
-    const items = await buildCartItems((doc?.items ?? []) as { productId: string; quantity: number }[]);
+    const doc   = await CartModel.findOne({ userId: auth.userId }).lean();
+    const items = await buildCartItems((doc?.items ?? []) as RawCartItem[]);
     return NextResponse.json({ success: true, data: items });
   } catch (err) {
     console.error("[cart GET]", err);
@@ -50,16 +75,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/account/cart  — { productId, quantity }  sets quantity for that item
+// POST /api/account/cart  — { productId, variantId?, quantity }  sets quantity for that slot
 export async function POST(req: NextRequest) {
   const auth = getAuthUser(req);
   if (!auth) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
-  let body: { productId?: string; quantity?: number };
-  try { body = await req.json() as { productId?: string; quantity?: number }; }
+  let body: { productId?: string; variantId?: string | null; quantity?: number };
+  try { body = await req.json() as typeof body; }
   catch { return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 }); }
 
   const { productId, quantity } = body;
+  const variantId = body.variantId ?? null;
+
   if (!productId || typeof quantity !== "number" || quantity < 1) {
     return NextResponse.json({ success: false, error: "productId and quantity (≥1) required" }, { status: 422 });
   }
@@ -67,23 +94,23 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    // Try to update quantity on an existing item in the cart
+    // Use $elemMatch so the positional $ targets the exact slot (productId + variantId pair)
     let doc = await CartModel.findOneAndUpdate(
-      { userId: auth.userId, "items.productId": productId },
+      { userId: auth.userId, items: { $elemMatch: { productId, variantId } } },
       { $set: { "items.$.quantity": quantity } },
       { new: true },
     ).lean();
 
     if (!doc) {
-      // Item not in cart yet — push it (upsert creates the cart document if absent)
+      // Slot not found — add as a new line
       doc = await CartModel.findOneAndUpdate(
         { userId: auth.userId },
-        { $push: { items: { productId, quantity } } },
+        { $push: { items: { productId, variantId, quantity } } },
         { upsert: true, new: true },
       ).lean();
     }
 
-    const items = await buildCartItems((doc?.items ?? []) as { productId: string; quantity: number }[]);
+    const items = await buildCartItems((doc?.items ?? []) as RawCartItem[]);
     return NextResponse.json({ success: true, data: items });
   } catch (err) {
     console.error("[cart POST]", err);
