@@ -57,6 +57,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
@@ -70,12 +74,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 422 });
     }
 
+    const normalizedEmail = (email as string).toLowerCase().trim();
+
+    // Guard: no existing vendor with the same email
+    const existingByEmail = await VendorModel.findOne({ email: normalizedEmail }).lean();
+    if (existingByEmail) {
+      return NextResponse.json(
+        { success: false, error: "A vendor store with this email address already exists." },
+        { status: 409 }
+      );
+    }
+
+    // Guard: no existing vendor with the same store name (case-insensitive)
+    const existingByName = await VendorModel.findOne({
+      name: { $regex: `^${escapeRegex(name as string)}$`, $options: "i" },
+    }).lean();
+    if (existingByName) {
+      return NextResponse.json(
+        { success: false, error: "A vendor store with this name already exists." },
+        { status: 409 }
+      );
+    }
+
     const vendor = await VendorModel.create({
       name:        name as string,
       slug:        slug as string,
       description: (description as string | undefined) ?? "",
       logo:        (logo as string | undefined) ?? "",
-      email:       email as string,
+      email:       normalizedEmail,
       phone:       (phone as string | undefined) ?? "",
       address:     (address as string | undefined) ?? "",
       city:        (city as string | undefined) ?? "",
@@ -87,7 +113,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: vendor }, { status: 201 });
   } catch (err: unknown) {
     const isdup = typeof err === "object" && err !== null && "code" in err && (err as { code: number }).code === 11000;
-    if (isdup) return NextResponse.json({ success: false, error: "A vendor with this slug already exists" }, { status: 409 });
+    if (isdup) {
+      const keyPattern = (err as { keyPattern?: Record<string, number> }).keyPattern ?? {};
+      const field = "email" in keyPattern ? "email address" : "name" in keyPattern ? "store name" : "slug";
+      return NextResponse.json(
+        { success: false, error: `A vendor with this ${field} already exists.` },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ success: false, error: "Failed to create vendor" }, { status: 500 });
   }
 }

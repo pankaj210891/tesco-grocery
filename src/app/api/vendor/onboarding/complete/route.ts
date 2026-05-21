@@ -13,6 +13,10 @@ function toSlug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function POST(req: Request) {
   let body: unknown;
   try {
@@ -62,6 +66,26 @@ export async function POST(req: Request) {
   if (existingUser) {
     return NextResponse.json(
       { success: false, error: "An account with this email already exists. Please log in." },
+      { status: 409 }
+    );
+  }
+
+  // Guard: no existing vendor store with this email
+  const existingVendorByEmail = await VendorModel.findOne({ email: invite.email }).lean();
+  if (existingVendorByEmail) {
+    return NextResponse.json(
+      { success: false, error: "A vendor store with this email already exists." },
+      { status: 409 }
+    );
+  }
+
+  // Guard: no existing vendor store with the same business name
+  const existingVendorByName = await VendorModel.findOne({
+    name: { $regex: `^${escapeRegex(businessName)}$`, $options: "i" },
+  }).lean();
+  if (existingVendorByName) {
+    return NextResponse.json(
+      { success: false, error: "A vendor store with this business name already exists. Please choose another." },
       { status: 409 }
     );
   }
