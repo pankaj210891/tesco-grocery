@@ -200,9 +200,9 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       {/* ── Body ── */}
       <div className="flex flex-col flex-1 p-3.5 pt-3 gap-2">
 
-        {/* Category */}
+        {/* Subcategory (falls back to L0 category when not set) */}
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
-          {product.category}
+          {product.subcategory ?? product.category}
         </p>
 
         {/* Name */}
