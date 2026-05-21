@@ -43,9 +43,28 @@ export async function requireVendor(req: Request): Promise<VendorAuth | NextResp
   if (user.status === "suspended") {
     return NextResponse.json({ success: false, error: "Account suspended" }, { status: 403 });
   }
-  const vendor = await VendorModel.findOne({ ownerId: auth.userId, status: "active" }).lean<{ _id: { toString(): string } }>();
+  type VendorLean = { _id: { toString(): string }; status: string };
+
+  let vendor = await VendorModel.findOne({ ownerId: auth.userId }).lean<VendorLean>();
+
+  // Fallback: seeded vendors have a different ownerId than the real login user.
+  // If the vendor email matches the authenticated user's email, claim it and fix ownerId.
   if (!vendor && user.role !== "admin") {
-    return NextResponse.json({ success: false, error: "No active vendor profile found" }, { status: 403 });
+    vendor = await VendorModel.findOneAndUpdate(
+      { email: auth.email },
+      { $set: { ownerId: auth.userId } },
+      { new: true }
+    ).lean<VendorLean>();
+  }
+
+  if (!vendor && user.role !== "admin") {
+    return NextResponse.json({ success: false, error: "No vendor profile found for this account. Please contact support." }, { status: 403 });
+  }
+  if (vendor && vendor.status === "pending" && user.role !== "admin") {
+    return NextResponse.json({ success: false, error: "Your vendor application is pending admin approval.", code: "VENDOR_PENDING" }, { status: 403 });
+  }
+  if (vendor && vendor.status === "suspended" && user.role !== "admin") {
+    return NextResponse.json({ success: false, error: "Your vendor account has been suspended. Please contact support.", code: "VENDOR_SUSPENDED" }, { status: 403 });
   }
   return { ...auth, vendorId: vendor?._id.toString() ?? "" };
 }
