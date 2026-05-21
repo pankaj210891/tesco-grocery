@@ -40,7 +40,7 @@ export async function validateCheckoutOrder(params: {
 
   // ── Stock availability check (prevents overselling) ─────────────────────
   const stockCheck = await checkStock(
-    items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+    items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
   );
   if (!stockCheck.ok) {
     const names = stockCheck.unavailable.map((u) =>
@@ -112,7 +112,7 @@ export async function validateCheckoutOrder(params: {
  * Fire-and-forget — called after createOrder, non-blocking.
  */
 export async function fireStockDecrement(items: OrderItem[]): Promise<void> {
-  void decrementStock(items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
+  void decrementStock(items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })));
 }
 
 export async function firePromoUsage(

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         vendorId: new mongoose.Types.ObjectId(auth.vendorId),
         status:   "PENDING",
       })
-      .lean<{ items: Array<{ productId: string; quantity: number }> }>();
+      .lean<{ items: Array<{ productId: string; variantId?: string | null; quantity: number }> }>();
 
     if (!vendorOrder) {
       return NextResponse.json(
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // Restore stock for rejected items
     void restoreStock(
-      vendorOrder.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      vendorOrder.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
     );
 
     await syncParentOrderStatus(updated.parentOrderId);

@@ -263,17 +263,28 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
         // 5. Decrement stock atomically inside the transaction
         const stockUpdates = enrichedItems
           .filter((i) => i.vendorId)
-          .map((i) => ({ productId: i.productId, quantity: i.quantity }));
+          .map((i) => ({ productId: i.productId, variantId: i.variantId ?? null, quantity: i.quantity }));
 
         if (stockUpdates.length > 0) {
           await Promise.all(
-            stockUpdates.map((item) =>
-              ProductModel.findOneAndUpdate(
+            stockUpdates.map((item) => {
+              if (item.variantId) {
+                const variantObjId = new mongoose.Types.ObjectId(item.variantId);
+                return ProductModel.findOneAndUpdate(
+                  {
+                    _id:      item.productId,
+                    variants: { $elemMatch: { _id: variantObjId, stockQuantity: { $gte: item.quantity } } },
+                  },
+                  { $inc: { "variants.$.stockQuantity": -item.quantity } },
+                  { session, new: true },
+                );
+              }
+              return ProductModel.findOneAndUpdate(
                 { _id: item.productId, stockQuantity: { $gte: item.quantity } },
                 { $inc: { stockQuantity: -item.quantity } },
                 { session, new: true },
-              ),
-            ),
+              );
+            }),
           );
         }
 
@@ -364,11 +375,26 @@ async function fireVendorNewOrderNotifications(
 }
 
 async function markOutOfStockProducts(
-  items: Array<{ productId: string; quantity: number }>,
+  items: Array<{ productId: string; variantId?: string | null; quantity: number }>,
 ): Promise<void> {
   try {
     await Promise.all(
       items.map(async (item) => {
+        if (item.variantId) {
+          const variantObjId = new mongoose.Types.ObjectId(item.variantId);
+          const product = await ProductModel
+            .findOne({ _id: item.productId, "variants._id": variantObjId })
+            .select("variants.$")
+            .lean<{ variants?: Array<{ _id: unknown; stockQuantity?: number | null }> }>();
+          const v = product?.variants?.[0];
+          if (v && typeof v.stockQuantity === "number" && v.stockQuantity <= 0) {
+            await ProductModel.findOneAndUpdate(
+              { _id: item.productId, "variants._id": variantObjId },
+              { $set: { "variants.$.inStock": false } },
+            );
+          }
+          return;
+        }
         const product = await ProductModel.findById(item.productId).select("stockQuantity").lean<{ stockQuantity?: number | null }>();
         if (product && typeof product.stockQuantity === "number" && product.stockQuantity <= 0) {
           await ProductModel.findByIdAndUpdate(item.productId, { inStock: false });
