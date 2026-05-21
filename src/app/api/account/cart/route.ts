@@ -94,6 +94,23 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
+    // Validate availability before mutating cart
+    type StockVariant = { _id: { toString(): string }; inStock: boolean };
+    const stockDoc = await ProductModel
+      .findById(productId, { inStock: 1, variants: 1 })
+      .lean<{ inStock: boolean; variants?: StockVariant[] }>();
+    if (!stockDoc) {
+      return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
+    }
+    if (variantId) {
+      const variant = stockDoc.variants?.find((v) => v._id.toString() === variantId);
+      if (!variant || !variant.inStock) {
+        return NextResponse.json({ success: false, error: "This variant is currently out of stock" }, { status: 422 });
+      }
+    } else if (!stockDoc.inStock) {
+      return NextResponse.json({ success: false, error: "Product is currently out of stock" }, { status: 422 });
+    }
+
     // Use $elemMatch so the positional $ targets the exact slot (productId + variantId pair)
     let doc = await CartModel.findOneAndUpdate(
       { userId: auth.userId, items: { $elemMatch: { productId, variantId } } },

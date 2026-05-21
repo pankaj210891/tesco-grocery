@@ -54,7 +54,7 @@ export async function POST(
 
   // ── Restore stock for cancelled items ─────────────────────────────────────
   await restoreStock(
-    order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+    order.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
   ).catch((e) => {
     console.error("[cancel] Failed to restore stock:", e);
   });
