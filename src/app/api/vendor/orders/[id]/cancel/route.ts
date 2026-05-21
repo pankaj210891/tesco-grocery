@@ -39,18 +39,18 @@ export async function POST(req: NextRequest, { params }: Params) {
       .findOne({
         _id:      new mongoose.Types.ObjectId(id),
         vendorId: new mongoose.Types.ObjectId(auth.vendorId),
-        status:   { $in: ["PENDING", "ACCEPTED"] },
+        status:   "PENDING",
       })
       .lean<{ items: Array<{ productId: string; quantity: number }> }>();
 
     if (!vendorOrder) {
       return NextResponse.json(
-        { success: false, error: "Order not found, access denied, or cannot be cancelled at this stage" },
+        { success: false, error: "Order not found, access denied, or order has already been accepted and cannot be cancelled" },
         { status: 404 },
       );
     }
 
-    const updated = await cancelVendorOrder(id, auth.vendorId, parsed.data.reason);
+    const updated = await cancelVendorOrder(id, auth.vendorId, parsed.data.reason, auth.userId);
     if (!updated) {
       return NextResponse.json({ success: false, error: "Failed to cancel order" }, { status: 400 });
     }

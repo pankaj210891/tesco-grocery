@@ -6,12 +6,13 @@ import { adminUpdateVendorOrderStatus } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
 import { connectDB } from "@/lib/db/mongoose";
 import VendorOrderModel from "@/lib/db/models/vendor-order.model";
-import { VENDOR_ORDER_STATUSES, type VendorOrderStatus } from "@/lib/db/models/vendor-order.model";
+import { ALL_VENDOR_ORDER_STATUSES, type VendorOrderStatus } from "@/constants/order-status";
 
 type Params = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
-  status: z.enum(VENDOR_ORDER_STATUSES),
+  // Admin has access to all statuses including terminal overrides
+  status: z.enum(ALL_VENDOR_ORDER_STATUSES),
   note:   z.string().max(300).optional(),
 });
 
@@ -58,6 +59,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const updated = await adminUpdateVendorOrderStatus(
       id,
       parsed.data.status as VendorOrderStatus,
+      auth.userId,
       parsed.data.note,
     );
     if (!updated) {

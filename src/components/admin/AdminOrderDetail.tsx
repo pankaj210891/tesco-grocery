@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Package, User, MapPin, CreditCard, RefreshCw, CheckCircle, Clock, Truck, XCircle, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import {
+  X, Package, User, MapPin, CreditCard, RefreshCw,
+  CheckCircle, Clock, Truck, XCircle, AlertCircle, Store, ChevronDown,
+} from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils/format";
-import type { OrderDetail } from "@/types";
+import {
+  ADMIN_TRANSITIONS,
+  STATUS_META,
+  TERMINAL_STATUSES,
+  type VendorOrderStatus,
+} from "@/constants/order-status";
+import type { OrderDetail, VendorOrder } from "@/types";
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
   pending:    <Clock className="h-4 w-4" />,
@@ -16,18 +27,22 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending:    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-  processing: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  shipped:    "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-  delivered:  "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-  cancelled:  "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  pending:               "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+  partially_confirmed:   "bg-blue-100   text-blue-700   dark:bg-blue-900/40   dark:text-blue-300",
+  processing:            "bg-blue-100   text-blue-700   dark:bg-blue-900/40   dark:text-blue-300",
+  shipped:               "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+  partially_delivered:   "bg-teal-100   text-teal-700   dark:bg-teal-900/40   dark:text-teal-300",
+  completed:             "bg-green-100  text-green-700  dark:bg-green-900/40  dark:text-green-300",
+  delivered:             "bg-green-100  text-green-700  dark:bg-green-900/40  dark:text-green-300",
+  partially_cancelled:   "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  cancelled:             "bg-red-100    text-red-700    dark:bg-red-900/40    dark:text-red-300",
 };
 
 const PAYMENT_STATUS_COLORS: Record<string, string> = {
-  paid:               "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  paid:               "bg-green-100  text-green-700  dark:bg-green-900/40  dark:text-green-300",
   pending:            "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-  failed:             "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  refunded:           "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  failed:             "bg-red-100    text-red-700    dark:bg-red-900/40    dark:text-red-300",
+  refunded:           "bg-gray-100   text-gray-600   dark:bg-gray-800      dark:text-gray-400",
   partially_refunded: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
 };
 
@@ -47,9 +62,151 @@ interface Props {
   onUpdate: (updated: OrderDetail) => void;
 }
 
+// ─── Vendor sub-order override row ───────────────────────────────────────────
+
+interface VendorOverrideRowProps {
+  vo:       VendorOrder;
+  token:    string;
+  onUpdate: (updated: VendorOrder) => void;
+}
+
+function VendorOverrideRow({ vo, token, onUpdate }: VendorOverrideRowProps) {
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState("");
+  const [note,    setNote]    = useState("");
+  const [showNote, setShowNote] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<VendorOrderStatus | "">("");
+
+  const allowedNext = (ADMIN_TRANSITIONS[vo.status as VendorOrderStatus] ?? []) as VendorOrderStatus[];
+  const isTerminal  = TERMINAL_STATUSES.has(vo.status as VendorOrderStatus);
+  const meta        = STATUS_META[vo.status as VendorOrderStatus];
+
+  async function applyOverride() {
+    if (!pendingStatus) return;
+    setSaving(true);
+    setError("");
+    try {
+      const client = authClient(token);
+      const res    = await client.patch<{ success: boolean; data: VendorOrder; error?: string }>(
+        `/api/admin/vendor-orders/${vo._id}`,
+        { status: pendingStatus, note: note.trim() || undefined },
+      );
+      if (res.data.success && res.data.data) {
+        onUpdate(res.data.data);
+        setPendingStatus("");
+        setNote("");
+        setShowNote(false);
+      } else {
+        setError(res.data.error ?? "Failed to update");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update";
+      setError(msg);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border border-gray-100 dark:border-gray-800 rounded-xl p-3 space-y-2">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <Store className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{vo.vendorName}</span>
+          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${meta?.bgCls ?? ""} ${meta?.colorCls ?? ""}`}>
+            {meta?.label ?? vo.status}
+          </span>
+        </div>
+
+        {!isTerminal && allowedNext.length > 0 ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="relative">
+              <select
+                value={pendingStatus}
+                onChange={(e) => {
+                  setPendingStatus(e.target.value as VendorOrderStatus | "");
+                  setShowNote(!!e.target.value);
+                  setError("");
+                }}
+                className="appearance-none text-xs pl-2 pr-6 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
+                data-testid={`admin-override-status-${vo._id}`}
+              >
+                <option value="">Override status…</option>
+                {allowedNext.map((s) => (
+                  <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+            </div>
+          </div>
+        ) : (
+          <span className="text-[11px] text-gray-400 italic">
+            {isTerminal ? "Terminal — no further transitions" : "No valid transitions"}
+          </span>
+        )}
+      </div>
+
+      {/* Optional note + confirm */}
+      {showNote && pendingStatus && (
+        <div className="space-y-2 pt-1">
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Admin note (optional)"
+            maxLength={300}
+            className="w-full text-xs px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            data-testid={`admin-override-note-${vo._id}`}
+          />
+          {error && (
+            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+          )}
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => { setPendingStatus(""); setNote(""); setShowNote(false); setError(""); }}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => void applyOverride()}
+              disabled={saving}
+              className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 font-semibold"
+              data-testid={`admin-override-confirm-${vo._id}`}
+            >
+              {saving ? "Saving…" : `Set ${STATUS_META[pendingStatus as VendorOrderStatus]?.label ?? pendingStatus}`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Last history entry preview */}
+      {vo.statusHistory.length > 0 && (
+        <div className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+          <Clock className="h-3 w-3 shrink-0" />
+          {vo.statusHistory.at(-1)?.note && (
+            <span className="italic truncate">{vo.statusHistory.at(-1)?.note}</span>
+          )}
+          <span className="shrink-0">
+            · {new Date(vo.statusHistory.at(-1)?.changedAt ?? "").toLocaleString("en-IN", {
+              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+            })}
+          </span>
+          {vo.statusHistory.at(-1)?.role && (
+            <span className="shrink-0 capitalize">· {vo.statusHistory.at(-1)?.role}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
   const { token } = useAuthStore();
-  const [order, setOrder]       = useState<OrderDetail | null>(null);
+  const [order, setOrder]   = useState<OrderDetail | null>(null);
+  const [vendorOrders, setVendorOrders] = useState<VendorOrder[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState("");
   const [refundOpen, setRefundOpen]     = useState(false);
@@ -59,16 +216,22 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
 
   useScrollLock(true);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
+    if (!token) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    fetch(`/api/admin/orders/${orderId}`, { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: OrderDetail; error?: string }>)
-      .then((j) => {
-        if (j.success) setOrder(j.data);
-        else setError(j.error ?? "Failed to load order");
+    const client = authClient(token);
+    client.get<{ success: boolean; data: OrderDetail & { vendorOrders?: VendorOrder[] }; error?: string }>(
+      `/api/admin/orders/${orderId}`,
+    )
+      .then((r) => {
+        if (r.data.success) {
+          const { vendorOrders: vos, ...orderData } = r.data.data;
+          setOrder(orderData as OrderDetail);
+          setVendorOrders(vos ?? []);
+        } else {
+          setError(r.data.error ?? "Failed to load order");
+        }
       })
       .catch(() => setError("Network error"))
       .finally(() => setLoading(false));
@@ -76,7 +239,7 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
   }, [orderId]);
 
   async function submitRefund() {
-    if (!order) return;
+    if (!order || !token) return;
     if (!refundForm.reason.trim()) { setRefundError("Reason is required"); return; }
     if (refundForm.type === "partial" && (!refundForm.amount || Number(refundForm.amount) <= 0)) {
       setRefundError("Enter a valid refund amount"); return;
@@ -89,30 +252,23 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
       type:   refundForm.type,
       reason: refundForm.reason.trim(),
     };
-    if (refundForm.type === "partial") {
-      body.amount = Number(refundForm.amount);
+    if (refundForm.type === "partial") body.amount = Number(refundForm.amount);
+
+    try {
+      const client = authClient(token);
+      const res    = await client.post<{ success: boolean; data?: OrderDetail; error?: string }>(
+        `/api/admin/orders/${orderId}/refund`,
+        body,
+      );
+      if (!res.data.success) { setRefundError(res.data.error ?? "Refund failed"); return; }
+      if (res.data.data) { setOrder(res.data.data); onUpdate(res.data.data); }
+      setRefundOpen(false);
+      setRefundForm(EMPTY_REFUND);
+    } catch {
+      setRefundError("Refund failed");
+    } finally {
+      setRefundSaving(false);
     }
-
-    const res  = await fetch(`/api/admin/orders/${orderId}/refund`, {
-      method:  "POST",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body:    JSON.stringify(body),
-    });
-    const json = await res.json() as { success: boolean; data?: OrderDetail; error?: string };
-
-    setRefundSaving(false);
-
-    if (!json.success) {
-      setRefundError(json.error ?? "Refund failed");
-      return;
-    }
-
-    if (json.data) {
-      setOrder(json.data);
-      onUpdate(json.data);
-    }
-    setRefundOpen(false);
-    setRefundForm(EMPTY_REFUND);
   }
 
   const canRefund = order &&
@@ -143,7 +299,10 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
             </h2>
             {order && (
               <p className="text-xs text-gray-400 mt-0.5">
-                {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric", month: "long", year: "numeric",
+                  hour: "2-digit", minute: "2-digit",
+                })}
               </p>
             )}
           </div>
@@ -175,7 +334,7 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
               <div className="flex flex-wrap gap-2">
                 <span className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_COLORS[order.status] ?? ""}`}>
                   {STATUS_ICONS[order.status]}
-                  {order.status}
+                  {order.status.replace(/_/g, " ")}
                 </span>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${PAYMENT_STATUS_COLORS[order.paymentStatus] ?? ""}`}>
                   {order.paymentStatus.replace("_", " ")}
@@ -213,6 +372,30 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
                 </div>
               )}
 
+              {/* ── Vendor sub-orders override panel ─────────────────────── */}
+              {vendorOrders.length > 0 && token && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+                    <Store className="h-3.5 w-3.5" /> Vendor Sub-orders
+                    <span className="ml-auto text-gray-300 dark:text-gray-600 normal-case font-normal">Admin override</span>
+                  </p>
+                  <div className="space-y-2">
+                    {vendorOrders.map((vo) => (
+                      <VendorOverrideRow
+                        key={vo._id}
+                        vo={vo}
+                        token={token}
+                        onUpdate={(updated) => {
+                          setVendorOrders((prev) =>
+                            prev.map((v) => (v._id === updated._id ? updated : v)),
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Order items */}
               <div>
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
@@ -228,7 +411,12 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
                         {item.vendorName && (
-                          <p className="text-[11px] text-blue-600 dark:text-blue-400">{item.vendorName}</p>
+                          <Link
+                            href={`/admin/vendors?search=${encodeURIComponent(item.vendorName)}`}
+                            className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {item.vendorName}
+                          </Link>
                         )}
                       </div>
                       <div className="text-right shrink-0">
@@ -360,7 +548,6 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
                     </p>
                   )}
 
-                  {/* Type selector */}
                   <div className="flex gap-2">
                     {(["full", "partial"] as const).map((t) => (
                       <button
@@ -379,7 +566,6 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
                     ))}
                   </div>
 
-                  {/* Partial amount */}
                   {refundForm.type === "partial" && (
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount (₹)</label>
@@ -397,9 +583,10 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
                     </div>
                   )}
 
-                  {/* Reason */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Reason <span className="text-red-400">*</span></label>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      Reason <span className="text-red-400">*</span>
+                    </label>
                     <textarea
                       rows={2}
                       value={refundForm.reason}

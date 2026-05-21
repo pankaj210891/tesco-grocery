@@ -5,6 +5,11 @@ import VendorOrderModel, {
   type VendorOrderStatus,
 } from "@/lib/db/models/vendor-order.model";
 import OrderModel from "@/lib/db/models/order.model";
+import {
+  VENDOR_TRANSITIONS as CENTRAL_VENDOR_TRANSITIONS,
+  validateStatusTransition,
+  type ActorRole,
+} from "@/constants/order-status";
 import type { VendorOrder, VendorOrderItem } from "@/types";
 
 // ─── Serialization ────────────────────────────────────────────────────────────
@@ -37,6 +42,8 @@ function toVendorOrder(doc: Record<string, unknown>): VendorOrder {
     statusHistory: ((doc.statusHistory ?? []) as Record<string, unknown>[]).map((h) => ({
       status:    String(h.status ?? ""),
       note:      String(h.note ?? ""),
+      updatedBy: h.updatedBy ? String(h.updatedBy) : null,
+      role:      (h.role as "admin" | "vendor" | "system") ?? "system",
       changedAt: h.changedAt instanceof Date
         ? h.changedAt.toISOString()
         : String(h.changedAt ?? ""),
@@ -85,7 +92,13 @@ export function buildVendorOrderDocs(inputs: CreateVendorOrderInput[]) {
     commissionTotal:   input.commissionTotal,
     vendorEarning:     input.vendorEarning,
     status:            "PENDING" as const,
-    statusHistory:     [{ status: "PENDING", note: "Order created", changedAt: new Date() }],
+    statusHistory:     [{
+      status:    "PENDING",
+      note:      "Order created",
+      updatedBy: null,
+      role:      "system" as ActorRole,
+      changedAt: new Date(),
+    }],
   }));
 }
 
@@ -184,23 +197,14 @@ export async function getVendorOrdersByParentOrder(
 
 // ─── Status update ────────────────────────────────────────────────────────────
 
-// Allowed transitions for vendors
-export const VENDOR_TRANSITIONS: Record<VendorOrderStatus, VendorOrderStatus[]> = {
-  PENDING:          ["ACCEPTED", "CANCELLED"],
-  ACCEPTED:         ["PREPARING", "CANCELLED"],
-  PREPARING:        ["PACKED"],
-  PACKED:           ["OUT_FOR_DELIVERY"],
-  OUT_FOR_DELIVERY: ["DELIVERED"],
-  DELIVERED:        ["RETURNED"],
-  CANCELLED:        [],
-  RETURNED:         ["REFUNDED"],
-  REFUNDED:         [],
-};
+// Re-export the central vendor transition map for consumers that imported from here.
+export { CENTRAL_VENDOR_TRANSITIONS as VENDOR_TRANSITIONS };
 
 export async function updateVendorOrderStatus(
   vendorOrderId: string,
   vendorId:      string,
   newStatus:     VendorOrderStatus,
+  updatedBy?:    string | null,
   note?:         string,
 ): Promise<VendorOrder | null> {
   await connectDB();
@@ -213,12 +217,8 @@ export async function updateVendorOrderStatus(
 
   if (!current) return null;
 
-  const allowed = VENDOR_TRANSITIONS[current.status] ?? [];
-  if (!allowed.includes(newStatus)) {
-    throw new Error(
-      `Cannot transition from ${current.status} to ${newStatus}. Allowed: ${allowed.join(", ") || "none"}`,
-    );
-  }
+  const { valid, error } = validateStatusTransition(current.status, newStatus, "vendor");
+  if (!valid) throw new Error(error);
 
   const doc = await VendorOrderModel.findByIdAndUpdate(
     vendorOrderId,
@@ -228,6 +228,8 @@ export async function updateVendorOrderStatus(
         statusHistory: {
           status:    newStatus,
           note:      note ?? "",
+          updatedBy: updatedBy ?? null,
+          role:      "vendor" as ActorRole,
           changedAt: new Date(),
         },
       },
@@ -244,14 +246,16 @@ export async function updateVendorOrderStatus(
 export async function acceptVendorOrder(
   vendorOrderId: string,
   vendorId:      string,
+  updatedBy?:    string,
 ): Promise<VendorOrder | null> {
-  return updateVendorOrderStatus(vendorOrderId, vendorId, "ACCEPTED", "Order accepted by vendor");
+  return updateVendorOrderStatus(vendorOrderId, vendorId, "ACCEPTED", updatedBy ?? null, "Order accepted by vendor");
 }
 
 export async function rejectVendorOrder(
   vendorOrderId: string,
   vendorId:      string,
   reason:        string,
+  updatedBy?:    string,
 ): Promise<VendorOrder | null> {
   await connectDB();
   if (!mongoose.isValidObjectId(vendorOrderId)) return null;
@@ -273,6 +277,8 @@ export async function rejectVendorOrder(
         statusHistory: {
           status:    "CANCELLED",
           note:      `Rejected: ${reason}`,
+          updatedBy: updatedBy ?? null,
+          role:      "vendor" as ActorRole,
           changedAt: new Date(),
         },
       },
@@ -290,16 +296,17 @@ export async function cancelVendorOrder(
   vendorOrderId: string,
   vendorId:      string,
   reason:        string,
+  updatedBy?:    string,
 ): Promise<VendorOrder | null> {
   await connectDB();
   if (!mongoose.isValidObjectId(vendorOrderId)) return null;
 
-  // Only PENDING or ACCEPTED sub-orders can be cancelled by vendor
+  // Only PENDING sub-orders can be cancelled by vendor (reject before accepting)
   const doc = await VendorOrderModel.findOneAndUpdate(
     {
       _id:      new mongoose.Types.ObjectId(vendorOrderId),
       vendorId: new mongoose.Types.ObjectId(vendorId),
-      status:   { $in: ["PENDING", "ACCEPTED"] },
+      status:   "PENDING",
     },
     {
       status:             "CANCELLED",
@@ -308,6 +315,8 @@ export async function cancelVendorOrder(
         statusHistory: {
           status:    "CANCELLED",
           note:      reason,
+          updatedBy: updatedBy ?? null,
+          role:      "vendor" as ActorRole,
           changedAt: new Date(),
         },
       },
@@ -363,6 +372,7 @@ export async function markVendorOrderRefunded(
 export async function adminUpdateVendorOrderStatus(
   vendorOrderId: string,
   newStatus:     VendorOrderStatus,
+  updatedBy?:    string | null,
   note?:         string,
 ): Promise<VendorOrder | null> {
   await connectDB();
@@ -372,6 +382,14 @@ export async function adminUpdateVendorOrderStatus(
     throw new Error(`Invalid vendor order status: ${newStatus}`);
   }
 
+  // Validate admin transition (enforces no truly nonsensical jumps, e.g. REFUNDED → PENDING)
+  const current = await VendorOrderModel.findById(vendorOrderId)
+    .select("status").lean<{ status: VendorOrderStatus }>();
+  if (!current) return null;
+
+  const { valid, error } = validateStatusTransition(current.status, newStatus, "admin");
+  if (!valid) throw new Error(error);
+
   const doc = await VendorOrderModel.findByIdAndUpdate(
     vendorOrderId,
     {
@@ -380,6 +398,8 @@ export async function adminUpdateVendorOrderStatus(
         statusHistory: {
           status:    newStatus,
           note:      note ?? "Status updated by admin",
+          updatedBy: updatedBy ?? null,
+          role:      "admin" as ActorRole,
           changedAt: new Date(),
         },
       },

@@ -1,16 +1,7 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
+import { ALL_VENDOR_ORDER_STATUSES } from "@/constants/order-status";
 
-export const VENDOR_ORDER_STATUSES = [
-  "PENDING",
-  "ACCEPTED",
-  "PREPARING",
-  "PACKED",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "CANCELLED",
-  "RETURNED",
-  "REFUNDED",
-] as const;
+export const VENDOR_ORDER_STATUSES = ALL_VENDOR_ORDER_STATUSES;
 
 export type VendorOrderStatus = typeof VENDOR_ORDER_STATUSES[number];
 
@@ -18,6 +9,9 @@ const StatusHistorySchema = new Schema(
   {
     status:    { type: String, required: true },
     note:      { type: String, default: "" },
+    // Actor who triggered this transition
+    updatedBy: { type: String, default: null },   // userId string or null for system events
+    role:      { type: String, enum: ["admin", "vendor", "system"], default: "system" },
     changedAt: { type: Date,   default: () => new Date() },
   },
   { _id: false },

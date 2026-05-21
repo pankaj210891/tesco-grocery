@@ -352,17 +352,21 @@ export type VendorOrderStatus =
   | "ACCEPTED"
   | "PREPARING"
   | "PACKED"
+  | "READY_FOR_PICKUP"
   | "OUT_FOR_DELIVERY"
   | "DELIVERED"
   | "CANCELLED"
   | "RETURNED"
-  | "REFUNDED";
+  | "REFUNDED"
+  | "FAILED";
 
 export type VendorRefundStatus = "none" | "partial" | "full";
 
 export interface VendorOrderStatusHistory {
   status:    string;
   note:      string;
+  updatedBy: string | null;
+  role:      "admin" | "vendor" | "system";
   changedAt: string;
 }
 

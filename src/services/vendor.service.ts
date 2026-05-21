@@ -86,11 +86,12 @@ export async function updateVendorOrderStatus(
   token:  string,
   id:     string,
   status: string,
+  note?:  string,
 ): Promise<VendorOrder> {
   const client = authClient(token);
   const res    = await client.patch<ApiResponse<VendorOrder>>(
-    `/api/vendor/orders/${id}`,
-    { status },
+    `/api/vendor/orders/${id}/status`,
+    { status, ...(note ? { note } : {}) },
   );
   return res.data.data as VendorOrder;
 }

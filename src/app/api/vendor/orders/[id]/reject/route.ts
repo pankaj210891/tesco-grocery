@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const updated = await rejectVendorOrder(id, auth.vendorId, parsed.data.reason);
+    const updated = await rejectVendorOrder(id, auth.vendorId, parsed.data.reason, auth.userId);
     if (!updated) {
       return NextResponse.json({ success: false, error: "Failed to reject order" }, { status: 400 });
     }
