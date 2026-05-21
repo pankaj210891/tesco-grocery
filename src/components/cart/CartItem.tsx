@@ -148,7 +148,7 @@ export default function CartItem({ item }: CartItemProps) {
           <button
             onClick={handleRemove}
             aria-label={`Remove ${product.name}`}
-            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors sm:opacity-0 group-hover:opacity-100 focus:opacity-100"
           >
             <Trash2 className="h-4 w-4" />
           </button>
