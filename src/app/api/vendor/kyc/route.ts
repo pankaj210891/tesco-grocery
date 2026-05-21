@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Vendor not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ success: true, data: vendor.kyc ?? {} });
+  return NextResponse.json({ success: true, data: vendor.kyc ?? null });
 }
 
 export async function POST(req: NextRequest) {
@@ -52,6 +52,13 @@ export async function POST(req: NextRequest) {
   if (vendor.kyc?.status === "verified") {
     return NextResponse.json(
       { success: false, error: "KYC is already verified and cannot be resubmitted" },
+      { status: 409 },
+    );
+  }
+
+  if (vendor.kyc?.status === "pending") {
+    return NextResponse.json(
+      { success: false, error: "KYC is under review. Please wait for the admin to complete the review before resubmitting." },
       { status: 409 },
     );
   }

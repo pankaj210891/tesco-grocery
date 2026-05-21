@@ -737,6 +737,43 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+// ─── Legal Pages ──────────────────────────────────────────────────────────────
+
+export type LegalPageSlug = "terms" | "privacy";
+export type ContentBlockType =
+  | "paragraph"
+  | "bulletList"
+  | "numberedList"
+  | "subheading"
+  | "highlight";
+
+export interface ContentBlock {
+  type: ContentBlockType;
+  text?: string;
+  items?: string[];
+}
+
+export interface LegalSection {
+  id: string;
+  title: string;
+  order: number;
+  blocks: ContentBlock[];
+}
+
+export interface LegalPage {
+  _id: string;
+  slug: LegalPageSlug;
+  title: string;
+  introText: string;
+  lastUpdated: string;
+  effectiveDate: string;
+  version: string;
+  isPublished: boolean;
+  sections: LegalSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T = unknown> {

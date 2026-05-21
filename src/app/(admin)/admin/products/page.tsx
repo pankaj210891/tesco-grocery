@@ -168,10 +168,8 @@ function AdminProductsPageInner() {
     if (filters.status)         qs.set("status",     filters.status);
     if (filters.inStock)        qs.set("inStock",    filters.inStock);
     if (filters.badge)          qs.set("badge",      filters.badge);
-    if (debouncedMinPrice && debouncedMaxPrice) {
-      qs.set("minPrice", debouncedMinPrice);
-      qs.set("maxPrice", debouncedMaxPrice);
-    }
+    if (debouncedMinPrice) qs.set("minPrice", debouncedMinPrice);
+    if (debouncedMaxPrice) qs.set("maxPrice", debouncedMaxPrice);
     if (filters.rating)         qs.set("rating",     filters.rating);
     if (filters.discount)       qs.set("discount",   filters.discount);
     if (filters.dateFrom)       qs.set("dateFrom",   filters.dateFrom);
@@ -287,8 +285,14 @@ function AdminProductsPageInner() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this product?")) return;
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE", headers: authHeader });
-    void load();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE", headers: authHeader });
+      if (!res.ok) { setError("Failed to delete product. Please try again."); return; }
+      void load();
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleApproval(id: string, status: "approved" | "rejected") {

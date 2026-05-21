@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle, ShieldCheck, ShieldAlert, Clock, FileText } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient, type ApiResponse } from "@/lib/axios";
+import { toast } from "sonner";
 import {
   useAdminVendorsStore,
   type AdminVendorFilters,
@@ -253,7 +254,7 @@ function AdminVendorsPageInner() {
       await authClient(token!).put<ApiResponse<Vendor>>(`/api/admin/vendors/${id}`, { status });
       void load();
     } catch {
-      // silently ignore — user can retry via Approve/Suspend button
+      toast.error("Failed to update vendor status. Please try again.");
     } finally {
       setUpdating(null);
     }
@@ -265,7 +266,7 @@ function AdminVendorsPageInner() {
       await authClient(token!).delete<ApiResponse<unknown>>(`/api/admin/vendors/${id}`);
       void load();
     } catch {
-      // silently ignore
+      toast.error("Failed to delete vendor. Please try again.");
     }
   }
 

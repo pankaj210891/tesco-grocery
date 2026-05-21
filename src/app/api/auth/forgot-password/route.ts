@@ -50,8 +50,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "If an account with that email exists, a reset OTP has been sent.",
-      resetToken: token,
-      resetUrl:   `/reset-password?token=${token}`,
     });
   } catch (err) {
     console.error("[POST /api/auth/forgot-password]", err);

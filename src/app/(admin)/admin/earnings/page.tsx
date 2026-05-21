@@ -6,6 +6,7 @@ import { Banknote, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react"
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
+import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils/format";
 import type { VendorEarning, EarningStatus } from "@/types";
 
@@ -74,6 +75,8 @@ export default function AdminEarningsPage() {
         payoutRef: payoutRef[earningId] ?? "",
       });
       void load();
+    } catch {
+      toast.error("Failed to release earning. Please try again.");
     } finally {
       setReleasing(null);
     }

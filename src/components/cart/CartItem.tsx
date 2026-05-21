@@ -219,9 +219,10 @@ export default function CartItem({ item }: CartItemProps) {
             {/* Save for later */}
             <button
               onClick={handleSaveForLater}
+              disabled={!token}
               aria-label={`Save ${product.name} for later`}
               data-testid="save-for-later"
-              className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors flex items-center gap-1 font-medium"
+              className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors flex items-center gap-1 font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400"
             >
               <Bookmark className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Save</span>

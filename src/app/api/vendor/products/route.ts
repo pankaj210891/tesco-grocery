@@ -45,6 +45,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 422 });
     }
 
+    const numericPrice = Number(price);
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+      return NextResponse.json({ success: false, error: "Price must be a positive number" }, { status: 422 });
+    }
+
+    if (stockQuantity !== undefined && stockQuantity !== null) {
+      const numericStock = Number(stockQuantity);
+      if (!Number.isFinite(numericStock) || numericStock < 0) {
+        return NextResponse.json({ success: false, error: "Stock quantity must be a non-negative number" }, { status: 422 });
+      }
+    }
+
     // Sanitise dynamic attributes — only string key/value pairs allowed
     const safeAttrs: Record<string, string> = {};
     if (attributes && typeof attributes === "object" && !Array.isArray(attributes)) {

@@ -117,13 +117,17 @@ export async function POST(req: Request) {
       deliverySlotWindow:  deliverySlot?.window,
     });
 
-    await firePromoUsage(
-      validated.promoCode,
-      validated.promoDocId,
-      userId,
-      result.orderId,
-      validated.discount,
-    );
+    try {
+      await firePromoUsage(
+        validated.promoCode,
+        validated.promoDocId,
+        userId,
+        result.orderId,
+        validated.discount,
+      );
+    } catch (promoErr) {
+      console.error("[razorpay] Failed to record promo usage (order still created):", promoErr);
+    }
 
     try {
       await sendOrderConfirmation(delivery.email, {

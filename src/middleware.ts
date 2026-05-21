@@ -47,7 +47,7 @@ export async function middleware(req: NextRequest) {
 
   if (!token) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -55,7 +55,7 @@ export async function middleware(req: NextRequest) {
 
   if (!payload) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     const res = NextResponse.redirect(loginUrl);
     res.cookies.delete(AUTH_COOKIE);
     return res;
@@ -69,11 +69,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // Inject role into a header so server components can read it without re-verifying
-  const res = NextResponse.next();
-  res.headers.set("x-user-id",   payload.userId);
-  res.headers.set("x-user-role", payload.role);
-  return res;
+  return NextResponse.next();
 }
 
 export const config = {

@@ -61,22 +61,29 @@ export async function POST(
       );
     }
 
+    // Compute the total refund amount for admin reference
+    const refundAmount = parsed.data.items?.length
+      ? parsed.data.items.reduce((sum, i) => sum + i.amount * i.quantity, 0)
+      : order.total;
+
     // Record the refund request on the order (admin will process the actual Razorpay refund)
     await connectDB();
+    const updateOp: Record<string, unknown> = {
+      $set: {
+        refundReason:  parsed.data.reason,
+        refundStatus:  "initiated",
+        refundType:    parsed.data.items?.length ? "partial" : "full",
+        refundAmount,
+      },
+    };
+    if (parsed.data.items?.length) {
+      (updateOp as { $push?: unknown })["$push"] = {
+        refundedItems: { $each: parsed.data.items },
+      };
+    }
     await OrderModel.findOneAndUpdate(
       { orderNumber, userId: authUser.userId },
-      {
-        $set: {
-          refundReason:  parsed.data.reason,
-          refundStatus:  "initiated",
-          refundType:    parsed.data.items?.length ? "partial" : "full",
-          ...(parsed.data.items?.length && {
-            $push: {
-              refundedItems: { $each: parsed.data.items },
-            },
-          }),
-        },
-      },
+      updateOp,
     );
 
     return Response.json({

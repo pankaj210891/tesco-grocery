@@ -28,7 +28,13 @@ export default function AuthGuard({ roles, children }: AuthGuardProps) {
     );
   }
 
-  if (!user || !roles.includes(user.role)) return null;
+  if (!user || !roles.includes(user.role)) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-12">
+        <div className="h-8 w-8 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin" />
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

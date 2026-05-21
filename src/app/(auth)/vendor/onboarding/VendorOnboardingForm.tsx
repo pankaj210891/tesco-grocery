@@ -115,8 +115,16 @@ export default function VendorOnboardingForm() {
   const verifyToken = useCallback(async () => {
     if (!token) { setStep("invalid"); setInvalidMsg("No invite token found in the link."); return; }
 
-    const res  = await fetch(`/api/vendor/onboarding/verify?token=${encodeURIComponent(token)}`);
-    const json = await res.json() as { success: boolean; data?: InviteData; error?: string };
+    let res: Response;
+    let json: { success: boolean; data?: InviteData; error?: string };
+    try {
+      res  = await fetch(`/api/vendor/onboarding/verify?token=${encodeURIComponent(token)}`);
+      json = await res.json() as typeof json;
+    } catch {
+      setInvalidMsg("Failed to verify invite link. Please check your connection and try again.");
+      setStep("invalid");
+      return;
+    }
 
     if (!json.success || !json.data) {
       setInvalidMsg(json.error ?? "Invalid invite link.");
