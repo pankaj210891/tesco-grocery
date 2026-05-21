@@ -1,5 +1,6 @@
 // ─── Vendor-managed operational statuses ──────────────────────────────────────
 // These are the only statuses a vendor role may set on their own sub-orders.
+// DELIVERED is included: vendors confirm delivery after the last-mile handoff.
 
 export const VENDOR_OP_STATUSES = [
   "PENDING",
@@ -8,13 +9,13 @@ export const VENDOR_OP_STATUSES = [
   "PACKED",
   "READY_FOR_PICKUP",
   "OUT_FOR_DELIVERY",
+  "DELIVERED",
 ] as const;
 
 // ─── Admin-exclusive statuses ─────────────────────────────────────────────────
-// Only admin can set these — either as a terminal override or during a refund/force-cancel flow.
+// Only admin can set these — force-cancel, return, refund, or failure override.
 
 export const ADMIN_ONLY_STATUSES = [
-  "DELIVERED",
   "CANCELLED",
   "RETURNED",
   "REFUNDED",
