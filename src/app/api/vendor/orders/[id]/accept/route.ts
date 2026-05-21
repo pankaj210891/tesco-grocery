@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   try {
-    const updated = await acceptVendorOrder(id, auth.vendorId);
+    const updated = await acceptVendorOrder(id, auth.vendorId, auth.userId);
     if (!updated) {
       return NextResponse.json(
         { success: false, error: "Order not found, access denied, or not in PENDING status" },

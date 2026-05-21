@@ -61,7 +61,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
-    const updated = await updateVendorOrderStatus(id, auth.vendorId, status as VendorOrderStatus, note);
+    const updated = await updateVendorOrderStatus(id, auth.vendorId, status as VendorOrderStatus, auth.userId, note);
     if (!updated) {
       return NextResponse.json({ success: false, error: "Order not found or access denied" }, { status: 404 });
     }
