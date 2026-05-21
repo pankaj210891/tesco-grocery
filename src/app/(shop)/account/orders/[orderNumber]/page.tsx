@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle, RotateCcw, Clock } from "lucide-react";
+import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle, RotateCcw, Clock, Tag } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
@@ -292,6 +292,12 @@ export default function OrderDetailPage({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                  {item.variantLabel && (
+                    <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <Tag className="h-3 w-3 shrink-0" aria-hidden />
+                      {item.variantLabel}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400">{formatPrice(item.price)} × {item.quantity}</p>
                 </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white shrink-0">
