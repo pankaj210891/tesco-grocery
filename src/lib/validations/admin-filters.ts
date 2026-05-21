@@ -133,8 +133,8 @@ export const AdminVendorQuerySchema = z.object({
   limit:    z.coerce.number().int().min(1).max(100).default(20),
   q:        z.string().optional(),
   status:   z.preprocess(emptyToUndefined, z.enum(["pending", "active", "suspended"]).optional()),
-  dateFrom: ISO_DATE.optional(),
-  dateTo:   ISO_DATE.optional(),
+  dateFrom: z.preprocess(emptyToUndefined, ISO_DATE.optional()),
+  dateTo:   z.preprocess(emptyToUndefined, ISO_DATE.optional()),
 });
 
 export type AdminVendorQuery = z.infer<typeof AdminVendorQuerySchema>;

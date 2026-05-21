@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingCart, MapPin, CreditCard, Clock } from "lucide-react";
-import axios from "axios";
+import { authClient, apiClient } from "@/lib/axios";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -108,9 +108,8 @@ export default function CheckoutPageContent() {
 
   useEffect(() => {
     if (!token || !user) return;
-    const headers = { Authorization: `Bearer ${token}` };
 
-    axios.get<{ data: Address[] }>("/api/account/addresses", { headers })
+    authClient(token).get<{ data: Address[] }>("/api/account/addresses")
       .then((res) => {
         const addresses = res.data.data ?? [];
         setSavedAddresses(addresses);
@@ -141,9 +140,7 @@ export default function CheckoutPageContent() {
   }
 
   async function handleNewAddressSave(data: AddressFormData) {
-    const res = await axios.post<{ data: Address }>("/api/account/addresses", data, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await authClient(token!).post<{ data: Address }>("/api/account/addresses", data);
     const newAddr = res.data.data;
     setSavedAddresses((prev) => [...prev, newAddr]);
     applyAddress(newAddr);
@@ -185,7 +182,7 @@ export default function CheckoutPageContent() {
     const orderItems = buildOrderItems();
     const delivery   = buildDelivery(data);
 
-    const { data: json } = await axios.post("/api/payments/razorpay/create-order", {
+    const { data: json } = await apiClient.post("/api/payments/razorpay/create-order", {
       delivery,
       items:        orderItems,
       promoCode:    promoCode ?? undefined,
@@ -220,7 +217,7 @@ export default function CheckoutPageContent() {
           razorpay_signature:  string;
         }) => {
           try {
-            const verifyRes = await axios.post("/api/payments/razorpay/verify", {
+            const verifyRes = await apiClient.post("/api/payments/razorpay/verify", {
               razorpayOrderId:   response.razorpay_order_id,
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
@@ -260,7 +257,7 @@ export default function CheckoutPageContent() {
     const orderItems = buildOrderItems();
     const delivery   = buildDelivery(data);
 
-    const { data: json } = await axios.post("/api/payments/cod", {
+    const { data: json } = await apiClient.post("/api/payments/cod", {
       delivery,
       items:        orderItems,
       promoCode:    promoCode ?? undefined,
@@ -293,8 +290,8 @@ export default function CheckoutPageContent() {
       }
     } catch (err) {
       if (err instanceof Error && err.message === "cancelled") return;
-      const msg = axios.isAxiosError(err)
-        ? err.response?.data?.error ?? "Failed to place order. Please try again."
+      const msg = err instanceof Error
+        ? err.message
         : "Something went wrong. Please try again.";
       toast.error(msg);
     }
@@ -513,7 +510,7 @@ export default function CheckoutPageContent() {
           </div>
 
           {/* ── Right column (sticky) ──────────────────────── */}
-          <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-4">
+          <div className="lg:col-span-5 lg:sticky lg:top-28 space-y-4">
             {/* Order summary card */}
             <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">

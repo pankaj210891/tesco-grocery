@@ -149,7 +149,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   return (
     <div
       data-testid="order-summary"
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5"
     >
       <div className="flex items-center justify-between">
         <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
