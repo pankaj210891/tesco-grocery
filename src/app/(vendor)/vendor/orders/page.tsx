@@ -143,7 +143,11 @@ export default function VendorOrdersPage() {
                         <div key={i} className="flex items-center gap-1.5">
                           <Package className="h-3 w-3 text-gray-400 shrink-0" />
                           <span className="text-xs text-gray-700 dark:text-gray-300 truncate">
-                            {item.name} ×{item.quantity}
+                            {item.name}
+                            {item.variantLabel && (
+                              <span className="text-gray-400 dark:text-gray-500"> · {item.variantLabel}</span>
+                            )}
+                            {" "}×{item.quantity}
                           </span>
                         </div>
                       ))}
