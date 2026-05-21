@@ -31,7 +31,9 @@
       "Skill(performance)",
       "Skill(performance:*)",
       "WebFetch(domain:prakash-supermarket.vercel.app)",
-      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/types/**)"
+      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/types/**)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)"
     ],
     "deny": []
   },
