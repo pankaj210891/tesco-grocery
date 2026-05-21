@@ -12,7 +12,13 @@ interface Chip {
   remove: () => void;
 }
 
-export default function ActiveFilters() {
+interface ActiveFiltersProps {
+  /** Resolved human-readable name for the active category (e.g. "Salmon & Trout").
+   *  Passed from the server so we avoid re-fetching on the client. */
+  categoryLabel?: string;
+}
+
+export default function ActiveFilters({ categoryLabel }: ActiveFiltersProps) {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const pathname     = usePathname();
@@ -96,7 +102,9 @@ export default function ActiveFilters() {
     chips.push({ label: `"${q}"`, remove: () => removeParam("q") });
   }
   if (category) {
-    chips.push({ label: titleCase(category), remove: () => removeParam("category", "subcategory", "attrs") });
+    // Use server-resolved name when available; fall back to slug-derived title
+    const catLabel = categoryLabel ?? titleCase(category);
+    chips.push({ label: catLabel, remove: () => removeParam("category", "subcategory", "attrs") });
   }
   if (subcategory) {
     chips.push({ label: subcategory, remove: () => removeParam("subcategory") });

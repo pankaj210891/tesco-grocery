@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
+import CategoryModel from "@/lib/db/models/category.model";
 import Review from "@/lib/db/models/review.model";
 import { slugify } from "@/lib/utils/format";
 import { PRODUCTS_PER_PAGE, CATEGORY_NAME_MAP } from "@/constants";
@@ -11,19 +12,40 @@ import {
 } from "@/lib/search/atlas-search";
 
 // ── Category slug resolver ────────────────────────────────────────────────────
-// CATEGORY_NAME_MAP covers original grocery categories.
-// For categories added via seeding (e.g. "mobiles", "gaming-consoles"), the map
-// must have an entry OR the fallback below handles it:
-//   slug → replace hyphens with spaces → case-insensitive regex
-// This prevents silent 0-result bugs when new categories are seeded without a map entry.
-function buildCategoryQuery(slug: string): string | RegExp {
-  const mapped = CATEGORY_NAME_MAP[slug];
-  if (mapped) return mapped; // exact string — index-friendly
+// Resolves any category slug (L0 / L1 / L2) to the correct Mongoose filter
+// clause.  Products store category = L0 name and subcategory = L2 name, so
+// each level maps differently:
+//   L0 → { category: "Fresh Food" }
+//   L1 → { subcategory: { $in: [all L2 names under this L1] } }
+//   L2 → { subcategory: "Salmon & Trout" }
+// Falls back to the legacy name-map + regex path when the slug isn't in the DB.
+async function resolveCategoryFilter(
+  slug: string,
+): Promise<Record<string, unknown>> {
+  const cat = await CategoryModel.findOne({ slug })
+    .select("name level parentId")
+    .lean();
 
-  // Fallback: "gaming-consoles" → /^gaming consoles$/i  →  matches "Gaming Consoles"
-  const nameFromSlug = slug.replace(/-/g, " ");
-  const escaped = nameFromSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped}$`, "i");
+  if (!cat) {
+    // Not in DB — try CATEGORY_NAME_MAP then slug-to-name regex (legacy path)
+    const mapped = CATEGORY_NAME_MAP[slug];
+    if (mapped) return { category: mapped };
+    const nameFromSlug = slug.replace(/-/g, " ");
+    const escaped = nameFromSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return { category: new RegExp(`^${escaped}$`, "i") };
+  }
+
+  if (cat.level === 0) return { category: cat.name };
+
+  if (cat.level === 1) {
+    const l2Kids = await CategoryModel.find({ parentId: cat._id, level: 2 })
+      .select("name")
+      .lean();
+    return { subcategory: { $in: l2Kids.map((c) => c.name) } };
+  }
+
+  // level === 2
+  return { subcategory: cat.name };
 }
 
 // ── Serialiser ────────────────────────────────────────────────────────────────
@@ -100,7 +122,8 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
     query.slug = { $in: slugs };
   }
   if (category) {
-    query.category = buildCategoryQuery(category);
+    const catFilter = await resolveCategoryFilter(category);
+    Object.assign(query, catFilter);
   }
   if (subcategory) {
     query.subcategory = subcategory;
@@ -275,8 +298,8 @@ export async function getFilterMeta(category?: string): Promise<FilterMeta> {
   await connectDB();
 
   // Use distinct() for simpler, index-friendly queries instead of $facet
-  const matchFilter = category
-    ? { category: buildCategoryQuery(category) }
+  const matchFilter: Record<string, unknown> = category
+    ? await resolveCategoryFilter(category)
     : {};
 
   const [brandsRaw, subcatsRaw] = await Promise.all([
@@ -295,4 +318,56 @@ export async function getFilterMeta(category?: string): Promise<FilterMeta> {
                      .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
                      .sort((a, b) => a.localeCompare(b)),
   };
+}
+
+// ── Breadcrumb resolver ───────────────────────────────────────────────────────
+
+export interface BreadcrumbItem {
+  name: string;
+  slug: string;
+  href: string;
+}
+
+export async function getCategoryBreadcrumb(slug: string): Promise<BreadcrumbItem[]> {
+  await connectDB();
+
+  const cat = await CategoryModel.findOne({ slug })
+    .select("name level parentId")
+    .lean();
+
+  if (!cat) return [];
+
+  const toItem = (name: string, s: string): BreadcrumbItem => ({
+    name,
+    slug: s,
+    href: `/products?category=${s}`,
+  });
+
+  if (cat.level === 0) {
+    return [toItem(cat.name, slug)];
+  }
+
+  if (cat.level === 1) {
+    const l0 = await CategoryModel.findById(cat.parentId)
+      .select("name slug")
+      .lean();
+    return [
+      ...(l0 ? [toItem(l0.name, l0.slug)] : []),
+      toItem(cat.name, slug),
+    ];
+  }
+
+  // level === 2
+  const l1 = await CategoryModel.findById(cat.parentId)
+    .select("name slug parentId")
+    .lean();
+  const l0 = l1
+    ? await CategoryModel.findById(l1.parentId).select("name slug").lean()
+    : null;
+
+  return [
+    ...(l0 ? [toItem(l0.name, l0.slug)] : []),
+    ...(l1 ? [toItem(l1.name, l1.slug)] : []),
+    toItem(cat.name, slug),
+  ];
 }
