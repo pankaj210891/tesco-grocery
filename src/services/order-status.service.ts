@@ -40,7 +40,7 @@ export function deriveParentStatus(
   }
 
   const inFlight = vendorStatuses.filter((s) =>
-    s === "PREPARING" || s === "PACKED" || s === "OUT_FOR_DELIVERY"
+    s === "PREPARING" || s === "PACKED" || s === "READY_FOR_PICKUP" || s === "OUT_FOR_DELIVERY"
   ).length;
 
   if (inFlight > 0) return "processing";
@@ -76,4 +76,13 @@ export async function syncParentOrderStatus(parentOrderId: string): Promise<void
     { _id: parentOrderId, status: { $ne: newStatus } },
     { status: newStatus },
   );
+
+  // COD: cash is collected at the door — flip paymentStatus to "paid" on completion.
+  // Razorpay orders are already "paid" before fulfillment so this is a no-op for them.
+  if (newStatus === "completed") {
+    await OrderModel.updateOne(
+      { _id: parentOrderId, paymentMethod: "cod", paymentStatus: "pending" },
+      { paymentStatus: "paid" },
+    );
+  }
 }
