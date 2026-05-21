@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, Search, X, Filter, RotateCcw } from "lucide-react";
+import { Plus, Search, X, Filter, RotateCcw, Trash2 } from "lucide-react";
 import { ProductsTable } from "@/components/common/ProductsTable";
 import { useAuthStore } from "@/store/auth.store";
 import {
@@ -29,6 +29,16 @@ const EMPTY_FORM = {
 };
 
 type AttrMap = Record<string, string>;
+
+interface VariantRow {
+  label: string; sku: string;
+  price: string; originalPrice: string;
+  stockQuantity: string; inStock: boolean;
+}
+
+const EMPTY_VARIANT: VariantRow = {
+  label: "", sku: "", price: "", originalPrice: "", stockQuantity: "", inStock: true,
+};
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -83,8 +93,9 @@ function AdminProductsPageInner() {
   const [modal, setModal]         = useState<"add" | "edit" | null>(null);
   const [editing, setEditing]     = useState<Product | null>(null);
   const [form, setForm]           = useState({ ...EMPTY_FORM });
-  const [formAttrs, setFormAttrs] = useState<AttrMap>({});
-  const [saving, setSaving]       = useState(false);
+  const [formAttrs, setFormAttrs]   = useState<AttrMap>({});
+  const [variants, setVariants]     = useState<VariantRow[]>([]);
+  const [saving, setSaving]         = useState(false);
   const [approving, setApproving] = useState<string | null>(null);
   const [error, setError]         = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -201,6 +212,7 @@ function AdminProductsPageInner() {
   function openAdd() {
     setForm({ ...EMPTY_FORM });
     setFormAttrs({});
+    setVariants([]);
     setEditing(null);
     setError("");
     setModal("add");
@@ -216,9 +228,23 @@ function AdminProductsPageInner() {
       vendorId: p.vendorId ?? "", vendorName: p.vendorName ?? "",
     });
     setFormAttrs(p.attributes ?? {});
+    setVariants(
+      (p.variants ?? []).map((v) => ({
+        label:         v.label,
+        sku:           v.sku ?? "",
+        price:         v.price != null ? String(v.price) : "",
+        originalPrice: v.originalPrice != null ? String(v.originalPrice) : "",
+        stockQuantity: v.stockQuantity != null ? String(v.stockQuantity) : "",
+        inStock:       v.inStock,
+      })),
+    );
     setEditing(p);
     setError("");
     setModal("edit");
+  }
+
+  function updateVariant(idx: number, patch: Partial<VariantRow>) {
+    setVariants((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   }
 
   async function handleSave() {
@@ -237,6 +263,16 @@ function AdminProductsPageInner() {
       attributes: Object.fromEntries(
         Object.entries(formAttrs).filter(([, v]) => v.trim() !== ""),
       ),
+      variants: variants
+        .filter((v) => v.label.trim() !== "")
+        .map((v) => ({
+          label:         v.label.trim(),
+          sku:           v.sku.trim(),
+          price:         v.price !== "" ? Number(v.price) : null,
+          originalPrice: v.originalPrice !== "" ? Number(v.originalPrice) : null,
+          stockQuantity: v.stockQuantity !== "" ? Number(v.stockQuantity) : null,
+          inStock:       v.inStock,
+        })),
     };
     try {
       const url    = editing ? `/api/admin/products/${editing._id}` : "/api/admin/products";
@@ -674,6 +710,95 @@ function AdminProductsPageInner() {
                 <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]" />
               </div>
+              {/* Product Variants */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Product Variants</span>
+                  <button
+                    type="button"
+                    onClick={() => setVariants((rows) => [...rows, { ...EMPTY_VARIANT }])}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#0F4C75] border border-[#0F4C75]/40 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" /> Add Variant
+                  </button>
+                </div>
+                {variants.length === 0 && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 italic">No variants — product has a single price.</p>
+                )}
+                {variants.map((v, idx) => (
+                  <div key={idx} className="grid grid-cols-[1fr_1fr] gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg relative">
+                    <button
+                      type="button"
+                      onClick={() => setVariants((rows) => rows.filter((_, i) => i !== idx))}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Remove variant"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Label *</label>
+                      <input
+                        type="text"
+                        value={v.label}
+                        onChange={(e) => updateVariant(idx, { label: e.target.value })}
+                        placeholder="e.g. 500g, Red, XL"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">SKU</label>
+                      <input
+                        type="text"
+                        value={v.sku}
+                        onChange={(e) => updateVariant(idx, { sku: e.target.value })}
+                        placeholder="VAR-001"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Stock</label>
+                      <input
+                        type="number" min="0"
+                        value={v.stockQuantity}
+                        onChange={(e) => updateVariant(idx, { stockQuantity: e.target.value })}
+                        placeholder="0"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Price (₹)</label>
+                      <input
+                        type="number" min="0"
+                        value={v.price}
+                        onChange={(e) => updateVariant(idx, { price: e.target.value })}
+                        placeholder="0"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Sale Price (₹)</label>
+                      <input
+                        type="number" min="0"
+                        value={v.originalPrice}
+                        onChange={(e) => updateVariant(idx, { originalPrice: e.target.value })}
+                        placeholder="Optional"
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
+                      />
+                    </div>
+                    <div className="col-span-2 flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`variant-instock-${idx}`}
+                        checked={v.inStock}
+                        onChange={(e) => updateVariant(idx, { inStock: e.target.checked })}
+                        className="h-3.5 w-3.5 rounded"
+                      />
+                      <label htmlFor={`variant-instock-${idx}`} className="text-xs font-medium text-gray-600 dark:text-gray-400">In Stock</label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="inStock" checked={form.inStock} onChange={(e) => setForm((f) => ({ ...f, inStock: e.target.checked }))} className="h-4 w-4 rounded" />
                 <label htmlFor="inStock" className="text-sm font-medium text-gray-700 dark:text-gray-300">In Stock</label>
