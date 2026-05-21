@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Package, ShoppingBag, CheckCircle, XCircle, ArrowRight, AlertTriangle, TrendingUp, IndianRupee } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
+import type { ApiResponse } from "@/lib/axios";
 import StatsCard from "@/components/admin/StatsCard";
 import type { Vendor, VendorAnalytics } from "@/types";
 
@@ -28,15 +30,15 @@ export default function VendorDashboard() {
     if (!user)                                          { router.push("/login"); return; }
     if (user.role !== "vendor" && user.role !== "admin") { router.push("/");     return; }
 
-    const headers = { Authorization: `Bearer ${token}` };
+    const client = authClient(token ?? "");
     Promise.allSettled([
-      fetch("/api/vendor/stats",     { headers }).then((r) => r.json() as Promise<{ success: boolean; data: VendorStats }>),
-      fetch("/api/vendor/profile",   { headers }).then((r) => r.json() as Promise<{ success: boolean; data: Vendor }>),
-      fetch("/api/vendor/analytics", { headers }).then((r) => r.json() as Promise<{ success: boolean; data: VendorAnalytics }>),
+      client.get<ApiResponse<VendorStats>>("/api/vendor/stats"),
+      client.get<ApiResponse<Vendor>>("/api/vendor/profile"),
+      client.get<ApiResponse<VendorAnalytics>>("/api/vendor/analytics"),
     ]).then(([statsResult, profileResult, analyticsResult]) => {
-      if (statsResult.status    === "fulfilled" && statsResult.value.success)     setStats(statsResult.value.data);
-      if (profileResult.status  === "fulfilled" && profileResult.value.success)   setProfile(profileResult.value.data);
-      if (analyticsResult.status === "fulfilled" && analyticsResult.value.success) setAnalytics(analyticsResult.value.data);
+      if (statsResult.status    === "fulfilled") setStats(statsResult.value.data.data as VendorStats);
+      if (profileResult.status  === "fulfilled") setProfile(profileResult.value.data.data as Vendor);
+      if (analyticsResult.status === "fulfilled") setAnalytics(analyticsResult.value.data.data as VendorAnalytics);
     }).finally(() => setLoading(false));
   }, [user, token, router]);
 
