@@ -9,8 +9,8 @@ import { VENDOR_OP_STATUSES } from "@/constants/order-status";
 type Params = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
-  // Vendors may only set operational (non-terminal) statuses via this endpoint.
-  // Admin-exclusive statuses (DELIVERED, CANCELLED, etc.) are blocked here.
+  // Vendors may set operational statuses including DELIVERED (delivery confirmation).
+  // Admin-exclusive statuses (CANCELLED, RETURNED, REFUNDED, FAILED) are blocked here.
   status: z.enum(VENDOR_OP_STATUSES),
   note:   z.string().max(300).optional(),
 });
