@@ -154,10 +154,10 @@ export default function CartPageContent() {
       </div>
 
       {/* ── Two-column layout ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-8">
 
         {/* Left: Items list */}
-        <div>
+        <div className="lg:self-start">
           {/* Section header */}
           <div className="hidden sm:grid grid-cols-[1fr_auto] items-center pb-3 mb-3 border-b border-gray-100 dark:border-gray-700/60">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
@@ -224,8 +224,10 @@ export default function CartPageContent() {
           </Suspense>
         </div>
 
-        {/* Right: Sticky summary (desktop) */}
-        <div className="hidden lg:block">
+        {/* Right: Sticky summary (desktop) — sticky on the grid item, self-start
+            keeps height = content so the grid container (left-col height) is
+            taller and sticky has room to travel. */}
+        <div className="hidden lg:block lg:self-start lg:sticky lg:top-28">
           {isGuest ? (
             <GuestCheckoutPrompt totalPrice={totalPrice} totalItems={totalItems} />
           ) : (
@@ -272,7 +274,7 @@ export default function CartPageContent() {
 
 function GuestCheckoutPrompt({ totalPrice, totalItems }: { totalPrice: number; totalItems: number }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-28">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
