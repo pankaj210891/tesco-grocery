@@ -5,6 +5,8 @@ import Image from "next/image";
 import NavArrow from "@/components/ui/NavArrow";
 import { cn } from "@/lib/utils/cn";
 
+const PLACEHOLDER = "/images/placeholder-product.webp";
+
 interface ImageGalleryProps {
   images: string[];
   alt: string;
@@ -68,6 +70,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                   fill
                   sizes="72px"
                   className="object-contain p-1.5"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
                 />
               </button>
             ))}
@@ -90,6 +93,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 40vw"
             className="object-contain p-8 transition-opacity duration-300"
             priority
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
           />
 
           {count > 1 && (
@@ -142,6 +146,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                 fill
                 sizes="64px"
                 className="object-contain p-1"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
               />
             </button>
           ))}

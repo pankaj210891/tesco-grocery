@@ -48,6 +48,13 @@ export default async function ProductDetailPage({ params }: Props) {
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : null;
 
+  // When the product has variants, availability is determined by the variants, not
+  // the top-level inStock flag (which can become stale after individual variant updates).
+  const hasVariants = (product.variants?.length ?? 0) > 0;
+  const isAvailable = hasVariants
+    ? (product.variants ?? []).some((v) => v.inStock)
+    : product.inStock;
+
   const breadcrumbs = [
     { label: "Home",     href: "/" },
     { label: "Products", href: "/products" },
@@ -57,11 +64,11 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const infoChips = [
     {
-      Icon:  product.inStock ? CheckCircle : ShieldCheck,
-      color: product.inStock ? "text-green-600 dark:text-green-400" : "text-gray-400",
-      bg:    product.inStock ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30" : "bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700",
+      Icon:  isAvailable ? CheckCircle : ShieldCheck,
+      color: isAvailable ? "text-green-600 dark:text-green-400" : "text-gray-400",
+      bg:    isAvailable ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30" : "bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700",
       label: "Availability",
-      text:  product.inStock ? "In stock" : "Out of stock",
+      text:  isAvailable ? "In stock" : "Out of stock",
     },
     {
       Icon:  Truck,
@@ -107,7 +114,7 @@ export default async function ProductDetailPage({ params }: Props) {
               {product.category}
             </span>
             {discount && <Badge variant="sale" label={`-${discount}%`} />}
-            {!product.inStock && <Badge variant="outOfStock" />}
+            {!isAvailable && <Badge variant="outOfStock" />}
           </div>
 
           {/* Title */}
