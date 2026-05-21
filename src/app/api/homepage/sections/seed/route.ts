@@ -5,6 +5,62 @@ function days(n: number) {
 }
 
 const SECTIONS = [
+  // ─── 0. Hero banner ───────────────────────────────────────────────────────────
+  {
+    key:      "hero-banner",
+    title:    "Hero Banner",
+    subtitle: "Main promotional carousel",
+    type:     "hero-banner",
+    order:    0,
+    items: [
+      {
+        title:    "Fresh Deals, Every Day",
+        subtitle: "Hand-picked produce, dairy and meat — delivered same day",
+        badge:    "Shop Fresh Food",
+        emoji:    "🥦",
+        color:    "from-[#166534] to-[#14532d]",
+        href:     "/categories/fresh-food",
+        order:    1,
+      },
+      {
+        title:    "Electronics Sale — Up to 30% Off",
+        subtitle: "Phones, laptops, gaming gear and smart home at unbeatable prices",
+        badge:    "Shop Electronics",
+        emoji:    "📱",
+        color:    "from-[#1e3a8a] to-[#312e81]",
+        href:     "/categories/electronics-gaming",
+        order:    2,
+      },
+      {
+        title:    "Bakery Fresh by 8am",
+        subtitle: "Artisan breads, pastries and cakes baked daily — order before midnight",
+        badge:    "Shop Bakery",
+        emoji:    "🥐",
+        color:    "from-[#92400e] to-[#78350f]",
+        href:     "/categories/bakery",
+        order:    3,
+      },
+      {
+        title:    "Free Delivery Over ₹499",
+        subtitle: "Stock up on household essentials, snacks and drinks with free next-day delivery",
+        badge:    "Start Shopping",
+        emoji:    "🚚",
+        color:    "from-[#0f766e] to-[#134e4a]",
+        href:     "/products",
+        order:    4,
+      },
+      {
+        title:    "New Season — Health & Beauty",
+        subtitle: "Vitamins, skincare and wellness products from the UK's top brands",
+        badge:    "Shop Health & Beauty",
+        emoji:    "✨",
+        color:    "from-[#7e22ce] to-[#581c87]",
+        href:     "/categories/health-beauty",
+        order:    5,
+      },
+    ],
+  },
+
   // ─── 1. What's new this week ────────────────────────────────────────────────
   {
     key:      "whats-new",
