@@ -4,14 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Store, Mail, CheckCircle, ArrowLeft, Copy } from "lucide-react";
+import { Loader2, Store, Mail, CheckCircle, ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validations/auth";
 
 export default function ForgotPasswordPage() {
-  const [sent,      setSent]      = useState(false);
-  const [resetUrl,  setResetUrl]  = useState("");
-  const [copied,    setCopied]    = useState(false);
+  const [sent, setSent] = useState(false);
 
   const {
     register,
@@ -22,22 +20,10 @@ export default function ForgotPasswordPage() {
 
   async function onSubmit(data: ForgotPasswordFormData) {
     try {
-      const { data: json } = await axios.post<{ success: boolean; resetUrl?: string; message?: string; error?: string }>(
-        "/api/auth/forgot-password",
-        data,
-      );
-      setSent(true);
-      if (json.resetUrl) setResetUrl(json.resetUrl);
-    } catch {
+      await axios.post("/api/auth/forgot-password", data);
+    } finally {
       setSent(true); // Always show "sent" to prevent email enumeration
     }
-  }
-
-  function copyLink() {
-    const full = `${window.location.origin}${resetUrl}`;
-    void navigator.clipboard.writeText(full);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -68,33 +54,8 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
 
-            {/* Demo-only: show the reset link since we have no real email service */}
-            {resetUrl && (
-              <div className="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/10 p-4 space-y-2">
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-                  Demo mode — reset link
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-300 break-all">
-                  {`${typeof window !== "undefined" ? window.location.origin : ""}${resetUrl}`}
-                </p>
-                <button
-                  onClick={copyLink}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  {copied ? "Copied!" : "Copy link"}
-                </button>
-                <Link
-                  href={resetUrl}
-                  className="block mt-1 text-center py-2 rounded-xl bg-[#FCA311] text-white text-sm font-bold hover:bg-[#E8920A] transition-colors"
-                >
-                  Open reset link
-                </Link>
-              </div>
-            )}
-
             <button
-              onClick={() => { setSent(false); setResetUrl(""); }}
+              onClick={() => setSent(false)}
               className="w-full text-center text-sm text-[#FCA311] hover:underline font-semibold"
             >
               Try a different email

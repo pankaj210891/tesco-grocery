@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Package } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useVendorStore } from "@/store/vendor.store";
 import { fetchVendorOrders, updateVendorOrderStatus } from "@/services/vendor.service";
+import { toast } from "sonner";
 import type { VendorOrderStatus } from "@/types";
 
 // Matches backend VENDOR_ORDER_STATUSES exactly
@@ -59,7 +60,7 @@ export default function VendorOrdersPage() {
       const res = await fetchVendorOrders(token, ordersPage, 20, ordersStatus);
       setOrders(res.data, { total: res.total, page: res.page, totalPages: res.totalPages });
     } catch {
-      // Keep previous state on error
+      toast.error("Failed to load orders. Please refresh the page.");
     } finally {
       setOrdersLoading(false);
     }
@@ -76,8 +77,8 @@ export default function VendorOrdersPage() {
     try {
       await updateVendorOrderStatus(token, id, newStatus);
       updateOrderStatus(id, newStatus);
-    } catch {
-      // Status update failed — UI unchanged
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update order status");
     }
   }
 

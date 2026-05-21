@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { success: false, error: parsed.error.issues[0].message },
+      { success: false, error: parsed.error.issues[0]?.message ?? "Validation failed" },
       { status: 422 },
     );
   }

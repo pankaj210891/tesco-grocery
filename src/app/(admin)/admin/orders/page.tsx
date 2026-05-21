@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/auth.store";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { formatPrice } from "@/lib/utils/format";
+import { toast } from "sonner";
 
 const AdminOrderDetail = dynamic(
   () => import("@/components/admin/AdminOrderDetail").then((m) => ({ default: m.AdminOrderDetail })),
@@ -75,13 +76,17 @@ export default function AdminOrdersPage() {
 
   async function updateStatus(id: string, newStatus: string) {
     setUpdating(id);
-    const res = await fetch(`/api/admin/orders/${id}`, {
-      method:  "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body:    JSON.stringify({ status: newStatus }),
-    });
-    setUpdating(null);
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method:  "PUT",
+        headers: { ...authHeader, "Content-Type": "application/json" },
+        body:    JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(json.error ?? "Failed to update order status");
+        return;
+      }
       setData((prev) => {
         if (!prev) return prev;
         return {
@@ -91,6 +96,10 @@ export default function AdminOrdersPage() {
           ),
         };
       });
+    } catch {
+      toast.error("Failed to update order status");
+    } finally {
+      setUpdating(null);
     }
   }
 

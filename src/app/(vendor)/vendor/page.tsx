@@ -29,14 +29,14 @@ export default function VendorDashboard() {
     if (user.role !== "vendor" && user.role !== "admin") { router.push("/");     return; }
 
     const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/vendor/stats",     { headers }).then((r) => r.json() as Promise<{ success: boolean; data: VendorStats }>),
       fetch("/api/vendor/profile",   { headers }).then((r) => r.json() as Promise<{ success: boolean; data: Vendor }>),
       fetch("/api/vendor/analytics", { headers }).then((r) => r.json() as Promise<{ success: boolean; data: VendorAnalytics }>),
-    ]).then(([statsRes, profileRes, analyticsRes]) => {
-      if (statsRes.success)     setStats(statsRes.data);
-      if (profileRes.success)   setProfile(profileRes.data);
-      if (analyticsRes.success) setAnalytics(analyticsRes.data);
+    ]).then(([statsResult, profileResult, analyticsResult]) => {
+      if (statsResult.status    === "fulfilled" && statsResult.value.success)     setStats(statsResult.value.data);
+      if (profileResult.status  === "fulfilled" && profileResult.value.success)   setProfile(profileResult.value.data);
+      if (analyticsResult.status === "fulfilled" && analyticsResult.value.success) setAnalytics(analyticsResult.value.data);
     }).finally(() => setLoading(false));
   }, [user, token, router]);
 

@@ -52,12 +52,12 @@ export default function AdminDashboard() {
     if (user.role !== "admin") { router.push("/"); return; }
 
     const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/admin/stats",             { headers }).then((r) => r.json() as Promise<{ success: boolean; data: DashStats }>),
       fetch("/api/admin/vendors/analytics", { headers }).then((r) => r.json() as Promise<{ success: boolean; data: AdminVendorStats[] }>),
-    ]).then(([statsRes, analyticsRes]) => {
-      if (statsRes.success)     setStats(statsRes.data);
-      if (analyticsRes.success) setTopVendors(analyticsRes.data);
+    ]).then(([statsResult, analyticsResult]) => {
+      if (statsResult.status    === "fulfilled" && statsResult.value.success)     setStats(statsResult.value.data);
+      if (analyticsResult.status === "fulfilled" && analyticsResult.value.success) setTopVendors(analyticsResult.value.data);
     }).finally(() => setLoading(false));
   }, [user, token, router]);
 

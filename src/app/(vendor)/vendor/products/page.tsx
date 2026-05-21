@@ -210,8 +210,12 @@ export default function VendorProductsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this product?")) return;
-    await authClient(token!).delete(`/api/vendor/products/${id}`);
-    void load();
+    try {
+      await authClient(token!).delete(`/api/vendor/products/${id}`);
+      void load();
+    } catch {
+      setError("Failed to delete product. Please try again.");
+    }
   }
 
   return (
