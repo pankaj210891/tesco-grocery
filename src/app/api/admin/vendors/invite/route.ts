@@ -3,9 +3,14 @@ import crypto from "crypto";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import VendorInviteModel from "@/lib/db/models/vendor-invite.model";
+import VendorModel from "@/lib/db/models/vendor.model";
 import UserModel from "@/lib/db/models/user.model";
 import { inviteVendorSchema } from "@/lib/validations/vendor-onboarding";
 import { sendVendorInvite } from "@/services/email.service";
+
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 const INVITE_TTL_HOURS = 72;
 
@@ -69,7 +74,7 @@ export async function POST(req: Request) {
 
   await connectDB();
 
-  // Bug 3 fix: block invite if ANY user with this email already exists
+  // Block invite if ANY user with this email already exists
   const existingUser = await UserModel.findOne({ email }).lean<{ role: string }>();
   if (existingUser) {
     return NextResponse.json(
@@ -80,6 +85,39 @@ export async function POST(req: Request) {
             ? "A vendor account already exists for this email. They can log in directly."
             : "An account with this email already exists.",
       },
+      { status: 409 }
+    );
+  }
+
+  // Block invite if a vendor store with this email already exists
+  const existingVendorByEmail = await VendorModel.findOne({ email }).lean();
+  if (existingVendorByEmail) {
+    return NextResponse.json(
+      { success: false, error: "A vendor store with this email address already exists." },
+      { status: 409 }
+    );
+  }
+
+  // Block invite if a vendor store with the same business name already exists
+  const existingVendorByName = await VendorModel.findOne({
+    name: { $regex: `^${escapeRegex(businessName)}$`, $options: "i" },
+  }).lean();
+  if (existingVendorByName) {
+    return NextResponse.json(
+      { success: false, error: "A vendor store with this business name already exists." },
+      { status: 409 }
+    );
+  }
+
+  // Block invite if a pending invite with the same business name already exists
+  const existingInviteByName = await VendorInviteModel.findOne({
+    businessName: { $regex: `^${escapeRegex(businessName)}$`, $options: "i" },
+    status: "pending",
+    expiresAt: { $gt: new Date() },
+  }).lean();
+  if (existingInviteByName) {
+    return NextResponse.json(
+      { success: false, error: "A pending invite with this business name already exists." },
       { status: 409 }
     );
   }
