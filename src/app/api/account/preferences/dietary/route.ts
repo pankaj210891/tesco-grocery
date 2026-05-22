@@ -1,18 +1,8 @@
 import { z } from "zod";
 import { connectDB } from "@/lib/db/mongoose";
 import UserModel from "@/lib/db/models/user.model";
+import DietaryOptionModel from "@/lib/db/models/dietary-option.model";
 import { getAuthUser } from "@/lib/utils/apiAuth";
-
-const VALID_DIETARY = [
-  "coeliac", "diabetic", "paleo", "pescatarian",
-  "teetotal", "vegan", "vegetarian",
-] as const;
-
-const DietarySchema = z.object({
-  dietaryPreferences: z
-    .array(z.enum(VALID_DIETARY))
-    .max(VALID_DIETARY.length),
-});
 
 export async function GET(req: Request) {
   const authUser = getAuthUser(req);
@@ -43,16 +33,31 @@ export async function PUT(req: Request) {
   let body: unknown;
   try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  const result = DietarySchema.safeParse(body);
-  if (!result.success) {
-    return Response.json({ error: result.error.issues[0]?.message ?? "Validation failed" }, { status: 400 });
+  // Validate shape first — array of strings
+  const ShapeSchema = z.object({
+    dietaryPreferences: z.array(z.string().min(1)).max(50),
+  });
+  const shaped = ShapeSchema.safeParse(body);
+  if (!shaped.success) {
+    return Response.json({ error: shaped.error.issues[0]?.message ?? "Validation failed" }, { status: 400 });
   }
 
   try {
     await connectDB();
+
+    // Fetch all known dietary option values from DB (active and inactive)
+    const knownOptions = await DietaryOptionModel
+      .find({})
+      .select("value")
+      .lean<{ value: string }[]>();
+    const knownValues = new Set(knownOptions.map((o) => o.value));
+
+    // Filter out any stale/unknown values submitted by the client
+    const cleaned = shaped.data.dietaryPreferences.filter((v) => knownValues.has(v));
+
     const updated = await UserModel.findByIdAndUpdate(
       authUser.userId,
-      { $set: { dietaryPreferences: result.data.dietaryPreferences } },
+      { $set: { dietaryPreferences: cleaned } },
       { new: true, select: "dietaryPreferences" }
     ).lean<{ dietaryPreferences: string[] }>();
 

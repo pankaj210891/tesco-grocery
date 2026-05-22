@@ -7,6 +7,7 @@ import {
   Tag, GripVertical, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import NumberInput from "@/components/ui/NumberInput";
 import type { CategoryAttributes, AttributeDef, AttributeType } from "@/types";
 
 const ATTR_TYPES: { value: AttributeType; label: string }[] = [
@@ -118,8 +119,8 @@ function AttrRow({
             ))}
             <div className="flex items-center gap-1.5">
               <label className="text-xs text-gray-500 dark:text-gray-400">Order:</label>
-              <input
-                type="number" min={0}
+              <NumberInput
+                min={0}
                 value={attr.order}
                 onChange={(e) => update({ order: Number(e.target.value) })}
                 className="w-14 px-2 py-0.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none"

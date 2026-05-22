@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AttributeDef, CategoryAttributes } from "@/types";
+import NumberInput from "@/components/ui/NumberInput";
 
 interface DynamicAttributeFieldsProps {
   category: string;
@@ -164,8 +165,7 @@ export default function DynamicAttributeFields({
                 {attr.label}
                 {attr.required && <span className="text-red-400 ml-0.5">*</span>}
               </label>
-              <input
-                type="number"
+              <NumberInput
                 value={val}
                 onChange={(e) => set(attr.key, e.target.value)}
                 placeholder={attr.label}

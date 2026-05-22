@@ -5,6 +5,7 @@ import { Package, Search, AlertTriangle, RefreshCw, Save } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
+import NumberInput from "@/components/ui/NumberInput";
 
 interface InventoryProduct {
   _id:               string;
@@ -229,8 +230,7 @@ export default function AdminInventoryPage() {
                     {stockLabel(p)}
                   </td>
                   <td className="px-4 py-3">
-                    <input
-                      type="number"
+                    <NumberInput
                       min={0}
                       placeholder={p.stockQuantity !== null ? String(p.stockQuantity) : "untracked"}
                       value={edits[p._id]?.stockQuantity ?? ""}
@@ -240,8 +240,7 @@ export default function AdminInventoryPage() {
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <input
-                      type="number"
+                    <NumberInput
                       min={0}
                       placeholder={String(p.lowStockThreshold)}
                       value={edits[p._id]?.lowStockThreshold ?? ""}

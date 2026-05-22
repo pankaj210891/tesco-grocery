@@ -5,25 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Leaf } from "lucide-react";
 import { toast } from "sonner";
-import { authClient } from "@/lib/axios";
+import { authClient, apiClient } from "@/lib/axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
-
-const DIETARY_OPTIONS: { value: string; label: string; emoji: string }[] = [
-  { value: "coeliac",     label: "Coeliac",     emoji: "🌾" },
-  { value: "diabetic",    label: "Diabetic",    emoji: "🩺" },
-  { value: "paleo",       label: "Paleo",       emoji: "🥩" },
-  { value: "pescatarian", label: "Pescatarian", emoji: "🐟" },
-  { value: "teetotal",    label: "Teetotal",    emoji: "🚱" },
-  { value: "vegan",       label: "Vegan",       emoji: "🌿" },
-  { value: "vegetarian",  label: "Vegetarian",  emoji: "🥦" },
-];
+import type { DietaryOption } from "@/types";
 
 export default function DietaryPreferencesPage() {
   const router   = useRouter();
   const hydrated = useHydrated();
   const { user, token } = useAuthStore();
 
+  const [options,    setOptions]    = useState<DietaryOption[]>([]);
   const [selected,   setSelected]   = useState<Set<string>>(new Set());
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
@@ -35,13 +27,19 @@ export default function DietaryPreferencesPage() {
 
   useEffect(() => {
     if (!token) return;
+
     async function load() {
       try {
-        const client = authClient(token!);
-        const { data: json } = await client.get<{ data: { dietaryPreferences: string[] } }>(
-          "/api/account/preferences/dietary"
-        );
-        setSelected(new Set(json.data.dietaryPreferences ?? []));
+        // Fetch available options and the user's saved preferences in parallel
+        const [optionsRes, prefsRes] = await Promise.all([
+          apiClient.get<{ success: boolean; data: DietaryOption[] }>("/api/dietary-options"),
+          authClient(token!).get<{ data: { dietaryPreferences: string[] } }>(
+            "/api/account/preferences/dietary"
+          ),
+        ]);
+
+        setOptions(optionsRes.data.data ?? []);
+        setSelected(new Set(prefsRes.data.data.dietaryPreferences ?? []));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to load preferences.");
         setLoadError(true);
@@ -49,6 +47,7 @@ export default function DietaryPreferencesPage() {
         setLoading(false);
       }
     }
+
     void load();
   }, [token]);
 
@@ -125,10 +124,18 @@ export default function DietaryPreferencesPage() {
               <div key={n} className="animate-pulse h-12 bg-gray-100 dark:bg-gray-700/40 rounded-xl" />
             ))}
           </div>
+        ) : loadError ? (
+          <p className="text-sm text-red-500 dark:text-red-400 py-4 text-center">
+            Failed to load dietary options. Please refresh and try again.
+          </p>
+        ) : options.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+            No dietary options available at the moment.
+          </p>
         ) : (
           <fieldset className="space-y-2">
             <legend className="sr-only">Dietary preferences</legend>
-            {DIETARY_OPTIONS.map(({ value, label, emoji }) => {
+            {options.map(({ value, label, emoji }) => {
               const checked = selected.has(value);
               return (
                 <label

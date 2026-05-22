@@ -14,6 +14,7 @@ import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import type { Product, ProductBadge, Vendor } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import DynamicAttributeFields from "@/components/product/DynamicAttributeFields";
+import NumberInput from "@/components/ui/NumberInput";
 
 interface PageData { products: Product[]; total: number; page: number; totalPages: number; }
 
@@ -477,8 +478,8 @@ function AdminProductsPageInner() {
 
             {/* Price range */}
             <div className="flex items-center gap-1">
-              <input
-                type="number" min="0"
+              <NumberInput
+                min="0"
                 value={filters.minPrice}
                 onChange={(e) => setFilter({ minPrice: e.target.value })}
                 placeholder="Min ₹"
@@ -486,8 +487,8 @@ function AdminProductsPageInner() {
                 data-testid="min-price-filter"
               />
               <span className="text-gray-400 text-sm">–</span>
-              <input
-                type="number" min="0"
+              <NumberInput
+                min="0"
                 value={filters.maxPrice}
                 onChange={(e) => setFilter({ maxPrice: e.target.value })}
                 placeholder="Max ₹"
@@ -658,12 +659,12 @@ function AdminProductsPageInner() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Price (₹)</label>
-                  <input type="number" step="1" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  <NumberInput step="1" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Original Price (₹)</label>
-                  <input type="number" step="0.01" min="0" value={form.originalPrice} onChange={(e) => setForm((f) => ({ ...f, originalPrice: e.target.value }))}
+                  <NumberInput step="0.01" min="0" value={form.originalPrice} onChange={(e) => setForm((f) => ({ ...f, originalPrice: e.target.value }))}
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]" />
                 </div>
               </div>
@@ -761,8 +762,8 @@ function AdminProductsPageInner() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Stock</label>
-                      <input
-                        type="number" min="0"
+                      <NumberInput
+                        min="0"
                         value={v.stockQuantity}
                         onChange={(e) => updateVariant(idx, { stockQuantity: e.target.value })}
                         placeholder="0"
@@ -771,8 +772,8 @@ function AdminProductsPageInner() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Price (₹)</label>
-                      <input
-                        type="number" min="0"
+                      <NumberInput
+                        min="0"
                         value={v.price}
                         onChange={(e) => updateVariant(idx, { price: e.target.value })}
                         placeholder="0"
@@ -781,8 +782,8 @@ function AdminProductsPageInner() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Sale Price (₹)</label>
-                      <input
-                        type="number" min="0"
+                      <NumberInput
+                        min="0"
                         value={v.originalPrice}
                         onChange={(e) => updateVariant(idx, { originalPrice: e.target.value })}
                         placeholder="Optional"

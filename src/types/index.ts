@@ -165,6 +165,19 @@ export interface SeedResult {
   durationMs: number;
 }
 
+// ─── Dietary Options ─────────────────────────────────────────────────────────
+
+export interface DietaryOption {
+  _id:       string;
+  value:     string;
+  label:     string;
+  emoji:     string;
+  isActive:  boolean;
+  order:     number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Cart ───────────────────────────────────────────────────────────────────
 
 export interface CartItem {
