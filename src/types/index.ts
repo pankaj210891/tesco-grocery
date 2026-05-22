@@ -205,13 +205,39 @@ export interface CartRecommendation {
 export type UserRole = "customer" | "vendor" | "admin";
 export type UserStatus = "active" | "suspended";
 
+export type MarketingPreference = "email_digital_post" | "digital_post_only" | "unsubscribed";
+
 export interface User {
   _id: string;
   name: string;
   email: string;
   role: UserRole;
   status: UserStatus;
+  // Extended profile fields (populated after profile fetch)
+  phone?: string | null;
+  isPhoneVerified?: boolean;
+  dietaryPreferences?: string[];
+  marketingPreference?: MarketingPreference | null;
+  hearFromBrands?: boolean;
   createdAt: string;
+}
+
+export interface AccountSetupStep {
+  key:        string;
+  label:      string;
+  description: string;
+  completed:  boolean;
+  href:       string;
+  linkLabel:  string;
+}
+
+export interface AccountProfile extends User {
+  setupProgress: {
+    totalSteps:     number;
+    completedSteps: number;
+    percentage:     number;
+    steps:          AccountSetupStep[];
+  };
 }
 
 export interface AuthFormData {
