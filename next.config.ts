@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   /* ── Security ─────────────────────────────────────────────────── */
   poweredByHeader: false,
 
+  /* ── Server externals ─────────────────────────────────────────── */
+  serverExternalPackages: ["mongoose"],
+
   /* ── Compiler ─────────────────────────────────────────────────── */
   compiler: {
     // Strip console.* calls in production builds only
