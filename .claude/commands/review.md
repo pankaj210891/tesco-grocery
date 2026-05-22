@@ -1,22 +1,37 @@
-# Command: /project:review
+# /review
 
-Perform complete review:
+Now perform a FULL SELF REVIEW of your implementation like a senior staff engineer doing production code review.
 
-- Type safety
-- Architecture
-- Accessibility
-- Responsive UI
-- Performance
-- Security
-- Zustand state logic
-- Axios error handling
-- Zod validation
-- MongoDB query optimization
-- Cypress coverage
+Find:
 
-Output:
+- regressions
+- edge cases
+- broken existing flows
+- responsive issues
+- TypeScript issues
+- duplicated logic
+- unnecessary re-renders
+- accessibility issues
+- inconsistent styling
+- unsafe assumptions
+- missing loading/error states
+- performance issues
+- theme inconsistencies
+- state management issues
 
-1. Issues
-2. Severity
-3. Fix recommendations
-4. Optimized examples
+Verify:
+
+- old functionality still works
+- APIs remain unaffected
+- forms still work
+- pagination/search/filter still work
+- mobile responsiveness preserved
+- reusable architecture maintained
+
+Provide:
+
+1. Bugs found
+2. Improvements needed
+3. Refactor suggestions
+4. Performance suggestions
+5. Final production readiness assessment
