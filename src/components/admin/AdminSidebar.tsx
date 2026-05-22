@@ -3,7 +3,7 @@
 import DashboardSidebar, { NavItem } from "@/components/layout/DashboardSidebar";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Store,
-  FolderOpen, Tag, Sliders, Clock, BarChart2, Percent, Banknote, Receipt, Scale, Leaf,
+  FolderOpen, Tag, Sliders, Clock, BarChart2, Percent, Banknote, Receipt, Scale, Leaf, LayoutTemplate,
 } from "lucide-react";
 
 const NAV: NavItem[] = [
@@ -21,6 +21,7 @@ const NAV: NavItem[] = [
   { href: "/admin/earnings",            label: "Earnings",           icon: Banknote        },
   { href: "/admin/transactions",        label: "Transactions",       icon: Receipt         },
   { href: "/admin/analytics",           label: "Analytics",          icon: BarChart2       },
+  { href: "/admin/homepage-sections",    label: "Homepage",           icon: LayoutTemplate  },
   { href: "/admin/dietary-options",      label: "Dietary Options",    icon: Leaf            },
   { href: "/admin/legal-pages",         label: "Legal Pages",        icon: Scale           },
 ];
