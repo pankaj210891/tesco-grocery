@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp, SlidersHorizontal, Star } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { slugify } from "@/lib/utils/format";
+import NumberInput from "@/components/ui/NumberInput";
 import { useFilterDraftStore } from "@/store/filter.store";
 import { useDebounce } from "@/hooks/useDebounce";
 import { RATING_OPTIONS, DISCOUNT_OPTIONS, DELIVERY_OPTIONS } from "@/constants";
@@ -525,8 +526,7 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
         <div className="flex items-center gap-2" role="group" aria-label="Custom price range">
           <div className="relative flex-1">
             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">₹</span>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               placeholder="Min"
               value={draftMinPrice}
@@ -539,8 +539,7 @@ export default function FiltersSidebar({ categories, subcategories, brands }: Fi
           <span className="text-gray-400 text-xs flex-shrink-0">–</span>
           <div className="relative flex-1">
             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">₹</span>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               placeholder="Max"
               value={draftMaxPrice}

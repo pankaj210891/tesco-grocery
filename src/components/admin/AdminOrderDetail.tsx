@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils/format";
+import NumberInput from "@/components/ui/NumberInput";
 import {
   ADMIN_TRANSITIONS,
   STATUS_META,
@@ -569,8 +570,7 @@ export function AdminOrderDetail({ orderId, onClose, onUpdate }: Props) {
                   {refundForm.type === "partial" && (
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount (₹)</label>
-                      <input
-                        type="number"
+                      <NumberInput
                         min="0.01"
                         step="0.01"
                         max={maxRefundable}

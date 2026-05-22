@@ -6,6 +6,7 @@ import { Percent, Save, RotateCcw, CheckCircle, AlertCircle } from "lucide-react
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
+import NumberInput from "@/components/ui/NumberInput";
 
 interface VendorRate {
   vendorId:   string;
@@ -147,8 +148,7 @@ export default function CommissionPage() {
         </p>
         <div className="flex items-center gap-3 max-w-xs">
           <div className="relative flex-1">
-            <input
-              type="number"
+            <NumberInput
               min="0"
               max="100"
               step="0.5"
@@ -197,8 +197,7 @@ export default function CommissionPage() {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="relative w-28">
-                      <input
-                        type="number"
+                      <NumberInput
                         min="0"
                         max="100"
                         step="0.5"
