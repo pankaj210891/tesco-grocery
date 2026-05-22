@@ -24,6 +24,7 @@ const BADGE_MAP: Record<string, { bg: string; text: string }> = {
   LIMITED:   { bg: "bg-orange-500",  text: "text-white" },
   ORGANIC:   { bg: "bg-green-600",   text: "text-white" },
   EXCLUSIVE: { bg: "bg-purple-600",  text: "text-white" },
+  SALE:      { bg: "bg-[#EE1C2E]",   text: "text-white" },
 };
 
 const SLIDE_MS = 4000;

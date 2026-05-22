@@ -458,7 +458,7 @@ function AdminProductsPageInner() {
             data-testid="badge-filter"
           >
             <option value="">All Badges</option>
-            {["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"].map((b) => (
+            {["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE", "SALE"].map((b) => (
               <option key={b} value={b}>{b}</option>
             ))}
           </select>
@@ -673,7 +673,7 @@ function AdminProductsPageInner() {
                 <select value={form.badge} onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value as ProductBadge | "" }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]">
                   <option value="">None</option>
-                  {["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"].map((b) => <option key={b} value={b}>{b}</option>)}
+                  {["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE", "SALE"].map((b) => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>

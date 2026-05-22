@@ -32,10 +32,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// Stale-while-revalidate: rebuild each product page at most every 5 min so
+// prices, inventory, and ratings stay fresh without blocking requests.
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   const slugs = await getAllProductSlugs();
   return slugs.map((slug) => ({ slug }));
 }
+
+const PRODUCT_BADGE_STYLES: Record<string, string> = {
+  NEW:       "bg-blue-500 text-white",
+  HOT:       "bg-red-500 text-white",
+  LIMITED:   "bg-orange-500 text-white",
+  ORGANIC:   "bg-green-600 text-white",
+  EXCLUSIVE: "bg-purple-600 text-white",
+  SALE:      "bg-[#EE1C2E] text-white",
+};
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
@@ -113,6 +126,11 @@ export default async function ProductDetailPage({ params }: Props) {
             <span className="text-[11px] font-bold text-[#FCA311] uppercase tracking-widest bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/30 px-2.5 py-1 rounded-full">
               {product.category}
             </span>
+            {product.badge && PRODUCT_BADGE_STYLES[product.badge] && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${PRODUCT_BADGE_STYLES[product.badge]}`}>
+                {product.badge}
+              </span>
+            )}
             {discount && <Badge variant="sale" label={`-${discount}%`} />}
             {!isAvailable && <Badge variant="outOfStock" />}
           </div>

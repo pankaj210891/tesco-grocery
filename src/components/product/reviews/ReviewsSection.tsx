@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, ChevronDown, ShoppingBag } from "lucide-react";
+import { apiClient, authClient } from "@/lib/axios";
 import { useAuthStore } from "@/store/auth.store";
 import RatingBreakdown from "./RatingBreakdown";
 import ReviewCard from "./ReviewCard";
@@ -40,11 +41,12 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user || !token) { setHasPurchased(null); return; }
 
-    fetch(`/api/account/orders/has-purchased?slug=${productSlug}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json() as Promise<{ success: boolean; data: { hasPurchased: boolean } }>)
-      .then((json) => { if (json.success) setHasPurchased(json.data.hasPurchased); })
+    authClient(token)
+      .get<{ success: boolean; data: { hasPurchased: boolean } }>(
+        "/api/account/orders/has-purchased",
+        { params: { slug: productSlug } }
+      )
+      .then(({ data: res }) => { if (res.success) setHasPurchased(res.data.hasPurchased); })
       .catch(() => setHasPurchased(null));
   }, [user, token, productSlug]);
 
@@ -52,14 +54,16 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
     async function load() {
       setLoading(true);
       try {
-        const res  = await fetch(`/api/products/${productSlug}/reviews?page=${page}&limit=10`);
-        const json = await res.json() as { success: boolean; data: ReviewsData };
-        if (json.success) {
-          setData(json.data);
+        const { data: res } = await apiClient.get<{ success: boolean; data: ReviewsData }>(
+          `/api/products/${productSlug}/reviews`,
+          { params: { page, limit: 10 } }
+        );
+        if (res.success) {
+          setData(res.data);
           setAllReviews((prev) =>
-            page === 1 ? json.data.reviews : [...prev, ...json.data.reviews]
+            page === 1 ? res.data.reviews : [...prev, ...res.data.reviews]
           );
-          if (page === 1) onCountLoaded?.(json.data.summary.total);
+          if (page === 1) onCountLoaded?.(res.data.summary.total);
         }
       } finally {
         setLoading(false);
@@ -69,11 +73,13 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
   }, [productSlug, page, onCountLoaded]);
 
   async function syncSummary() {
-    const res  = await fetch(`/api/products/${productSlug}/reviews?page=1&limit=1`);
-    const json = await res.json() as { success: boolean; data: ReviewsData };
-    if (json.success) {
-      setData((prev) => prev ? { ...prev, summary: json.data.summary } : json.data);
-      onCountLoaded?.(json.data.summary.total);
+    const { data: res } = await apiClient.get<{ success: boolean; data: ReviewsData }>(
+      `/api/products/${productSlug}/reviews`,
+      { params: { page: 1, limit: 1 } }
+    );
+    if (res.success) {
+      setData((prev) => prev ? { ...prev, summary: res.data.summary } : res.data);
+      onCountLoaded?.(res.data.summary.total);
     }
   }
 
@@ -98,7 +104,7 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
   const summary = data?.summary;
 
   return (
-    <div className="space-y-8">
+    <div data-testid="reviews-section" className="space-y-8">
       {/* Heading */}
       <div className="flex items-center gap-2">
         <MessageSquare className="h-5 w-5 text-[#FCA311] dark:text-amber-400" />
@@ -116,14 +122,14 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
       {loading && !summary ? (
         <div className="h-20 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
       ) : summary && summary.total > 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
+        <div data-testid="rating-breakdown-card" className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
           <RatingBreakdown summary={summary} />
         </div>
       ) : null}
 
       {/* Write a review */}
       {!user ? (
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5 text-center">
+        <div data-testid="sign-in-prompt" className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
             Sign in to leave a review
           </p>
@@ -135,13 +141,13 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
           </a>
         </div>
       ) : hasReviewed ? (
-        <div className="bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-100 dark:border-green-900 p-4 text-center">
+        <div data-testid="has-reviewed-msg" className="bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-100 dark:border-green-900 p-4 text-center">
           <p className="text-sm text-green-700 dark:text-green-400 font-medium">
             You have already reviewed this product. Edit or delete your review below.
           </p>
         </div>
       ) : hasPurchased === false ? (
-        <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/40 p-5 flex items-start gap-3">
+        <div data-testid="purchase-required-msg" className="bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/40 p-5 flex items-start gap-3">
           <ShoppingBag className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
@@ -153,7 +159,6 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
           </div>
         </div>
       ) : hasPurchased === null && user ? (
-        // Still checking purchase status
         <div className="h-24 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
       ) : (
         <ReviewForm productSlug={productSlug} token={token!} onSubmitted={handleSubmitted} />
@@ -161,7 +166,7 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
 
       {/* Review list */}
       {allReviews.length === 0 && !loading ? (
-        <div className="text-center py-10 text-gray-400">
+        <div data-testid="no-reviews-msg" className="text-center py-10 text-gray-400">
           <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
           <p className="text-sm">No reviews yet. Be the first!</p>
         </div>
@@ -188,6 +193,7 @@ export default function ReviewsSection({ productSlug, onCountLoaded }: Props) {
 
           {data && page < data.totalPages && !loading && (
             <button
+              data-testid="load-more-reviews-btn"
               onClick={() => setPage((p) => p + 1)}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-[#FCA311] hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors"
             >

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Tag } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { apiClient } from "@/lib/axios";
 import ReviewsSection from "@/components/product/reviews/ReviewsSection";
 import type { Product } from "@/types";
 
@@ -20,9 +21,12 @@ export default function ProductTabs({ product }: { product: Product }) {
   // Eagerly fetch the live count so the tab badge is always accurate,
   // even if the user never opens the Reviews tab.
   useEffect(() => {
-    fetch(`/api/products/${product.slug}/reviews?page=1&limit=1`)
-      .then((r) => r.json() as Promise<{ success: boolean; data: { summary: { total: number } } }>)
-      .then((json) => { if (json.success) setReviewCount(json.data.summary.total); })
+    apiClient
+      .get<{ success: boolean; data: { reviews: unknown[]; summary: { total: number } } }>(
+        `/api/products/${product.slug}/reviews`,
+        { params: { page: 1, limit: 1 } }
+      )
+      .then(({ data }) => { if (data.success) setReviewCount(data.data.summary.total); })
       .catch(() => {});
   }, [product.slug]);
 

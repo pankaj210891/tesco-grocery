@@ -10,6 +10,9 @@ import { siteConfig } from "@/config/site";
 import { getAllCategories } from "@/services/category.service";
 import { getProducts } from "@/services/product.service";
 
+// Featured products (rating-sorted) and categories can change; rebuild every 5 min.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title:       `${siteConfig.name} — ${siteConfig.tagline}`,
   description: siteConfig.description,

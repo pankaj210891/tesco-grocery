@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Package, ShoppingBag, CheckCircle, XCircle, ArrowRight, AlertTriangle, TrendingUp, IndianRupee } from "lucide-react";
+import { Package, ShoppingBag, CheckCircle, XCircle, ArrowRight, AlertTriangle, TrendingUp, IndianRupee, BarChart2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
@@ -79,6 +79,14 @@ export default function VendorDashboard() {
       )}
 
       {/* Earnings Analytics */}
+      {analytics && (
+        <div className="flex items-center justify-between mb-0">
+          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Overview</span>
+          <Link href="/vendor/analytics" className="flex items-center gap-1 text-xs text-[#FCA311] hover:text-[#E8920A] font-semibold transition-colors">
+            <BarChart2 className="h-3.5 w-3.5" /> Full Analytics
+          </Link>
+        </div>
+      )}
       {analytics && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
