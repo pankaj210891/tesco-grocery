@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       inStock:           typeof stockQuantity === "number" ? (stockQuantity as number) > 0 : ((inStock as boolean | undefined) ?? true),
       lowStockThreshold: typeof lowStockThreshold === "number" ? (lowStockThreshold as number) : 5,
       tags:          (tags as string[] | undefined) ?? [],
-      badge:         (badge as "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | null | undefined) ?? null,
+      badge:         (badge as "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | "SALE" | null | undefined) ?? null,
       vendorId:      auth.vendorId,
       vendorName:    vendor?.name ?? null,
       attributes:    safeAttrs,

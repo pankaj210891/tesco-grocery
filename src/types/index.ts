@@ -1,6 +1,6 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
-export type ProductBadge  = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type ProductBadge  = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | "SALE";
 export type ProductStatus = "pending" | "approved" | "rejected";
 export type DeliveryOption = "express" | "standard" | "collection";
 export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";

@@ -30,7 +30,7 @@ const ProductSchema = new Schema(
     rating:          { type: Number, default: 0, min: 0, max: 5 },
     reviewCount:     { type: Number, default: 0, min: 0 },
     tags:            [String],
-    badge:           { type: String, enum: ["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"], default: null },
+    badge:           { type: String, enum: ["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE", "SALE"], default: null },
     deliveryOptions: { type: [String], enum: ["express", "standard", "collection"], default: ["standard"] },
     // Marketplace: vendor ownership
     vendorId:        { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
