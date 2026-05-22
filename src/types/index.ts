@@ -301,6 +301,7 @@ export interface EarningLineItem {
 export interface VendorEarning {
   _id:             string;
   vendorId:        string;
+  vendorName?:     string | null;
   orderId:         string;
   orderNumber:     string;
   orderDate:       string;
