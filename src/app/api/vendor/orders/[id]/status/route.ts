@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import { updateVendorOrderStatus } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
+import { confirmEarningsForOrder } from "@/services/vendor-earning.service";
 import { VENDOR_OP_STATUSES } from "@/constants/order-status";
 
 type Params = { params: Promise<{ id: string }> };
@@ -51,6 +52,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     // Propagate the new vendor sub-order status to the parent order
     await syncParentOrderStatus(updated.parentOrderId);
+
+    // Confirm this vendor's earning when their sub-order is delivered
+    if (parsed.data.status === "DELIVERED") {
+      void confirmEarningsForOrder(updated.parentOrderId, auth.vendorId);
+    }
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

@@ -68,11 +68,11 @@ export default function VendorKycPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await authClient(token).get<ApiResponse<VendorKyc>>("/api/vendor/kyc");
-      const data = res.data.data as VendorKyc;
+      const res = await authClient(token).get<ApiResponse<VendorKyc | null>>("/api/vendor/kyc");
+      const data = res.data.data ?? null;
       setKyc(data);
-      if (data.panNumber)  setPan(data.panNumber);
-      if (data.gstNumber)  setGst(data.gstNumber);
+      if (data?.panNumber) setPan(data.panNumber);
+      if (data?.gstNumber) setGst(data.gstNumber);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load KYC status");
     } finally {

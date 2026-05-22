@@ -77,13 +77,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Sync parent order status after every sub-order status change
     await syncParentOrderStatus(updated.parentOrderId);
 
-    // When delivered, confirm earnings so admin can release payout
+    // When delivered, confirm this vendor's earning so admin can release payout
     if (status === "DELIVERED") {
-      await connectDB();
-      const parentOrder = await OrderModel.findById(updated.parentOrderId).select("_id").lean();
-      if (parentOrder) {
-        void confirmEarningsForOrder(String(parentOrder._id));
-      }
+      void confirmEarningsForOrder(updated.parentOrderId, auth.vendorId);
     }
 
     // Notify customer of this vendor's delivery status change
