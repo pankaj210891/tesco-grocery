@@ -128,7 +128,7 @@ function OrdersCard({
 }: {
   orders: Order[];
   ordersLoading: boolean;
-  onSwitchTab: (tab: "orders" | "addresses") => void;
+  onSwitchTab: (tab: "orders" | "addresses" | "delivery-slots") => void;
 }) {
   const recent = orders[0];
   return (
@@ -271,7 +271,7 @@ function DetailsAndSecurityCards({
   onSwitchTab,
   profile,
 }: {
-  onSwitchTab: (tab: "orders" | "addresses") => void;
+  onSwitchTab: (tab: "orders" | "addresses" | "delivery-slots") => void;
   profile:     AccountProfile | null;
 }) {
   const phoneVerified = profile?.isPhoneVerified;
@@ -345,17 +345,7 @@ function DetailsAndSecurityCards({
 }
 
 // ── Promo section ──────────────────────────────────────────────────────────────
-const PROMOS = [
-  {
-    title:     "Book a delivery slot",
-    subtitle:  "Reserve a time for home delivery or click & collect.",
-    href:      "#",
-    bg:        "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20",
-    Icon:      Truck,
-    iconBg:    "bg-blue-100 dark:bg-blue-800/40",
-    iconColor: "text-[#0F4C75] dark:text-blue-400",
-    cta:       "Book a slot",
-  },
+const STATIC_PROMOS = [
   {
     title:     "Earn rewards on every purchase",
     subtitle:  "Collect points and redeem for exclusive discounts.",
@@ -378,14 +368,31 @@ const PROMOS = [
   },
 ] as const;
 
-function PromoSection() {
+function PromoSection({ onBookSlot }: { onBookSlot: () => void }) {
   return (
     <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-5">
       <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-4 text-center">
         Get the most from Prakash Supermarket
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {PROMOS.map(({ title, subtitle, href, bg, Icon, iconBg, iconColor, cta }) => (
+        {/* Book a delivery slot — navigates to the delivery-slots tab */}
+        <button
+          onClick={onBookSlot}
+          className="group bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 flex flex-col gap-3 hover:shadow-sm transition-shadow text-left"
+        >
+          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-800/40 flex items-center justify-center">
+            <Truck className="h-5 w-5 text-[#0F4C75] dark:text-blue-400" aria-hidden />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-900 dark:text-white leading-snug">Book a delivery slot</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Reserve a time for home delivery or click &amp; collect.</p>
+          </div>
+          <span className="mt-auto text-xs font-bold text-[#0F4C75] dark:text-blue-400 flex items-center gap-1 group-hover:underline">
+            Book a slot <ChevronRight className="h-3 w-3" aria-hidden />
+          </span>
+        </button>
+
+        {STATIC_PROMOS.map(({ title, subtitle, href, bg, Icon, iconBg, iconColor, cta }) => (
           <Link
             key={title}
             href={href}
@@ -446,7 +453,7 @@ interface AccountOverviewProps {
   userEmail:     string;
   orders:        Order[];
   ordersLoading: boolean;
-  onSwitchTab:   (tab: "orders" | "addresses") => void;
+  onSwitchTab:   (tab: "orders" | "addresses" | "delivery-slots") => void;
 }
 
 export default function AccountOverview({
@@ -511,7 +518,7 @@ export default function AccountOverview({
       <DetailsAndSecurityCards onSwitchTab={onSwitchTab} profile={profile} />
 
       {/* Promo section */}
-      <PromoSection />
+      <PromoSection onBookSlot={() => onSwitchTab("delivery-slots")} />
     </div>
   );
 }

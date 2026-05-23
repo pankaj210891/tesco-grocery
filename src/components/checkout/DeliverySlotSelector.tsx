@@ -40,6 +40,17 @@ export default function DeliverySlotSelector({ value, onChange }: Props) {
   const [loadingDates, setLoadingDates] = useState(true);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  // Sync selectedDate when value is set externally after initial render
+  // (e.g. checkout pre-fills from a saved account slot)
+  useEffect(() => {
+    if (value?.date && value.date !== selectedDate) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedDate(value.date);
+    }
+  // selectedDate intentionally excluded — we only want to react to external value changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.date]);
+
   // Load available dates on mount
   useEffect(() => {
     fetch("/api/delivery-slots/available-dates")
