@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   User, Package, ChevronRight, LogOut, ShoppingBag,
-  MapPin, Filter, Heart, HelpCircle, Plus,
+  MapPin, Filter, Heart, HelpCircle, Plus, Clock,
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
@@ -16,6 +16,7 @@ import DateFilter from "@/components/ui/DateFilter";
 import type { Order } from "@/types";
 import AddressSection, { type AddressSectionHandle } from "@/components/account/AddressSection";
 import AccountOverview from "@/components/account/AccountOverview";
+import DeliverySlotPanel from "@/components/account/DeliverySlotPanel";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
   pending:             "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
@@ -51,13 +52,14 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
-type Tab = "overview" | "orders" | "addresses" | "wishlist";
+type Tab = "overview" | "orders" | "addresses" | "wishlist" | "delivery-slots";
 
 const SIDEBAR_LINKS: { id: Tab; label: string; Icon: React.FC<{ className?: string }> }[] = [
-  { id: "overview",  label: "Dashboard",       Icon: User    },
-  { id: "orders",    label: "My Orders",       Icon: Package },
-  { id: "addresses", label: "Saved Addresses", Icon: MapPin  },
-  { id: "wishlist",  label: "Wishlist",        Icon: Heart   },
+  { id: "overview",       label: "Dashboard",       Icon: User    },
+  { id: "orders",         label: "My Orders",       Icon: Package },
+  { id: "delivery-slots", label: "Delivery Slots",  Icon: Clock   },
+  { id: "addresses",      label: "Saved Addresses", Icon: MapPin  },
+  { id: "wishlist",       label: "Wishlist",        Icon: Heart   },
 ];
 
 export default function AccountPage() {
@@ -311,6 +313,19 @@ export default function AccountPage() {
                   showHeader={false}
                   onCountChange={setAddressCount}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* ── Delivery Slots ── */}
+          {activeTab === "delivery-slots" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <Clock className="h-4 w-4 text-[#FCA311]" />
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm">Delivery Slots</h2>
+              </div>
+              <div className="p-5">
+                <DeliverySlotPanel orders={allOrders} />
               </div>
             </div>
           )}

@@ -10,6 +10,7 @@ import { authClient, apiClient } from "@/lib/axios";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useDeliverySlotStore } from "@/store/delivery-slot.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
 import { cn } from "@/lib/utils/cn";
 import type { Address, PaymentMethodType, DeliverySlotBooking } from "@/types";
@@ -77,12 +78,25 @@ export default function CheckoutPageContent() {
   const router    = useRouter();
   const { items, totalPrice, promoCode, clearCart, loading: cartLoading, loaded: cartLoaded } = useCartStore();
   const { user, token, hasHydrated } = useAuthStore();
+  const { pendingSlot, clearPendingSlot } = useDeliverySlotStore();
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showAddressFormModal, setShowAddressFormModal] = useState(false);
-  const [deliverySlot, setDeliverySlot] = useState<DeliverySlotBooking | null>(null);
+  const [deliverySlot,     setDeliverySlot]     = useState<DeliverySlotBooking | null>(null);
+  const [slotInitialized,  setSlotInitialized]  = useState(false);
+
+  // Pre-fill from account slot planner once Zustand persist has hydrated.
+  // Watching pendingSlot (not just []) handles the case where localStorage
+  // hydration completes after the first render.
+  useEffect(() => {
+    if (!slotInitialized && pendingSlot) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDeliverySlot(pendingSlot);
+      setSlotInitialized(true);
+    }
+  }, [pendingSlot, slotInitialized]);
 
   const {
     register,
@@ -234,6 +248,7 @@ export default function CheckoutPageContent() {
             };
 
             if (token) void clearCart(token);
+            clearPendingSlot();
 
             const params = new URLSearchParams({
               order: orderNumber,
@@ -271,6 +286,7 @@ export default function CheckoutPageContent() {
     };
 
     if (token) void clearCart(token);
+    clearPendingSlot();
 
     const params = new URLSearchParams({
       order: orderNumber,
