@@ -15,6 +15,11 @@ const UserSchema = new Schema(
     hearFromBrands:       { type: Boolean, default: false },
     passwordResetToken:   { type: String, default: null },
     passwordResetExpires: { type: Date,   default: null },
+    // Phone OTP verification
+    phoneOtp:             { type: String, default: null },
+    phoneOtpExpires:      { type: Date,   default: null },
+    phoneOtpAttempts:     { type: Number, default: 0 },
+    phoneOtpLastSent:     { type: Date,   default: null },
   },
   { timestamps: true }
 );
