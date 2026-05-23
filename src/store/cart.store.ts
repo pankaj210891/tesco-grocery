@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { authClient } from "@/lib/axios";
 import type { CartItem, SavedCartItem, Product, ProductVariant } from "@/types";
 
 export interface PromoInfo {
@@ -72,10 +73,6 @@ function computeTotals(items: CartItem[]) {
   };
 }
 
-const AUTH = (token: string) => ({
-  "Content-Type": "application/json",
-  Authorization:  `Bearer ${token}`,
-});
 
 export const useCartStore = create<CartState>()((set, get) => ({
   items:        [],
@@ -100,9 +97,8 @@ export const useCartStore = create<CartState>()((set, get) => ({
   fetchCart: async (token) => {
     set({ loading: true });
     try {
-      const res  = await fetch("/api/account/cart", { headers: AUTH(token) });
-      const json = await res.json() as { success: boolean; data: CartItem[] };
-      if (json.success) set({ items: json.data, ...computeTotals(json.data) });
+      const res = await authClient(token).get<{ success: boolean; data: CartItem[] }>("/api/account/cart");
+      if (res.data.success) set({ items: res.data.data, ...computeTotals(res.data.data) });
     } finally {
       set({ loading: false, loaded: true });
     }
@@ -127,15 +123,11 @@ export const useCartStore = create<CartState>()((set, get) => ({
     if (!token) return;
 
     try {
-      const res = await fetch("/api/account/cart", {
-        method:  "POST",
-        headers: AUTH(token),
-        body:    JSON.stringify({ productId: product._id, variantId, quantity: newQty }),
-      });
-      if (res.ok) {
-        const json = await res.json() as { success: boolean; data: CartItem[] };
-        if (json.success) set({ items: json.data, ...computeTotals(json.data) });
-      }
+      const res = await authClient(token).post<{ success: boolean; data: CartItem[] }>(
+        "/api/account/cart",
+        { productId: product._id, variantId, quantity: newQty }
+      );
+      if (res.data.success) set({ items: res.data.data, ...computeTotals(res.data.data) });
     } catch {
       // network error — optimistic state remains; reconciles on next fetchCart
     }
@@ -152,7 +144,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
       const url = variantId
         ? `/api/account/cart/${productId}?variantId=${encodeURIComponent(variantId)}`
         : `/api/account/cart/${productId}`;
-      await fetch(url, { method: "DELETE", headers: AUTH(token) });
+      await authClient(token).delete(url);
     } catch { /* network error */ }
   },
 
@@ -173,15 +165,11 @@ export const useCartStore = create<CartState>()((set, get) => ({
     debounceQtyUpdate(key, async () => {
       try {
         const currentQty = get().items.find((i) => slotKey(i.product._id, i.variantId) === key)?.quantity ?? quantity;
-        const res = await fetch("/api/account/cart", {
-          method:  "POST",
-          headers: AUTH(token),
-          body:    JSON.stringify({ productId, variantId, quantity: currentQty }),
-        });
-        if (res.ok) {
-          const json = await res.json() as { success: boolean; data: CartItem[] };
-          if (json.success) set({ items: json.data, ...computeTotals(json.data) });
-        }
+        const res = await authClient(token!).post<{ success: boolean; data: CartItem[] }>(
+          "/api/account/cart",
+          { productId, variantId, quantity: currentQty }
+        );
+        if (res.data.success) set({ items: res.data.data, ...computeTotals(res.data.data) });
       } catch { /* network error */ }
     });
   },
@@ -189,7 +177,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
   clearCart: async (token) => {
     set({ items: [], totalItems: 0, totalPrice: 0, promoCode: null, promoInfo: null });
     if (token) {
-      await fetch("/api/account/cart", { method: "DELETE", headers: AUTH(token) });
+      await authClient(token).delete("/api/account/cart");
     }
   },
 
@@ -211,9 +199,8 @@ export const useCartStore = create<CartState>()((set, get) => ({
   fetchSavedItems: async (token) => {
     set({ savedLoading: true });
     try {
-      const res  = await fetch("/api/account/cart/save-for-later", { headers: AUTH(token) });
-      const json = await res.json() as { success: boolean; data: SavedCartItem[] };
-      if (json.success) set({ savedItems: json.data });
+      const res = await authClient(token).get<{ success: boolean; data: SavedCartItem[] }>("/api/account/cart/save-for-later");
+      if (res.data.success) set({ savedItems: res.data.data });
     } finally {
       set({ savedLoading: false, savedLoaded: true });
     }
@@ -234,13 +221,11 @@ export const useCartStore = create<CartState>()((set, get) => ({
     });
 
     try {
-      const res  = await fetch("/api/account/cart/save-for-later", {
-        method:  "POST",
-        headers: AUTH(token),
-        body:    JSON.stringify({ productId, variantId }),
-      });
-      const json = await res.json() as { success: boolean; data: SavedCartItem[] };
-      if (json.success) set({ savedItems: json.data });
+      const res = await authClient(token).post<{ success: boolean; data: SavedCartItem[] }>(
+        "/api/account/cart/save-for-later",
+        { productId, variantId }
+      );
+      if (res.data.success) set({ savedItems: res.data.data });
     } catch { /* network error — optimistic state remains */ }
   },
 
@@ -260,20 +245,18 @@ export const useCartStore = create<CartState>()((set, get) => ({
     });
 
     try {
-      const res  = await fetch("/api/account/cart/move-to-cart", {
-        method:  "POST",
-        headers: AUTH(token),
-        body:    JSON.stringify({ productId }),
-      });
-      const json = await res.json() as { success: boolean; data: CartItem[] };
-      if (json.success) set({ items: json.data, ...computeTotals(json.data) });
+      const res = await authClient(token).post<{ success: boolean; data: CartItem[] }>(
+        "/api/account/cart/move-to-cart",
+        { productId }
+      );
+      if (res.data.success) set({ items: res.data.data, ...computeTotals(res.data.data) });
     } catch { /* network error */ }
   },
 
   removeSaved: async (productId, token) => {
     set((s) => ({ savedItems: s.savedItems.filter((si) => si.product._id !== productId) }));
     try {
-      await fetch(`/api/account/cart/saved/${productId}`, { method: "DELETE", headers: AUTH(token) });
+      await authClient(token).delete(`/api/account/cart/saved/${productId}`);
     } catch { /* network error */ }
   },
 }));

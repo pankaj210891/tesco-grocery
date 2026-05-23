@@ -1,3 +1,4 @@
+import { apiClient } from "@/lib/axios";
 import type { DynamicFiltersResult, CategoryAttributes } from "@/types";
 
 // ── Dynamic Filters ───────────────────────────────────────────────────────────
@@ -23,10 +24,9 @@ export async function fetchDynamicFilters(
     sp.set("attrs", JSON.stringify(params.attrs));
   }
 
-  const res  = await fetch(`/api/products/dynamic-filters?${sp.toString()}`);
-  const json = await res.json() as { success: boolean; data?: DynamicFiltersResult; error?: string };
-  if (!json.success) throw new Error(json.error ?? "Failed to fetch dynamic filters");
-  return json.data ?? { filters: [] };
+  const res = await apiClient.get<{ success: boolean; data?: DynamicFiltersResult; error?: string }>(`/api/products/dynamic-filters?${sp.toString()}`);
+  if (!res.data.success) throw new Error(res.data.error ?? "Failed to fetch dynamic filters");
+  return res.data.data ?? { filters: [] };
 }
 
 // ── Category Attributes (public) ─────────────────────────────────────────────
@@ -34,15 +34,13 @@ export async function fetchDynamicFilters(
 export async function fetchCategoryAttributes(
   category: string,
 ): Promise<CategoryAttributes | null> {
-  const res  = await fetch(`/api/category-attributes?category=${encodeURIComponent(category)}`);
-  const json = await res.json() as { success: boolean; data?: CategoryAttributes | null; error?: string };
-  if (!json.success) return null;
-  return json.data ?? null;
+  const res = await apiClient.get<{ success: boolean; data?: CategoryAttributes | null }>(`/api/category-attributes?category=${encodeURIComponent(category)}`);
+  if (!res.data.success) return null;
+  return res.data.data ?? null;
 }
 
 export async function fetchAllCategoryAttributes(): Promise<CategoryAttributes[]> {
-  const res  = await fetch("/api/category-attributes");
-  const json = await res.json() as { success: boolean; data?: CategoryAttributes[]; error?: string };
-  if (!json.success) return [];
-  return json.data ?? [];
+  const res = await apiClient.get<{ success: boolean; data?: CategoryAttributes[] }>("/api/category-attributes");
+  if (!res.data.success) return [];
+  return res.data.data ?? [];
 }

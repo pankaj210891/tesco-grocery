@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, X, Filter, RotateCcw, Trash2 } from "lucide-react";
 import { ProductsTable } from "@/components/common/ProductsTable";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient, apiClient } from "@/lib/axios";
 import {
   useAdminProductsStore,
   type AdminProductFilters,
@@ -108,8 +109,6 @@ function AdminProductsPageInner() {
   const debouncedMinPrice = useDebounce(filters.minPrice, 500);
   const debouncedMaxPrice = useDebounce(filters.maxPrice, 500);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   // Sync store from URL on mount
   useEffect(() => {
     const p: Partial<AdminProductFilters> = {
@@ -140,21 +139,17 @@ function AdminProductsPageInner() {
     if (!token) return;
     Promise.all([
       // All vendors for the filter dropdown (any status so admins can filter by suspended vendors too)
-      fetch("/api/admin/vendors?limit=100", { headers: authHeader })
-        .then((r) => r.json() as Promise<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>)
-        .then((j) => { if (j.success) setVendors(j.data.vendors); }),
+      authClient(token!).get<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>("/api/admin/vendors?limit=100")
+        .then((res) => { if (res.data.success) setVendors(res.data.data.vendors); }),
       // Active vendors only for the Add/Edit form vendor selector
-      fetch("/api/admin/vendors/dropdown?limit=100", { headers: authHeader })
-        .then((r) => r.json() as Promise<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>)
-        .then((j) => { if (j.success) setActiveVendors(j.data.vendors); }),
-      fetch("/api/admin/categories", { headers: authHeader })
-        .then((r) => r.json() as Promise<{ success: boolean; data: { name: string }[] }>)
-        .then((j) => { if (j.success) setCategories(j.data.map((c) => c.name)); }),
-      fetch("/api/brands")
-        .then((r) => r.json() as Promise<{ success: boolean; data: string[] }>)
-        .then((j) => { if (j.success) setBrands(j.data); }),
+      authClient(token!).get<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>("/api/admin/vendors/dropdown?limit=100")
+        .then((res) => { if (res.data.success) setActiveVendors(res.data.data.vendors); }),
+      authClient(token!).get<{ success: boolean; data: { name: string }[] }>("/api/admin/categories")
+        .then((res) => { if (res.data.success) setCategories(res.data.data.map((c) => c.name)); }),
+      apiClient.get<{ success: boolean; data: string[] }>("/api/brands")
+        .then((res) => { if (res.data.success) setBrands(res.data.data); }),
     ]).catch(() => { /* non-critical */ });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [token]);
 
   // Build API query and fetch products
@@ -177,11 +172,10 @@ function AdminProductsPageInner() {
     if (filters.dateTo)         qs.set("dateTo",     filters.dateTo);
     if (filters.sortBy)         qs.set("sortBy",     filters.sortBy);
 
-    fetch(`/api/admin/products?${qs}`, { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
-      .then((j) => { if (j.success) setData(j.data); })
+    authClient(token!).get<{ success: boolean; data: PageData }>(`/api/admin/products?${qs}`)
+      .then((res) => { if (res.data.success) setData(res.data.data); })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [page, debouncedSearch, filters.category, filters.subcategory, filters.brand,
       filters.vendorId, filters.status, filters.inStock, filters.badge,
       debouncedMinPrice, debouncedMaxPrice, filters.rating, filters.discount,
@@ -274,11 +268,11 @@ function AdminProductsPageInner() {
         })),
     };
     try {
-      const url    = editing ? `/api/admin/products/${editing._id}` : "/api/admin/products";
-      const method = editing ? "PUT" : "POST";
-      const res    = await fetch(url, { method, headers: { ...authHeader, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const json   = await res.json() as { success: boolean; error?: string };
-      if (!json.success) { setError(json.error ?? "Failed"); return; }
+      const url = editing ? `/api/admin/products/${editing._id}` : "/api/admin/products";
+      const res = editing
+        ? await authClient(token!).put<{ success: boolean; error?: string }>(url, body)
+        : await authClient(token!).post<{ success: boolean; error?: string }>(url, body);
+      if (!res.data.success) { setError(res.data.error ?? "Failed"); return; }
       setModal(null);
       void load();
     } finally { setSaving(false); }
@@ -288,9 +282,10 @@ function AdminProductsPageInner() {
     if (!confirm("Delete this product?")) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE", headers: authHeader });
-      if (!res.ok) { setError("Failed to delete product. Please try again."); return; }
+      await authClient(token!).delete(`/api/admin/products/${id}`);
       void load();
+    } catch {
+      setError("Failed to delete product. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -298,18 +293,14 @@ function AdminProductsPageInner() {
 
   async function handleApproval(id: string, status: "approved" | "rejected") {
     setApproving(id);
-    const res = await fetch(`/api/admin/products/${id}`, {
-      method: "PATCH",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setApproving(null);
-    if (res.ok) {
+    try {
+      await authClient(token!).patch(`/api/admin/products/${id}`, { status });
       setData((prev) => {
         if (!prev) return prev;
         return { ...prev, products: prev.products.map((p) => p._id === id ? { ...p, status } : p) };
       });
-    }
+    } catch { /* non-critical */ }
+    finally { setApproving(null); }
   }
 
   const selectCls = "text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]";

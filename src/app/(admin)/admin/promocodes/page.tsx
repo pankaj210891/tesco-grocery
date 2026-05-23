@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, X, Check, Loader2, Tag, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -76,8 +77,6 @@ export default function AdminPromoCodesPage() {
   const [allCategories, setAllCategories] = useState<{ name: string; slug: string; emoji: string }[]>([]);
   const [showCatDrop,   setShowCatDrop]   = useState(false);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
     if (user.role !== "admin") { router.push("/"); return; }
@@ -89,13 +88,12 @@ export default function AdminPromoCodesPage() {
       const qs = new URLSearchParams();
       if (search) qs.set("q",      search);
       if (status) qs.set("status", status);
-      const res  = await fetch(`/api/admin/promocodes${qs.size ? `?${qs}` : ""}`, { headers: authHeader });
-      const json = await res.json() as { success: boolean; data: PromoCode[] };
-      if (json.success) setPromos(json.data);
+      const res = await authClient(token!).get<{ success: boolean; data: PromoCode[] }>(`/api/admin/promocodes${qs.size ? `?${qs}` : ""}`);
+      if (res.data.success) setPromos(res.data.data);
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [search, status, token]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -103,9 +101,8 @@ export default function AdminPromoCodesPage() {
 
   useEffect(() => {
     if (!showForm || allCategories.length > 0) return;
-    fetch("/api/admin/categories", { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: { name: string; slug: string; emoji: string }[] }>)
-      .then((j) => { if (j.success) setAllCategories(j.data); })
+    authClient(token!).get<{ success: boolean; data: { name: string; slug: string; emoji: string }[] }>("/api/admin/categories")
+      .then((res) => { if (res.data.success) setAllCategories(res.data.data); })
       .catch(() => { /* non-critical */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm]);
@@ -188,15 +185,11 @@ export default function AdminPromoCodesPage() {
         color:              form.color || "#EFF6FF",
       };
 
-      const url    = editing ? `/api/admin/promocodes/${editing._id}` : "/api/admin/promocodes";
-      const method = editing ? "PUT" : "POST";
-      const res    = await fetch(url, {
-        method,
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json() as { success: boolean; error?: string };
-      if (!json.success) { setFormError(json.error ?? "Save failed"); return; }
+      const url = editing ? `/api/admin/promocodes/${editing._id}` : "/api/admin/promocodes";
+      const res = editing
+        ? await authClient(token!).put<{ success: boolean; error?: string }>(url, payload)
+        : await authClient(token!).post<{ success: boolean; error?: string }>(url, payload);
+      if (!res.data.success) { setFormError(res.data.error ?? "Save failed"); return; }
       setShowForm(false);
       void load();
     } catch {
@@ -210,7 +203,7 @@ export default function AdminPromoCodesPage() {
     if (!confirm("Delete this promo code? This cannot be undone.")) return;
     setDeleting(id);
     try {
-      await fetch(`/api/admin/promocodes/${id}`, { method: "DELETE", headers: authHeader });
+      await authClient(token!).delete(`/api/admin/promocodes/${id}`);
       void load();
     } finally {
       setDeleting(null);
@@ -218,11 +211,7 @@ export default function AdminPromoCodesPage() {
   }
 
   async function toggleActive(p: PromoCode) {
-    await fetch(`/api/admin/promocodes/${p._id}`, {
-      method: "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !p.isActive }),
-    });
+    await authClient(token!).put(`/api/admin/promocodes/${p._id}`, { isActive: !p.isActive });
     void load();
   }
 

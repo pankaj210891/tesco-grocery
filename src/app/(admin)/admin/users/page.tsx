@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight, X, RotateCcw, Eye } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
 import {
   useAdminUsersStore,
   type AdminUserFilters,
@@ -59,8 +60,6 @@ function AdminUsersPageInner() {
 
   const debouncedSearch = useDebounce(filters.search, 350);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   // Sync store from URL on mount
   useEffect(() => {
     const p: Partial<AdminUserFilters> = {
@@ -87,11 +86,10 @@ function AdminUsersPageInner() {
     if (filters.dateTo)   qs.set("dateTo",   filters.dateTo);
     if (filters.sortBy)   qs.set("sortBy",   filters.sortBy);
 
-    fetch(`/api/admin/users?${qs}`, { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
-      .then((j) => { if (j.success) setData(j.data); })
+    authClient(token!).get<{ success: boolean; data: PageData }>(`/api/admin/users?${qs}`)
+      .then((res) => { if (res.data.success) setData(res.data.data); })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [page, debouncedSearch, filters.role, filters.status, filters.dateFrom, filters.dateTo, filters.sortBy, token]);
 
   useEffect(() => {
@@ -115,11 +113,7 @@ function AdminUsersPageInner() {
 
   async function updateUser(id: string, patch: { role?: UserRole; status?: "active" | "suspended" }) {
     setUpdating(id);
-    await fetch(`/api/admin/users/${id}`, {
-      method: "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
+    await authClient(token!).put(`/api/admin/users/${id}`, patch);
     setUpdating(null);
     void load();
   }

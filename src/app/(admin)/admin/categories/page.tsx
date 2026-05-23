@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient, apiClient } from "@/lib/axios";
 import { cn } from "@/lib/utils/cn";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import NumberInput from "@/components/ui/NumberInput";
@@ -48,7 +49,6 @@ export default function AdminCategoriesPage() {
   const [seeding,    setSeeding]    = useState(false);
   const [seedMsg,    setSeedMsg]    = useState<{ ok: boolean; text: string } | null>(null);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
@@ -61,13 +61,12 @@ export default function AdminCategoriesPage() {
       const qs = new URLSearchParams();
       if (search)   qs.set("q",        search);
       if (isActive) qs.set("isActive", isActive);
-      const res  = await fetch(`/api/admin/categories${qs.size ? `?${qs}` : ""}`, { headers: authHeader });
-      const json = await res.json() as { success: boolean; data: Category[] };
-      if (json.success) setCategories(json.data);
+      const res = await authClient(token!).get<{ success: boolean; data: Category[] }>(`/api/admin/categories${qs.size ? `?${qs}` : ""}`);
+      if (res.data.success) setCategories(res.data.data);
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [search, isActive, token]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -99,15 +98,11 @@ export default function AdminCategoriesPage() {
     setSaving(true);
     setFormError("");
     try {
-      const url    = editing ? `/api/admin/categories/${editing._id}` : "/api/admin/categories";
-      const method = editing ? "PUT" : "POST";
-      const res    = await fetch(url, {
-        method,
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const json = await res.json() as { success: boolean; error?: string };
-      if (!json.success) { setFormError(json.error ?? "Save failed"); return; }
+      const url = editing ? `/api/admin/categories/${editing._id}` : "/api/admin/categories";
+      const res = editing
+        ? await authClient(token!).put<{ success: boolean; error?: string }>(url, form)
+        : await authClient(token!).post<{ success: boolean; error?: string }>(url, form);
+      if (!res.data.success) { setFormError(res.data.error ?? "Save failed"); return; }
       setShowForm(false);
       void load();
     } catch {
@@ -121,7 +116,7 @@ export default function AdminCategoriesPage() {
     if (!confirm("Delete this category? This cannot be undone.")) return;
     setDeleting(id);
     try {
-      await fetch(`/api/admin/categories/${id}`, { method: "DELETE", headers: authHeader });
+      await authClient(token!).delete(`/api/admin/categories/${id}`);
       void load();
     } finally {
       setDeleting(null);
@@ -132,13 +127,12 @@ export default function AdminCategoriesPage() {
     setSeeding(true);
     setSeedMsg(null);
     try {
-      const res  = await fetch("/api/categories/tree/seed", { method: "POST" });
-      const json = await res.json() as { success: boolean; inserted?: number; skipped?: number; message?: string; error?: string };
-      if (json.success) {
-        setSeedMsg({ ok: true, text: json.message ?? `Inserted ${json.inserted ?? 0} sub-categories.` });
+      const res = await apiClient.post<{ success: boolean; inserted?: number; skipped?: number; message?: string; error?: string }>("/api/categories/tree/seed");
+      if (res.data.success) {
+        setSeedMsg({ ok: true, text: res.data.message ?? `Inserted ${res.data.inserted ?? 0} sub-categories.` });
         void load();
       } else {
-        setSeedMsg({ ok: false, text: json.error ?? "Seed failed." });
+        setSeedMsg({ ok: false, text: res.data.error ?? "Seed failed." });
       }
     } catch {
       setSeedMsg({ ok: false, text: "Network error — seed request failed." });

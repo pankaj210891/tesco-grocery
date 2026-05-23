@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X, ShoppingBag, MapPin, TrendingUp, AlertCircle, Mail, Calendar, BadgeCheck, Ban } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { authClient } from "@/lib/axios";
 import { formatPrice } from "@/lib/utils/format";
 import type { UserDetail, Order } from "@/types";
 
@@ -37,16 +38,14 @@ export function AdminUserDetail({ userId, onClose }: Props) {
 
   useScrollLock(true);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
+    if (!token) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    fetch(`/api/admin/users/${userId}`, { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: UserDetail; error?: string }>)
-      .then((j) => {
-        if (j.success) setDetail(j.data);
-        else setError(j.error ?? "Failed to load user");
+    authClient(token).get<{ success: boolean; data: UserDetail; error?: string }>(`/api/admin/users/${userId}`)
+      .then((res) => {
+        if (res.data.success) setDetail(res.data.data);
+        else setError(res.data.error ?? "Failed to load user");
       })
       .catch(() => setError("Network error"))
       .finally(() => setLoading(false));

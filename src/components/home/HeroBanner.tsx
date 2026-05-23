@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import NavArrow from "@/components/ui/NavArrow";
 import MiniBannerCard from "@/components/ui/MiniBannerCard";
 import { cn } from "@/lib/utils/cn";
+import { apiClient } from "@/lib/axios";
 import type { HomepageSection } from "@/types";
 
 interface BannerSlide {
@@ -83,9 +84,8 @@ export default function HeroBanner() {
   useEffect(() => {
     async function load() {
       try {
-        const res  = await fetch("/api/homepage/sections?type=hero-banner");
-        const json = await res.json() as { data: HomepageSection[] };
-        const section = json.data?.[0];
+        const res  = await apiClient.get<{ data: HomepageSection[] }>("/api/homepage/sections?type=hero-banner");
+        const section = res.data.data?.[0];
         if (section) setSlides(toBannerSlides(section));
       } catch {
         // silently degrade

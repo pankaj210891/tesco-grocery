@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { authClient } from "@/lib/axios";
 import type { Product } from "@/types";
 
 interface WishlistState {
@@ -12,7 +13,6 @@ interface WishlistState {
   reset:         () => void;
 }
 
-const AUTH = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 export const useWishlistStore = create<WishlistState>()((set, get) => ({
   items:   [],
@@ -22,9 +22,8 @@ export const useWishlistStore = create<WishlistState>()((set, get) => ({
   fetchWishlist: async (token) => {
     set({ loading: true });
     try {
-      const res  = await fetch("/api/account/wishlist", { headers: AUTH(token) });
-      const json = await res.json() as { data: Product[] };
-      if (Array.isArray(json.data)) set({ items: json.data });
+      const res = await authClient(token).get<{ data: Product[] }>("/api/account/wishlist");
+      if (Array.isArray(res.data.data)) set({ items: res.data.data });
     } finally {
       set({ loading: false, loaded: true });
     }
@@ -40,16 +39,9 @@ export const useWishlistStore = create<WishlistState>()((set, get) => ({
     }));
     // Persist
     if (saved) {
-      await fetch(`/api/account/wishlist/${product._id}`, {
-        method: "DELETE",
-        headers: AUTH(token),
-      });
+      await authClient(token).delete(`/api/account/wishlist/${product._id}`);
     } else {
-      await fetch("/api/account/wishlist", {
-        method: "POST",
-        headers: { ...AUTH(token), "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product._id }),
-      });
+      await authClient(token).post("/api/account/wishlist", { productId: product._id });
     }
   },
 
