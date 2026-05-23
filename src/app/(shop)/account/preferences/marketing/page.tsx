@@ -210,14 +210,14 @@ export default function MarketingPreferencesPage() {
         <p className="text-sm font-bold text-gray-800 dark:text-white mb-2">Other marketing preferences</p>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Use these links to manage your other marketing preferences:</p>
         <div className="space-y-1">
-          <Link href="#" className="flex items-center gap-2 text-sm text-[#0F4C75] dark:text-blue-400 hover:underline">
+          <span className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Coming soon">
             <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Email newsletter settings
-          </Link>
-          <Link href="#" className="flex items-center gap-2 text-sm text-[#0F4C75] dark:text-blue-400 hover:underline">
+          </span>
+          <span className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Coming soon">
             <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
             App notification settings
-          </Link>
+          </span>
         </div>
       </div>
     </div>
