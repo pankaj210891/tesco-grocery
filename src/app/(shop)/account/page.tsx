@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   User, Package, ChevronRight, LogOut, ShoppingBag,
-  MapPin, Filter, Heart, HelpCircle,
+  MapPin, Filter, Heart, HelpCircle, Plus,
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
@@ -14,7 +14,7 @@ import { formatPrice } from "@/lib/utils/format";
 import { useDateFilter } from "@/hooks/useDateFilter";
 import DateFilter from "@/components/ui/DateFilter";
 import type { Order } from "@/types";
-import AddressSection from "@/components/account/AddressSection";
+import AddressSection, { type AddressSectionHandle } from "@/components/account/AddressSection";
 import AccountOverview from "@/components/account/AccountOverview";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
@@ -71,6 +71,8 @@ export default function AccountPage() {
   const [fetchedFilterKey,     setFetchedFilterKey]     = useState("");
   const [loading,              setLoading]              = useState(true);
   const [error,                setError]                = useState("");
+  const [addressCount,         setAddressCount]         = useState<number | null>(null);
+  const addressSectionRef = useRef<AddressSectionHandle>(null);
 
   const dateFilter = useDateFilter("all");
 
@@ -286,14 +288,29 @@ export default function AccountPage() {
           {/* ── Addresses ── */}
           {activeTab === "addresses" && (
             <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
-              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 relative z-10">
                 <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-[#FCA311]" />
                   Saved Addresses
+                  {addressCount !== null && (
+                    <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
+                      ({addressCount})
+                    </span>
+                  )}
                 </h2>
+                <button
+                  onClick={() => addressSectionRef.current?.openAddModal()}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#FCA311] text-white text-sm font-semibold rounded-xl hover:bg-[#E8920A] transition-colors"
+                >
+                  <Plus className="h-4 w-4" aria-hidden /> Add address
+                </button>
               </div>
               <div className="p-5">
-                <AddressSection />
+                <AddressSection
+                  ref={addressSectionRef}
+                  showHeader={false}
+                  onCountChange={setAddressCount}
+                />
               </div>
             </div>
           )}
