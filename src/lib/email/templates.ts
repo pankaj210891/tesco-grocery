@@ -251,6 +251,27 @@ export function vendorApprovedTemplate(d: VendorApprovedData): { subject: string
   return { subject: `Your seller account for ${d.businessName} is approved!`, html };
 }
 
+export interface PhoneVerificationData {
+  customerName: string;
+  phone:        string;
+  otp:          string;
+  expiresInMin: number;
+}
+
+export function phoneVerificationTemplate(d: PhoneVerificationData): { subject: string; html: string } {
+  const masked = d.phone.slice(0, -4).replace(/\d/g, "•") + d.phone.slice(-4);
+  const html = base(
+    "Phone Verification OTP",
+    `<h2>Verify Your Phone Number</h2>
+     <p>Hi ${d.customerName},</p>
+     <p>Use the OTP below to verify your phone number <strong>${masked}</strong>:</p>
+     <div style="text-align:center"><div class="otp-box">${d.otp}</div></div>
+     <p style="text-align:center;color:#6b7280;font-size:13px">This OTP expires in <strong>${d.expiresInMin} minutes</strong>.</p>
+     <p>If you did not request this, please ignore this email — your account remains secure.</p>`,
+  );
+  return { subject: "Phone Verification OTP – Prakash Supermarket", html };
+}
+
 export function passwordResetTemplate(d: PasswordResetData): { subject: string; html: string } {
   const html = base(
     "Password Reset OTP",

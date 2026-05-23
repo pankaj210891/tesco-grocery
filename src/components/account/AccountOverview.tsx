@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   CheckCircle, AlertTriangle, ChevronRight, ChevronUp,
   Package, Truck, Star, User, Shield, Gift,
-  Leaf, Mail, Lock, Smartphone, ShoppingBag,
+  Leaf, Mail, Lock, Smartphone, ShoppingBag, BadgeCheck,
 } from "lucide-react";
 import { useAccountProfile } from "@/hooks/useAccountProfile";
 import { formatPrice } from "@/lib/utils/format";
@@ -151,13 +151,13 @@ function OrdersCard({
             >
               My orders
             </button>
-            <Link href="#" className="block text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5">
+            <span className="block text-sm text-gray-400 dark:text-gray-500 py-0.5 cursor-not-allowed" title="Coming soon">
               Payment wallet
-            </Link>
-            <Link href="#" className="flex items-center gap-1 text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5">
+            </span>
+            <span className="flex items-center gap-1 text-sm text-gray-400 dark:text-gray-500 py-0.5 cursor-not-allowed" title="Coming soon">
               Delivery Pass
-              <span className="text-[10px] font-bold bg-[#FCA311] text-white px-1.5 py-0.5 rounded-full ml-1">New</span>
-            </Link>
+              <span className="text-[10px] font-bold bg-gray-300 dark:bg-gray-600 text-white px-1.5 py-0.5 rounded-full ml-1">Soon</span>
+            </span>
           </nav>
         </div>
 
@@ -208,9 +208,9 @@ function OrdersCard({
               <p className="text-sm font-bold text-[#0F4C75] dark:text-blue-300">Delivery Pass.</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Save on every delivery</p>
             </div>
-            <Link href="#" className="flex items-center gap-1 text-xs font-bold text-[#0F4C75] dark:text-blue-400 hover:underline">
-              Sign up <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-            </Link>
+            <span className="flex items-center gap-1 text-xs font-bold text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Coming soon">
+              Coming soon <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            </span>
           </div>
         </div>
       </div>
@@ -233,9 +233,9 @@ function RewardsCard() {
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Earn points every time you shop.</p>
           <nav className="space-y-1">
             {["About Rewards", "Join Rewards", "Rewards Together"].map((label) => (
-              <Link key={label} href="#" className="block text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5">
+              <span key={label} className="block text-sm text-gray-400 dark:text-gray-500 py-0.5 cursor-not-allowed" title="Coming soon">
                 {label}
-              </Link>
+              </span>
             ))}
           </nav>
         </div>
@@ -269,9 +269,14 @@ function RewardsCard() {
 // ── Details + Security ─────────────────────────────────────────────────────────
 function DetailsAndSecurityCards({
   onSwitchTab,
+  profile,
 }: {
   onSwitchTab: (tab: "orders" | "addresses") => void;
+  profile:     AccountProfile | null;
 }) {
+  const phoneVerified = profile?.isPhoneVerified;
+  const hasPhone      = !!profile?.phone;
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Details and preferences */}
@@ -291,7 +296,6 @@ function DetailsAndSecurityCards({
           <Link href="/account/preferences/dietary" className="block text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5">
             Dietary preferences
           </Link>
-          {/* B2: replaced href="#addresses" with button onClick */}
           <button
             onClick={() => onSwitchTab("addresses")}
             className="block w-full text-left text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5"
@@ -309,15 +313,31 @@ function DetailsAndSecurityCards({
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Manage your account security and settings.</p>
         <nav className="space-y-1">
-          {[
-            { label: "Change password",      href: "/account/security/change-password", Icon: Lock },
-            { label: "Update mobile number", href: "/account/profile",                  Icon: Smartphone },
-          ].map(({ label, href, Icon }) => (
-            <Link key={label} href={href} className="flex items-center gap-2 text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5">
-              <Icon className="h-3.5 w-3.5 text-gray-400 shrink-0" aria-hidden />
-              {label}
-            </Link>
-          ))}
+          <Link
+            href="/account/security/change-password"
+            className="flex items-center gap-2 text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5"
+          >
+            <Lock className="h-3.5 w-3.5 text-gray-400 shrink-0" aria-hidden />
+            Change password
+          </Link>
+          <Link
+            href="/account/profile"
+            className="flex items-center justify-between gap-2 py-0.5 group"
+          >
+            <span className="flex items-center gap-2 text-sm text-[#0F4C75] dark:text-blue-400 group-hover:underline">
+              <Smartphone className="h-3.5 w-3.5 text-gray-400 shrink-0" aria-hidden />
+              {hasPhone ? "Mobile number" : "Add mobile number"}
+            </span>
+            {hasPhone && (
+              phoneVerified
+                ? <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
+                    <BadgeCheck className="h-3 w-3" aria-hidden /> Verified
+                  </span>
+                : <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                    <AlertTriangle className="h-3 w-3" aria-hidden /> Unverified
+                  </span>
+            )}
+          </Link>
         </nav>
       </div>
     </div>
@@ -488,7 +508,7 @@ export default function AccountOverview({
       <RewardsCard />
 
       {/* Details and Security — B3: own full-width row, inner sm:grid-cols-2 has full space */}
-      <DetailsAndSecurityCards onSwitchTab={onSwitchTab} />
+      <DetailsAndSecurityCards onSwitchTab={onSwitchTab} profile={profile} />
 
       {/* Promo section */}
       <PromoSection />

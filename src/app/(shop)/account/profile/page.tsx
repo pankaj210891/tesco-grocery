@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, Check, X, AlertTriangle, Phone, Mail, User } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, AlertTriangle, CheckCircle, Phone, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/axios";
 import { useAuthStore } from "@/store/auth.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useAccountProfile } from "@/hooks/useAccountProfile";
 import AddressSection from "@/components/account/AddressSection";
+import PhoneVerificationModal from "@/components/account/PhoneVerificationModal";
 
 // ── Inline edit field ──────────────────────────────────────────────────────────
 interface EditFieldProps {
@@ -100,6 +101,7 @@ export default function PersonalDetailsPage() {
   const hydrated = useHydrated();
   const { user, token, setAuth } = useAuthStore();
   const { profile, loading, refresh } = useAccountProfile();
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   useEffect(() => {
     if (hydrated && !user) router.replace("/login?redirect=/account/profile");
@@ -178,15 +180,32 @@ export default function PersonalDetailsPage() {
             <div className="animate-pulse h-10 bg-gray-100 dark:bg-gray-700/40 rounded-lg my-2" />
           ) : (
             <>
+              {/* Verified badge */}
+              {profile?.phone && profile.isPhoneVerified && (
+                <div className="flex items-center gap-2 mb-3 p-2.5 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/40 rounded-lg">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" aria-hidden />
+                  <p className="text-xs text-green-700 dark:text-green-400 font-semibold">
+                    Phone number verified
+                  </p>
+                </div>
+              )}
+
+              {/* Unverified warning */}
               {profile?.phone && !profile.isPhoneVerified && (
                 <div className="flex items-center gap-2 mb-3 p-2.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 rounded-lg">
                   <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden />
                   <p className="text-xs text-amber-700 dark:text-amber-400">
                     Phone number not verified.{" "}
-                    <button className="font-semibold underline">Verify phone number</button>
+                    <button
+                      onClick={() => setShowVerifyModal(true)}
+                      className="font-semibold underline hover:no-underline"
+                    >
+                      Verify now
+                    </button>
                   </p>
                 </div>
               )}
+
               <EditField
                 label="Mobile number"
                 value={profile?.phone ?? ""}
@@ -199,7 +218,8 @@ export default function PersonalDetailsPage() {
                 }
                 onSave={async (val) => {
                   await updateProfile({ phone: val || null });
-                  toast.success(val ? "Phone number saved." : "Phone number removed.");
+                  toast.success(val ? "Phone number saved. Verify it to keep your account secure." : "Phone number removed.");
+                  if (val) setTimeout(() => setShowVerifyModal(true), 600);
                 }}
               />
             </>
@@ -230,6 +250,18 @@ export default function PersonalDetailsPage() {
           </div>
         </section>
       </div>
+
+      {/* Phone verification modal */}
+      {showVerifyModal && profile?.phone && (
+        <PhoneVerificationModal
+          phone={profile.phone}
+          onClose={() => setShowVerifyModal(false)}
+          onVerified={() => {
+            toast.success("Phone number verified successfully!");
+            refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
