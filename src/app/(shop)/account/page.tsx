@@ -180,7 +180,7 @@ export default function AccountPage() {
 
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60 space-y-0.5">
               <Link
-                href="/account/wishlist"
+                href="/help"
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <HelpCircle className="h-4 w-4 shrink-0" />
