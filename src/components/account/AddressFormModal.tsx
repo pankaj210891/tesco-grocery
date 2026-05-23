@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X, Loader2, Navigation } from "lucide-react";
 import { addressSchema, type AddressFormData } from "@/lib/validations/address";
 import { cn } from "@/lib/utils/cn";
+import { apiClient } from "@/lib/axios";
 import type { Address } from "@/types";
 import type { ReverseGeocodeResult } from "@/app/api/places/reverse-geocode/route";
 import AddressAutocomplete, { type AddressFields } from "@/components/forms/AddressAutocomplete";
@@ -120,13 +121,12 @@ export default function AddressFormModal({
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
-          const res  = await fetch(
+          const { data: json } = await apiClient.get<{ success: boolean; data?: ReverseGeocodeResult }>(
             `/api/places/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`,
           );
-          const json = (await res.json()) as { success: boolean; data?: ReverseGeocodeResult; error?: string };
 
-          if (!json.success || !json.data) {
-            setLocError(json.error ?? "Could not determine your address.");
+          if (!json.data) {
+            setLocError("Could not determine your address.");
             return;
           }
 
@@ -166,6 +166,7 @@ export default function AddressFormModal({
           </h2>
           <button
             onClick={onClose}
+            data-testid="address-form-close"
             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Close"
           >
@@ -173,7 +174,7 @@ export default function AddressFormModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSave)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSave)} data-testid="address-form" className="p-6 space-y-4">
 
           {/* Use my location */}
           <div className="space-y-1">
@@ -217,7 +218,7 @@ export default function AddressFormModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Field label="Full name" error={errors.fullName}>
-                <input type="text" placeholder="Jane Smith" className={inputCls(!!errors.fullName)} {...register("fullName")} />
+                <input type="text" placeholder="Jane Smith" data-testid="address-form-fullname" className={inputCls(!!errors.fullName)} {...register("fullName")} />
               </Field>
             </div>
 
@@ -228,6 +229,7 @@ export default function AddressFormModal({
                   inputMode="numeric"
                   placeholder="9876543210"
                   maxLength={10}
+                  data-testid="address-form-phone"
                   className={inputCls(!!errors.phone)}
                   {...register("phone")}
                   onChange={(e) => {
@@ -257,11 +259,11 @@ export default function AddressFormModal({
             </div>
 
             <Field label="City" error={errors.city}>
-              <input type="text" placeholder="London" className={inputCls(!!errors.city)} {...register("city")} />
+              <input type="text" placeholder="London" data-testid="address-form-city" className={inputCls(!!errors.city)} {...register("city")} />
             </Field>
 
             <Field label="Postcode" error={errors.postcode}>
-              <input type="text" placeholder="SW1A 1AA" className={cn(inputCls(!!errors.postcode), "uppercase")} {...register("postcode")} />
+              <input type="text" placeholder="SW1A 1AA" data-testid="address-form-postcode" className={cn(inputCls(!!errors.postcode), "uppercase")} {...register("postcode")} />
             </Field>
 
             <div className="col-span-2">
@@ -287,6 +289,7 @@ export default function AddressFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
+              data-testid="address-form-submit"
               className="flex-1 py-2.5 bg-[#FCA311] text-white text-sm font-semibold rounded-xl hover:bg-[#E8920A] disabled:opacity-60 transition-colors"
             >
               {isSubmitting ? "Saving…" : mode === "add" ? "Add address" : "Save changes"}
