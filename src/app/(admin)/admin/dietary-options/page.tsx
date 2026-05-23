@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, X, Check, Loader2, Leaf, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils/cn";
 import NumberInput from "@/components/ui/NumberInput";
@@ -39,8 +40,6 @@ export default function AdminDietaryOptionsPage() {
   const [seeding,   setSeeding]   = useState(false);
   const [seedMsg,   setSeedMsg]   = useState<{ ok: boolean; text: string } | null>(null);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
     if (user.role !== "admin") { router.push("/"); return; }
@@ -52,13 +51,12 @@ export default function AdminDietaryOptionsPage() {
       const qs = new URLSearchParams();
       if (search)   qs.set("q",        search);
       if (isActive) qs.set("isActive", isActive);
-      const res  = await fetch(`/api/admin/dietary-options${qs.size ? `?${qs}` : ""}`, { headers: authHeader });
-      const json = await res.json() as { success: boolean; data: DietaryOption[] };
-      if (json.success) setOptions(json.data);
+      const res = await authClient(token!).get<{ success: boolean; data: DietaryOption[] }>(`/api/admin/dietary-options${qs.size ? `?${qs}` : ""}`);
+      if (res.data.success) setOptions(res.data.data);
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [search, isActive, token]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -94,15 +92,11 @@ export default function AdminDietaryOptionsPage() {
     setSaving(true);
     setFormError("");
     try {
-      const url    = editing ? `/api/admin/dietary-options/${editing._id}` : "/api/admin/dietary-options";
-      const method = editing ? "PUT" : "POST";
-      const res    = await fetch(url, {
-        method,
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const json = await res.json() as { success: boolean; error?: string };
-      if (!json.success) { setFormError(json.error ?? "Save failed"); return; }
+      const url = editing ? `/api/admin/dietary-options/${editing._id}` : "/api/admin/dietary-options";
+      const res = editing
+        ? await authClient(token!).put<{ success: boolean; error?: string }>(url, form)
+        : await authClient(token!).post<{ success: boolean; error?: string }>(url, form);
+      if (!res.data.success) { setFormError(res.data.error ?? "Save failed"); return; }
       setShowForm(false);
       void load();
     } catch {
@@ -116,7 +110,7 @@ export default function AdminDietaryOptionsPage() {
     if (!confirm("Delete this dietary option? Users who have it selected will keep it in their profile until they save again.")) return;
     setDeleting(id);
     try {
-      await fetch(`/api/admin/dietary-options/${id}`, { method: "DELETE", headers: authHeader });
+      await authClient(token!).delete(`/api/admin/dietary-options/${id}`);
       void load();
     } finally {
       setDeleting(null);
@@ -127,13 +121,12 @@ export default function AdminDietaryOptionsPage() {
     setSeeding(true);
     setSeedMsg(null);
     try {
-      const res  = await fetch("/api/admin/dietary-options/seed", { method: "POST", headers: authHeader });
-      const json = await res.json() as { success: boolean; message?: string; error?: string };
-      if (json.success) {
-        setSeedMsg({ ok: true, text: json.message ?? "Seeded successfully." });
+      const res = await authClient(token!).post<{ success: boolean; message?: string; error?: string }>("/api/admin/dietary-options/seed");
+      if (res.data.success) {
+        setSeedMsg({ ok: true, text: res.data.message ?? "Seeded successfully." });
         void load();
       } else {
-        setSeedMsg({ ok: false, text: json.error ?? "Seed failed." });
+        setSeedMsg({ ok: false, text: res.data.error ?? "Seed failed." });
       }
     } catch {
       setSeedMsg({ ok: false, text: "Network error — seed request failed." });

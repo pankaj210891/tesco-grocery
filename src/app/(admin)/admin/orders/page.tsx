@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Search, Store, Eye } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { formatPrice } from "@/lib/utils/format";
 
@@ -40,15 +41,12 @@ export default function AdminOrdersPage() {
   const [vendorId, setVendorId] = useState("");
   const [vendors,  setVendors]  = useState<Pick<Vendor, "_id" | "name">[]>([]);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
     if (!token) return;
-    fetch("/api/admin/vendors?limit=100", { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>)
-      .then((j) => { if (j.success) setVendors(j.data.vendors); })
+    authClient(token).get<{ success: boolean; data: { vendors: Pick<Vendor, "_id" | "name">[] } }>("/api/admin/vendors?limit=100")
+      .then((res) => { if (res.data.success) setVendors(res.data.data.vendors); })
       .catch(() => { /* non-critical */ });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [token]);
 
   const load = useCallback(async () => {
@@ -58,11 +56,10 @@ export default function AdminOrdersPage() {
     if (dateFrom) qs.set("dateFrom", dateFrom);
     if (dateTo)   qs.set("dateTo",   dateTo);
     if (vendorId) qs.set("vendorId", vendorId);
-    fetch(`/api/admin/orders?${qs}`, { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
-      .then((j) => { if (j.success) setData(j.data); })
+    authClient(token!).get<{ success: boolean; data: PageData }>(`/api/admin/orders?${qs}`)
+      .then((res) => { if (res.data.success) setData(res.data.data); })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [page, status, token, dateFrom, dateTo, search, vendorId]);
 
   useEffect(() => {

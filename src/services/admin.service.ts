@@ -1,3 +1,4 @@
+import { authClient } from "@/lib/axios";
 import type { Product, Order, AdminVendorStats, AdminDashboardStats, ProductStatus } from "@/types";
 
 interface PaginatedData<T> {
@@ -7,21 +8,12 @@ interface PaginatedData<T> {
   totalPages: number;
 }
 
-function authHeader(token: string) {
-  return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-}
-
-async function json<T>(res: Response): Promise<T> {
-  const body = (await res.json()) as { success: boolean; data?: T; error?: string };
-  if (!body.success) throw new Error(body.error ?? "Request failed");
-  return body.data as T;
-}
-
 // ── Dashboard Stats ───────────────────────────────────────────────────────────
 
 export async function fetchAdminStats(token: string): Promise<AdminDashboardStats> {
-  const res = await fetch("/api/admin/stats", { headers: authHeader(token) });
-  return json<AdminDashboardStats>(res);
+  const res = await authClient(token).get<{ success: boolean; data: AdminDashboardStats }>("/api/admin/stats");
+  if (!res.data.success) throw new Error("Request failed");
+  return res.data.data;
 }
 
 // ── Products ──────────────────────────────────────────────────────────────────
@@ -48,8 +40,9 @@ export async function fetchAdminProducts(
   if (filters.badge)    qs.set("badge",    filters.badge);
   if (filters.vendorId) qs.set("vendorId", filters.vendorId);
   if (filters.status)   qs.set("status",   filters.status);
-  const res = await fetch(`/api/admin/products?${qs}`, { headers: authHeader(token) });
-  return json<PaginatedData<Product>>(res);
+  const res = await authClient(token).get<{ success: boolean; data: PaginatedData<Product> }>(`/api/admin/products?${qs}`);
+  if (!res.data.success) throw new Error("Request failed");
+  return res.data.data;
 }
 
 export async function updateAdminProductStatus(
@@ -57,20 +50,13 @@ export async function updateAdminProductStatus(
   id:        string,
   status:    ProductStatus,
 ): Promise<Product> {
-  const res = await fetch(`/api/admin/products/${id}`, {
-    method:  "PATCH",
-    headers: authHeader(token),
-    body:    JSON.stringify({ status }),
-  });
-  return json<Product>(res);
+  const res = await authClient(token).patch<{ success: boolean; data: Product }>(`/api/admin/products/${id}`, { status });
+  if (!res.data.success) throw new Error("Request failed");
+  return res.data.data;
 }
 
 export async function deleteAdminProduct(token: string, id: string): Promise<void> {
-  const res = await fetch(`/api/admin/products/${id}`, {
-    method:  "DELETE",
-    headers: authHeader(token),
-  });
-  await json<null>(res);
+  await authClient(token).delete(`/api/admin/products/${id}`);
 }
 
 // ── Orders ────────────────────────────────────────────────────────────────────
@@ -99,8 +85,9 @@ export async function fetchAdminOrders(
   if (filters.dateTo)   qs.set("dateTo",   filters.dateTo);
   if (filters.userId)   qs.set("userId",   filters.userId);
   if (filters.vendorId) qs.set("vendorId", filters.vendorId);
-  const res = await fetch(`/api/admin/orders?${qs}`, { headers: authHeader(token) });
-  return json<PaginatedData<Order>>(res);
+  const res = await authClient(token).get<{ success: boolean; data: PaginatedData<Order> }>(`/api/admin/orders?${qs}`);
+  if (!res.data.success) throw new Error("Request failed");
+  return res.data.data;
 }
 
 export async function updateAdminOrderStatus(
@@ -108,12 +95,9 @@ export async function updateAdminOrderStatus(
   id:     string,
   status: string,
 ): Promise<Order> {
-  const res = await fetch(`/api/admin/orders/${id}`, {
-    method:  "PUT",
-    headers: authHeader(token),
-    body:    JSON.stringify({ status }),
-  });
-  return json<Order>(res);
+  const res = await authClient(token).put<{ success: boolean; data: Order }>(`/api/admin/orders/${id}`, { status });
+  if (!res.data.success) throw new Error("Request failed");
+  return res.data.data;
 }
 
 // ── Vendor Analytics ──────────────────────────────────────────────────────────
@@ -122,8 +106,7 @@ export async function fetchAdminVendorAnalytics(
   token:  string,
   limit = 10,
 ): Promise<AdminVendorStats[]> {
-  const res = await fetch(`/api/admin/vendors/analytics?limit=${limit}`, {
-    headers: authHeader(token),
-  });
-  return json<AdminVendorStats[]>(res);
+  const res = await authClient(token).get<{ success: boolean; data: AdminVendorStats[] }>(`/api/admin/vendors/analytics?limit=${limit}`);
+  if (!res.data.success) throw new Error("Request failed");
+  return res.data.data;
 }

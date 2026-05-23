@@ -7,6 +7,7 @@ import {
   Tag, GripVertical, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
 import NumberInput from "@/components/ui/NumberInput";
 import type { CategoryAttributes, AttributeDef, AttributeType } from "@/types";
 
@@ -189,19 +190,16 @@ export default function CategoryAttributesPage() {
   const [error, setError]           = useState("");
   const [deleting, setDeleting]     = useState<string | null>(null);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const res  = await fetch("/api/admin/category-attributes", { headers: authHeader });
-      const json = await res.json() as { success: boolean; data: CategoryAttributes[] };
-      if (json.success) setList(json.data);
+      const res = await authClient(token).get<{ success: boolean; data: CategoryAttributes[] }>("/api/admin/category-attributes");
+      if (res.data.success) setList(res.data.data);
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [token]);
 
   useEffect(() => {
@@ -255,15 +253,11 @@ export default function CategoryAttributesPage() {
     setSaving(true);
     try {
       const body = { ...form, attributes: attrs };
-      const url    = editing ? `/api/admin/category-attributes/${editing._id}` : "/api/admin/category-attributes";
-      const method = editing ? "PUT" : "POST";
-      const res  = await fetch(url, {
-        method,
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json() as { success: boolean; error?: string };
-      if (!json.success) { setError(json.error ?? "Failed to save"); return; }
+      const url = editing ? `/api/admin/category-attributes/${editing._id}` : "/api/admin/category-attributes";
+      const res = editing
+        ? await authClient(token!).put<{ success: boolean; error?: string }>(url, body)
+        : await authClient(token!).post<{ success: boolean; error?: string }>(url, body);
+      if (!res.data.success) { setError(res.data.error ?? "Failed to save"); return; }
       setModal(null);
       void load();
     } finally {
@@ -275,7 +269,7 @@ export default function CategoryAttributesPage() {
     if (!confirm("Delete this category attribute schema? This will NOT affect existing products.")) return;
     setDeleting(id);
     try {
-      await fetch(`/api/admin/category-attributes/${id}`, { method: "DELETE", headers: authHeader });
+      await authClient(token!).delete(`/api/admin/category-attributes/${id}`);
       void load();
     } finally {
       setDeleting(null);
@@ -283,11 +277,7 @@ export default function CategoryAttributesPage() {
   }
 
   async function toggleActive(item: CategoryAttributes) {
-    await fetch(`/api/admin/category-attributes/${item._id}`, {
-      method: "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !item.isActive }),
-    });
+    await authClient(token!).put(`/api/admin/category-attributes/${item._id}`, { isActive: !item.isActive });
     void load();
   }
 
