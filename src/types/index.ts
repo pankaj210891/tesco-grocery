@@ -373,7 +373,7 @@ export interface CommissionConfig {
   vendorRates: CommissionVendorRate[];
 }
 
-export type PaymentMethodType = "razorpay" | "cod";
+export type PaymentMethodType = "razorpay" | "cod" | "wallet";
 export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
 export type RefundStatus     = "initiated" | "processed" | "failed";
 export type RefundType       = "full" | "partial";
@@ -490,6 +490,7 @@ export interface Order {
   deliverySlotDate?:   string | null;
   deliverySlotWindow?: string | null;
   vendorOrderIds?: string[];
+  walletAmount?:  number;
   status:         ParentOrderStatus;
   paymentMethod:  PaymentMethodType;
   paymentStatus:  PaymentStatus;
@@ -816,6 +817,55 @@ export interface LegalPage {
   sections: LegalSection[];
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+
+export type WalletTransactionReason =
+  | "topup"
+  | "order_payment"
+  | "refund"
+  | "admin_credit"
+  | "admin_debit";
+
+export interface Wallet {
+  _id:       string;
+  userId:    string;
+  balance:   number;
+  isActive:  boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalletTransaction {
+  _id:         string;
+  walletId:    string;
+  userId:      string;
+  type:        "credit" | "debit";
+  amount:      number;
+  balanceAfter:number;
+  reason:      WalletTransactionReason;
+  description: string;
+  orderId:     string | null;
+  orderNumber: string | null;
+  performedBy: string | null;
+  status:      "completed" | "failed";
+  createdAt:   string;
+}
+
+export interface AdminWalletTransaction extends WalletTransaction {
+  performedByName: string | null; // resolved admin name for admin_credit / admin_debit
+}
+
+export interface AdminWalletRow {
+  walletId:    string;
+  userId:      string;
+  userName:    string;
+  userEmail:   string;
+  balance:     number;
+  isActive:    boolean;
+  lastTopupAt: string | null;
+  createdAt:   string;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

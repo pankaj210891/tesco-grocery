@@ -50,6 +50,7 @@ export interface CreateOrderInput {
   discount:            number;
   promoCode?:          string;
   total:               number;
+  walletAmount?:       number;
   paymentMethod:       PaymentMethodType;
   paymentStatus:       PaymentStatus;
   razorpayOrderId?:    string;
@@ -104,12 +105,13 @@ function toOrder(doc: OrderDoc & { _id: { toString(): string }; createdAt: Date 
       city:     doc.delivery?.city     ?? "",
       postcode: doc.delivery?.postcode ?? "",
     },
-    subtotal:    doc.subtotal,
-    deliveryFee: doc.deliveryFee,
-    codCharge:   (doc as unknown as { codCharge?: number }).codCharge ?? 0,
-    discount:    doc.discount ?? 0,
-    promoCode:   doc.promoCode ?? undefined,
-    total:       doc.total,
+    subtotal:     doc.subtotal,
+    deliveryFee:  doc.deliveryFee,
+    codCharge:    (doc as unknown as { codCharge?: number }).codCharge ?? 0,
+    discount:     doc.discount ?? 0,
+    promoCode:    doc.promoCode ?? undefined,
+    total:        doc.total,
+    walletAmount: (doc as unknown as { walletAmount?: number }).walletAmount ?? 0,
     status:        doc.status as ParentOrderStatus,
     paymentMethod: doc.paymentMethod as PaymentMethodType,
     paymentStatus: (doc.paymentStatus ?? "pending") as PaymentStatus,

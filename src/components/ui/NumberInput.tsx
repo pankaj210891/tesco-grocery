@@ -1,3 +1,4 @@
+// ⚠️  Always use this component instead of <input type="number"> anywhere in the codebase.
 "use client";
 
 import { forwardRef, useState, useEffect, useRef } from "react";

@@ -128,7 +128,7 @@ function OrdersCard({
 }: {
   orders: Order[];
   ordersLoading: boolean;
-  onSwitchTab: (tab: "orders" | "addresses" | "delivery-slots") => void;
+  onSwitchTab: (tab: "orders" | "addresses" | "delivery-slots" | "wallet") => void;
 }) {
   const recent = orders[0];
   return (
@@ -151,9 +151,12 @@ function OrdersCard({
             >
               My orders
             </button>
-            <span className="block text-sm text-gray-400 dark:text-gray-500 py-0.5 cursor-not-allowed" title="Coming soon">
+            <button
+              onClick={() => onSwitchTab("wallet")}
+              className="block w-full text-left text-sm text-[#0F4C75] dark:text-blue-400 hover:underline py-0.5"
+            >
               Payment wallet
-            </span>
+            </button>
             <span className="flex items-center gap-1 text-sm text-gray-400 dark:text-gray-500 py-0.5 cursor-not-allowed" title="Coming soon">
               Delivery Pass
               <span className="text-[10px] font-bold bg-gray-300 dark:bg-gray-600 text-white px-1.5 py-0.5 rounded-full ml-1">Soon</span>
@@ -271,7 +274,7 @@ function DetailsAndSecurityCards({
   onSwitchTab,
   profile,
 }: {
-  onSwitchTab: (tab: "orders" | "addresses" | "delivery-slots") => void;
+  onSwitchTab: (tab: "orders" | "addresses" | "delivery-slots" | "wallet") => void;
   profile:     AccountProfile | null;
 }) {
   const phoneVerified = profile?.isPhoneVerified;
@@ -453,7 +456,7 @@ interface AccountOverviewProps {
   userEmail:     string;
   orders:        Order[];
   ordersLoading: boolean;
-  onSwitchTab:   (tab: "orders" | "addresses" | "delivery-slots") => void;
+  onSwitchTab:   (tab: "orders" | "addresses" | "delivery-slots" | "wallet") => void;
 }
 
 export default function AccountOverview({
