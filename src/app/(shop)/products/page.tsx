@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { titleCase } from "@/lib/utils/format";
-import { getProducts, getCategories, getFilterMeta } from "@/services/product.service";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import { getProducts, getCategories, getFilterMeta, getCategoryBreadcrumb } from "@/services/product.service";
+import type { BreadcrumbItem } from "@/services/product.service";
 import type { DeliveryOption, ProductFilters, SortBy } from "@/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import FiltersSidebar from "@/components/product/FiltersSidebar";
@@ -22,20 +24,51 @@ function str(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-// Safely parse a URL string to a finite integer; returns undefined for NaN,
-// Infinity, or non-integer values (e.g. "abc", "4.5", "").
 function safeInt(v: string | undefined): number | undefined {
   if (!v) return undefined;
   const n = Number(v);
   return Number.isFinite(n) && Number.isInteger(n) ? n : undefined;
 }
 
-// Safely parse a URL string to a finite number; returns undefined for NaN
-// or Infinity (e.g. "abc", "").
 function safeNum(v: string | undefined): number | undefined {
   if (!v) return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
+}
+
+// ── Breadcrumb component ──────────────────────────────────────────────────────
+
+function CategoryBreadcrumb({ items }: { items: BreadcrumbItem[] }) {
+  return (
+    <nav aria-label="Category breadcrumb" className="flex items-center flex-wrap gap-1 mb-1">
+      <Link
+        href="/products"
+        className="text-sm text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors"
+      >
+        All Products
+      </Link>
+      {items.map((item, i) => {
+        const isLast = i === items.length - 1;
+        return (
+          <span key={item.slug} className="flex items-center gap-1">
+            <ChevronRight className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden />
+            {isLast ? (
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                {item.name}
+              </span>
+            ) : (
+              <Link
+                href={item.href}
+                className="text-sm text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors"
+              >
+                {item.name}
+              </Link>
+            )}
+          </span>
+        );
+      })}
+    </nav>
+  );
 }
 
 type Props = { searchParams: Promise<RawParams> };
@@ -45,9 +78,10 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const brandParam = str(params.brand);
   const brands     = brandParam ? brandParam.split(",").map((b) => b.trim()).filter(Boolean) : undefined;
+  const categorySlug = str(params.category);
 
   const filters: ProductFilters = {
-    category:        str(params.category),
+    category:        categorySlug,
     subcategory:     str(params.subcategory),
     brands,
     search:          str(params.q),
@@ -88,18 +122,24 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const filtersWithAttrs: ProductFilters = { ...filters, attrs };
 
-  const [{ products, total, totalPages }, categories, filterMeta] = await Promise.all([
+  const [{ products, total, totalPages }, categories, filterMeta, breadcrumb] = await Promise.all([
     getProducts(filtersWithAttrs),
     getCategories(),
-    getFilterMeta(str(params.category)),
+    getFilterMeta(categorySlug),
+    categorySlug ? getCategoryBreadcrumb(categorySlug) : Promise.resolve([]),
   ]);
 
-  const categoryNames   = categories.map((c) => c.name).sort();
-  const category        = str(params.category);
-  const firstBrand      = brands?.[0];
-  const pageTitle       = firstBrand && brands?.length === 1
+  const categoryNames = categories.map((c) => c.name).sort();
+  const firstBrand    = brands?.[0];
+
+  // Resolved leaf category name — last breadcrumb item (for heading + filter chip)
+  const resolvedCategoryName = breadcrumb.length > 0
+    ? breadcrumb[breadcrumb.length - 1].name
+    : undefined;
+
+  const pageTitle = firstBrand && brands?.length === 1
     ? `${firstBrand} Products`
-    : category ? titleCase(category) : "All Products";
+    : resolvedCategoryName ?? "All Products";
 
   const currentPage  = filters.page  ?? 1;
   const currentLimit = filters.limit ?? 20;
@@ -108,6 +148,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Page header */}
       <div className="mb-6">
+        {breadcrumb.length > 0 && <CategoryBreadcrumb items={breadcrumb} />}
         <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
           {pageTitle}
         </h1>
@@ -162,7 +203,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           </div>
 
           <Suspense fallback={null}>
-            <ActiveFilters />
+            <ActiveFilters categoryLabel={resolvedCategoryName} />
           </Suspense>
 
           <ProductGrid products={products} />

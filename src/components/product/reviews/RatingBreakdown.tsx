@@ -6,10 +6,10 @@ export default function RatingBreakdown({ summary }: { summary: RatingSummary })
   const { average, total, distribution } = summary;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 items-start">
+    <div data-testid="rating-breakdown" className="flex flex-col sm:flex-row gap-6 sm:gap-10 items-start">
       {/* Big score */}
       <div className="flex flex-col items-center justify-center shrink-0 w-28">
-        <span className="text-5xl font-black text-gray-900 dark:text-gray-100 leading-none">
+        <span data-testid="rating-average" className="text-5xl font-black text-gray-900 dark:text-gray-100 leading-none">
           {average.toFixed(1)}
         </span>
         <div className="flex gap-0.5 mt-2">
@@ -26,7 +26,7 @@ export default function RatingBreakdown({ summary }: { summary: RatingSummary })
             />
           ))}
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p data-testid="rating-total" className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {total.toLocaleString()} {total === 1 ? "review" : "reviews"}
         </p>
       </div>
@@ -37,7 +37,7 @@ export default function RatingBreakdown({ summary }: { summary: RatingSummary })
           const count = distribution[star] ?? 0;
           const pct   = total > 0 ? (count / total) * 100 : 0;
           return (
-            <div key={star} className="flex items-center gap-3">
+            <div key={star} data-testid={`rating-bar-${star}`} className="flex items-center gap-3">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-3">{star}</span>
               <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" aria-hidden />
               <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">

@@ -28,8 +28,9 @@ const VendorEarningSchema = new Schema(
       enum:    ["pending", "confirmed", "released"],
       default: "pending",
     },
-    releasedAt: { type: Date,   default: null },
-    payoutRef:  { type: String, default: "" },
+    releasedAt:    { type: Date,                default: null },
+    payoutRef:     { type: String,              default: "" },
+    vendorOrderId: { type: Schema.Types.ObjectId, ref: "VendorOrder", default: null },
   },
   { timestamps: true }
 );

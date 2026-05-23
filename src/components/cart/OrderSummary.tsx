@@ -6,9 +6,10 @@ import { Tag, X, Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react"
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
-import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST } from "@/lib/constants/promos";
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_COST, COD_CHARGE } from "@/lib/constants/promos";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
+import { apiClient } from "@/lib/axios";
 import type { EligiblePromo } from "@/services/promo.service";
 import { EligiblePromoCard, type ApplyData } from "@/components/checkout/EligiblePromoCard";
 
@@ -37,7 +38,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   const promoItems = items.map((i) => ({
     productId: i.product._id,
     category:  i.product.category,
-    price:     i.product.price,
+    price:     i.selectedVariant?.price != null ? i.selectedVariant.price : i.product.price,
     quantity:  i.quantity,
   }));
 
@@ -45,13 +46,13 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/offers/eligible", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user?._id, items: promoItems, subtotal }),
-    })
-      .then((r) => r.json())
-      .then((json: { success: boolean; data: EligiblePromo[] }) => {
+    apiClient
+      .post<{ success: boolean; data: EligiblePromo[] }>("/api/offers/eligible", {
+        userId: user?._id,
+        items:  promoItems,
+        subtotal,
+      })
+      .then(({ data: json }) => {
         if (!cancelled) setEligiblePromos(json.success ? json.data : []);
       })
       .catch(() => { if (!cancelled) setEligiblePromos([]); });
@@ -65,13 +66,14 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
     if (!promoCode || items.length === 0) return;
     let cancelled = false;
 
-    fetch("/api/offers/apply", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ code: promoCode, userId: user?._id, items: promoItems, subtotal }),
-    })
-      .then((r) => r.json())
-      .then((json: { success: boolean; data?: ApplyData; error?: string }) => {
+    apiClient
+      .post<{ success: boolean; data?: ApplyData; error?: string }>("/api/offers/apply", {
+        code:    promoCode,
+        userId:  user?._id,
+        items:   promoItems,
+        subtotal,
+      })
+      .then(({ data: json }) => {
         if (cancelled) return;
         if (!json.success || !json.data) {
           clearPromo();
@@ -111,12 +113,10 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
     if (!upper) return;
     setApplying(true);
     try {
-      const res  = await fetch("/api/offers/apply", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ code: upper, userId: user?._id, items: promoItems, subtotal }),
-      });
-      const json = await res.json() as { success: boolean; data?: ApplyData; error?: string };
+      const { data: json } = await apiClient.post<{ success: boolean; data?: ApplyData; error?: string }>(
+        "/api/offers/apply",
+        { code: upper, userId: user?._id, items: promoItems, subtotal }
+      );
       if (json.success && json.data) {
         setPromoCode(json.data.code);
         setPromoInfo({
@@ -149,7 +149,7 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
   return (
     <div
       data-testid="order-summary"
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5 sticky top-20"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 sm:p-6 space-y-5"
     >
       <div className="flex items-center justify-between">
         <h2 className="text-base font-black text-gray-900 dark:text-white">Order Summary</h2>
@@ -166,6 +166,10 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
           value={effectiveDelivery === 0 ? "Free" : formatPrice(effectiveDelivery)}
           valueClassName={effectiveDelivery === 0 ? "text-green-600 font-semibold" : ""}
         />
+        <li className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 italic">
+          <span>COD charge (if paying on delivery)</span>
+          <span>+{formatPrice(COD_CHARGE)}</span>
+        </li>
         {promoInfo && (
           <SummaryRow
             label={`${promoCode} saving`}
@@ -225,9 +229,11 @@ export default function OrderSummary({ subtotal }: OrderSummaryProps) {
               </button>
             </div>
             <p className="text-xs text-green-600 dark:text-green-500 pl-[22px]">{promoInfo.label}</p>
-            <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">
-              You save {formatPrice(discountAmount)}
-            </p>
+            {promoInfo.discountType === "freeDelivery" ? (
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">Free delivery applied</p>
+            ) : discountAmount > 0 ? (
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 pl-[22px]">You save {formatPrice(discountAmount)}</p>
+            ) : null}
           </div>
         ) : (
           /* Not applied — input + eligible promo cards */

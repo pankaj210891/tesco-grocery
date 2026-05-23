@@ -33,9 +33,14 @@ export async function POST(req: Request) {
     }
 
     try {
-      await setOrderRefund(refundId, refundId, "processed");
-
       const order = await getOrderByRefundId(refundId);
+      if (!order) {
+        console.warn("[webhook] No order found for refundId:", refundId);
+        return Response.json({ success: true });
+      }
+
+      await setOrderRefund(order.orderNumber, refundId, "processed");
+
       if (order) {
         try {
           await sendRefundConfirmed(order.delivery.email, {

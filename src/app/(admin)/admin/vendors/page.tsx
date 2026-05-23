@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle, ShieldCheck, ShieldAlert, Clock, FileText } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient, type ApiResponse } from "@/lib/axios";
+import { toast } from "sonner";
 import {
   useAdminVendorsStore,
   type AdminVendorFilters,
@@ -81,6 +83,7 @@ function AdminVendorsPageInner() {
 
   const [data, setData]         = useState<PageData | null>(null);
   const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
 
   // Add vendor modal
@@ -125,8 +128,6 @@ function AdminVendorsPageInner() {
 
   const debouncedSearch = useDebounce(filters.search, 350);
 
-  const authHeader = { Authorization: `Bearer ${token}` };
-
   // Sync store from URL on mount — must run before any load or URL-write
   useEffect(() => {
     const p: Partial<AdminVendorFilters> = {
@@ -145,25 +146,32 @@ function AdminVendorsPageInner() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     const qs = new URLSearchParams({ page: String(page), limit: "20" });
-    if (debouncedSearch)    qs.set("q",        debouncedSearch);
-    if (filters.status)     qs.set("status",   filters.status);
-    if (filters.dateFrom)   qs.set("dateFrom", filters.dateFrom);
-    if (filters.dateTo)     qs.set("dateTo",   filters.dateTo);
-    fetch(`/api/admin/vendors?${qs}`, { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: PageData }>)
-      .then((j) => { if (j.success) setData(j.data); })
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (debouncedSearch)  qs.set("q",        debouncedSearch);
+    if (filters.status)   qs.set("status",   filters.status);
+    if (filters.dateFrom) qs.set("dateFrom", filters.dateFrom);
+    if (filters.dateTo)   qs.set("dateTo",   filters.dateTo);
+    try {
+      const res = await authClient(token!).get<ApiResponse<PageData>>(`/api/admin/vendors?${qs}`);
+      if (res.data.data) setData(res.data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load vendors");
+    } finally {
+      setLoading(false);
+    }
   }, [page, debouncedSearch, filters.status, filters.dateFrom, filters.dateTo, token]);
 
   const loadInvites = useCallback(async () => {
     setInviteListLoading(true);
-    fetch("/api/admin/vendors/invite", { headers: authHeader })
-      .then((r) => r.json() as Promise<{ success: boolean; data: InvitePageData }>)
-      .then((j) => { if (j.success) setInviteData(j.data); })
-      .finally(() => setInviteListLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    try {
+      const res = await authClient(token!).get<ApiResponse<InvitePageData>>("/api/admin/vendors/invite");
+      if (res.data.data) setInviteData(res.data.data);
+    } catch {
+      // invite list is secondary; silently ignore
+    } finally {
+      setInviteListLoading(false);
+    }
   }, [token]);
 
   useEffect(() => {
@@ -189,16 +197,15 @@ function AdminVendorsPageInner() {
 
   async function handleAddSave() {
     setAddSaving(true); setAddError("");
-    const res  = await fetch("/api/admin/vendors", {
-      method: "POST",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify(addForm),
-    });
-    const json = await res.json() as { success: boolean; error?: string };
-    setAddSaving(false);
-    if (!json.success) { setAddError(json.error ?? "Failed"); return; }
-    setAddModal(false);
-    void load();
+    try {
+      await authClient(token!).post<ApiResponse<Vendor>>("/api/admin/vendors", addForm);
+      setAddModal(false);
+      void load();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Failed to create vendor");
+    } finally {
+      setAddSaving(false);
+    }
   }
 
   async function handleEditSave() {
@@ -206,22 +213,22 @@ function AdminVendorsPageInner() {
     if (!editForm.name.trim()) { setEditError("Name is required"); return; }
     if (!editForm.email.trim()) { setEditError("Email is required"); return; }
     setEditSaving(true); setEditError("");
-    const res = await fetch(`/api/admin/vendors/${viewVendor._id}`, {
-      method: "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
-    });
-    const json = await res.json() as { success: boolean; error?: string; data?: Vendor };
-    setEditSaving(false);
-    if (!json.success) { setEditError(json.error ?? "Failed"); return; }
-    if (json.data) {
-      setViewVendor(json.data);
-      setData((prev) => {
-        if (!prev) return prev;
-        return { ...prev, vendors: prev.vendors.map((v) => v._id === json.data!._id ? json.data! : v) };
-      });
+    try {
+      const res = await authClient(token!).put<ApiResponse<Vendor>>(`/api/admin/vendors/${viewVendor._id}`, editForm);
+      const updated = res.data.data;
+      if (updated) {
+        setViewVendor(updated);
+        setData((prev) => {
+          if (!prev) return prev;
+          return { ...prev, vendors: prev.vendors.map((v) => v._id === updated._id ? updated : v) };
+        });
+      }
+      setEditMode(false);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to update vendor");
+    } finally {
+      setEditSaving(false);
     }
-    setEditMode(false);
   }
 
   async function handleInviteSave() {
@@ -229,59 +236,66 @@ function AdminVendorsPageInner() {
     if (!inviteForm.businessName.trim()) { setInviteError("Business name is required"); return; }
     if (!inviteForm.contactName.trim())  { setInviteError("Contact name is required"); return; }
     setInviteSaving(true); setInviteError(""); setInviteSuccess("");
-    const res  = await fetch("/api/admin/vendors/invite", {
-      method: "POST",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify(inviteForm),
-    });
-    const json = await res.json() as { success: boolean; error?: string; message?: string };
-    setInviteSaving(false);
-    if (!json.success) { setInviteError(json.error ?? "Failed to send invite"); return; }
-    setInviteSuccess(json.message ?? `Invite sent to ${inviteForm.email}`);
-    setInviteForm({ email: "", businessName: "", contactName: "" });
-    void loadInvites(); // refresh invite list immediately
+    try {
+      const res = await authClient(token!).post<ApiResponse<unknown>>("/api/admin/vendors/invite", inviteForm);
+      setInviteSuccess(res.data.message ?? `Invite sent to ${inviteForm.email}`);
+      setInviteForm({ email: "", businessName: "", contactName: "" });
+      void loadInvites();
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Failed to send invite");
+    } finally {
+      setInviteSaving(false);
+    }
   }
 
   async function updateStatus(id: string, status: VendorStatus) {
     setUpdating(id);
-    await fetch(`/api/admin/vendors/${id}`, {
-      method: "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setUpdating(null);
-    void load();
+    try {
+      await authClient(token!).put<ApiResponse<Vendor>>(`/api/admin/vendors/${id}`, { status });
+      void load();
+    } catch {
+      toast.error("Failed to update vendor status. Please try again.");
+    } finally {
+      setUpdating(null);
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this vendor? Their products will not be deleted.")) return;
-    await fetch(`/api/admin/vendors/${id}`, { method: "DELETE", headers: authHeader });
-    void load();
+    try {
+      await authClient(token!).delete<ApiResponse<unknown>>(`/api/admin/vendors/${id}`);
+      void load();
+    } catch {
+      toast.error("Failed to delete vendor. Please try again.");
+    }
   }
 
   async function handleKycReview(action: "verified" | "rejected") {
     if (!viewVendor) return;
     setKycReviewing(true);
     setKycReviewError("");
-    const res = await fetch(`/api/admin/vendors/${viewVendor._id}/kyc`, {
-      method:  "PUT",
-      headers: { ...authHeader, "Content-Type": "application/json" },
-      body:    JSON.stringify({ action, rejectionReason: kycRejReason }),
-    });
-    const json = await res.json() as { success: boolean; error?: string; data?: Vendor["kyc"] };
-    setKycReviewing(false);
-    if (!json.success) { setKycReviewError(json.error ?? "Failed to update KYC"); return; }
-    setViewVendor((v) => v ? { ...v, kyc: json.data } : v);
-    setData((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        vendors: prev.vendors.map((v) =>
-          v._id === viewVendor._id ? { ...v, kyc: json.data } : v,
-        ),
-      };
-    });
-    setKycRejReason("");
+    try {
+      const res = await authClient(token!).put<ApiResponse<Vendor["kyc"]>>(
+        `/api/admin/vendors/${viewVendor._id}/kyc`,
+        { action, rejectionReason: kycRejReason },
+      );
+      const kycData = res.data.data;
+      setViewVendor((v) => v ? { ...v, kyc: kycData } : v);
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          vendors: prev.vendors.map((v) =>
+            v._id === viewVendor._id ? { ...v, kyc: kycData } : v,
+          ),
+        };
+      });
+      setKycRejReason("");
+    } catch (err) {
+      setKycReviewError(err instanceof Error ? err.message : "Failed to update KYC");
+    } finally {
+      setKycReviewing(false);
+    }
   }
 
   function openView(v: Vendor) {
@@ -473,10 +487,12 @@ function AdminVendorsPageInner() {
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                   {loading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
+                      <tr key={i}><td colSpan={8} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
                     ))
+                  ) : error ? (
+                    <tr><td colSpan={8} className="px-4 py-10 text-center text-red-500 text-sm">{error}</td></tr>
                   ) : data?.vendors.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
                   ) : data?.vendors.map((v) => (
                     <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
                       <td className="px-4 py-3">
@@ -735,14 +751,15 @@ function AdminVendorsPageInner() {
             <div className="p-6 space-y-4">
               {addError && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">{addError}</p>}
               {([
-                { field: "name", label: "Business Name" },
-                { field: "slug", label: "Slug" },
-                { field: "email", label: "Email" },
-                { field: "phone", label: "Phone" },
-                { field: "address", label: "Address" },
-                { field: "city", label: "City" },
-                { field: "ownerId", label: "Owner User ID" },
-                { field: "ownerName", label: "Owner Name" },
+                { field: "name",        label: "Business Name"  },
+                { field: "slug",        label: "Slug"           },
+                { field: "description", label: "Description"    },
+                { field: "email",       label: "Email"          },
+                { field: "phone",       label: "Phone"          },
+                { field: "address",     label: "Address"        },
+                { field: "city",        label: "City"           },
+                { field: "ownerId",     label: "Owner User ID"  },
+                { field: "ownerName",   label: "Owner Name"     },
               ] as { field: keyof VendorForm; label: string }[]).map(({ field, label }) => (
                 <div key={field}>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">{label}</label>

@@ -68,6 +68,17 @@ export type AdminOrderQuery = z.infer<typeof AdminOrderQuerySchema>;
 const BADGE_VALUES = ["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"] as const;
 const DELIVERY_VALUES = ["express", "standard", "collection"] as const;
 
+export const AdminVariantSchema = z.object({
+  label:         z.string().min(1, "Variant label is required").max(100),
+  sku:           z.string().max(100).optional().default(""),
+  price:         z.number().min(0).nullable().optional(),
+  originalPrice: z.number().min(0).nullable().optional(),
+  stockQuantity: z.number().int().min(0).nullable().optional(),
+  inStock:       z.boolean().optional().default(true),
+});
+
+export type AdminVariant = z.infer<typeof AdminVariantSchema>;
+
 export const AdminProductCreateSchema = z.object({
   name:          z.string().min(1, "Name is required").max(200),
   slug:          z.string().min(1, "Slug is required").max(200).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens"),
@@ -87,6 +98,8 @@ export const AdminProductCreateSchema = z.object({
   vendorName:    z.string().nullable().optional(),
   // Dynamic category attributes — sanitised on the client, stored as Map in MongoDB
   attributes:    z.record(z.string(), z.string()).optional().default({}),
+  // Product variants (size, weight, colour, storage, etc.)
+  variants:      z.array(AdminVariantSchema).optional().default([]),
 });
 
 export type AdminProductCreate = z.infer<typeof AdminProductCreateSchema>;
@@ -120,8 +133,8 @@ export const AdminVendorQuerySchema = z.object({
   limit:    z.coerce.number().int().min(1).max(100).default(20),
   q:        z.string().optional(),
   status:   z.preprocess(emptyToUndefined, z.enum(["pending", "active", "suspended"]).optional()),
-  dateFrom: ISO_DATE.optional(),
-  dateTo:   ISO_DATE.optional(),
+  dateFrom: z.preprocess(emptyToUndefined, ISO_DATE.optional()),
+  dateTo:   z.preprocess(emptyToUndefined, ISO_DATE.optional()),
 });
 
 export type AdminVendorQuery = z.infer<typeof AdminVendorQuerySchema>;

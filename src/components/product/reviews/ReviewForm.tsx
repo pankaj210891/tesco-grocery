@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { authClient } from "@/lib/axios";
 import type { Review } from "@/types";
 
 interface ReviewFormProps {
@@ -14,7 +15,7 @@ interface ReviewFormProps {
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1" data-testid="rating-star-picker">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
@@ -37,29 +38,26 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
 }
 
 export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFormProps) {
-  const [rating,    setRating]    = useState(0);
-  const [title,     setTitle]     = useState("");
-  const [body,      setBody]      = useState("");
+  const [rating,     setRating]     = useState(0);
+  const [title,      setTitle]      = useState("");
+  const [body,       setBody]       = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error,     setError]     = useState("");
+  const [error,      setError]      = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!rating) { setError("Please select a star rating"); return; }
+    if (!rating)       { setError("Please select a star rating"); return; }
     if (!title.trim()) { setError("Please add a title"); return; }
     if (!body.trim())  { setError("Please write your review"); return; }
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/products/${productSlug}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ rating, title, body }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to submit");
-      onSubmitted(json.data as Review);
+      const { data } = await authClient(token).post<{ success: boolean; data: Review }>(
+        `/api/products/${productSlug}/reviews`,
+        { rating, title, body }
+      );
+      onSubmitted(data.data);
       setRating(0); setTitle(""); setBody("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to submit review");
@@ -69,7 +67,11 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-5 space-y-4">
+    <form
+      data-testid="review-form"
+      onSubmit={handleSubmit}
+      className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl p-5 space-y-4"
+    >
       <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Write a Review</h3>
 
       <div>
@@ -80,10 +82,12 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+        <label htmlFor="review-title" className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
           Title <span className="text-red-500">*</span>
         </label>
         <input
+          id="review-title"
+          data-testid="review-title-input"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -94,10 +98,12 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+        <label htmlFor="review-body" className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
           Review <span className="text-red-500">*</span>
         </label>
         <textarea
+          id="review-body"
+          data-testid="review-body-textarea"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           maxLength={2000}
@@ -111,6 +117,7 @@ export default function ReviewForm({ productSlug, token, onSubmitted }: ReviewFo
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <button
+        data-testid="submit-review-btn"
         type="submit"
         disabled={submitting}
         className="w-full py-2.5 rounded-xl bg-[#FCA311] text-white text-sm font-semibold hover:bg-[#E8920A] transition-colors disabled:opacity-50"

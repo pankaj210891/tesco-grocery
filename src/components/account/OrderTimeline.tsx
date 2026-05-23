@@ -4,7 +4,15 @@ import { cn } from "@/lib/utils/cn";
 import type { Order } from "@/types";
 
 const STATUS_RANK: Record<Order["status"], number> = {
-  pending: 0, processing: 1, shipped: 2, delivered: 3, cancelled: -1,
+  pending:             0,
+  partially_confirmed: 1,
+  processing:          1,
+  shipped:             2,
+  partially_delivered: 2,
+  completed:           3,
+  delivered:           3,
+  partially_cancelled: -1,
+  cancelled:           -1,
 };
 
 interface Step {

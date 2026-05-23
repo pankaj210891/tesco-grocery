@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Package, ShoppingBag, CheckCircle, XCircle, ArrowRight, AlertTriangle, TrendingUp, IndianRupee } from "lucide-react";
+import { Package, ShoppingBag, CheckCircle, XCircle, ArrowRight, AlertTriangle, TrendingUp, IndianRupee, BarChart2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { authClient } from "@/lib/axios";
+import type { ApiResponse } from "@/lib/axios";
 import StatsCard from "@/components/admin/StatsCard";
 import type { Vendor, VendorAnalytics } from "@/types";
 
@@ -28,15 +30,15 @@ export default function VendorDashboard() {
     if (!user)                                          { router.push("/login"); return; }
     if (user.role !== "vendor" && user.role !== "admin") { router.push("/");     return; }
 
-    const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
-      fetch("/api/vendor/stats",     { headers }).then((r) => r.json() as Promise<{ success: boolean; data: VendorStats }>),
-      fetch("/api/vendor/profile",   { headers }).then((r) => r.json() as Promise<{ success: boolean; data: Vendor }>),
-      fetch("/api/vendor/analytics", { headers }).then((r) => r.json() as Promise<{ success: boolean; data: VendorAnalytics }>),
-    ]).then(([statsRes, profileRes, analyticsRes]) => {
-      if (statsRes.success)     setStats(statsRes.data);
-      if (profileRes.success)   setProfile(profileRes.data);
-      if (analyticsRes.success) setAnalytics(analyticsRes.data);
+    const client = authClient(token ?? "");
+    Promise.allSettled([
+      client.get<ApiResponse<VendorStats>>("/api/vendor/stats"),
+      client.get<ApiResponse<Vendor>>("/api/vendor/profile"),
+      client.get<ApiResponse<VendorAnalytics>>("/api/vendor/analytics"),
+    ]).then(([statsResult, profileResult, analyticsResult]) => {
+      if (statsResult.status    === "fulfilled") setStats(statsResult.value.data.data as VendorStats);
+      if (profileResult.status  === "fulfilled") setProfile(profileResult.value.data.data as Vendor);
+      if (analyticsResult.status === "fulfilled") setAnalytics(analyticsResult.value.data.data as VendorAnalytics);
     }).finally(() => setLoading(false));
   }, [user, token, router]);
 
@@ -77,6 +79,14 @@ export default function VendorDashboard() {
       )}
 
       {/* Earnings Analytics */}
+      {analytics && (
+        <div className="flex items-center justify-between mb-0">
+          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Overview</span>
+          <Link href="/vendor/analytics" className="flex items-center gap-1 text-xs text-[#FCA311] hover:text-[#E8920A] font-semibold transition-colors">
+            <BarChart2 className="h-3.5 w-3.5" /> Full Analytics
+          </Link>
+        </div>
+      )}
       {analytics && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5">

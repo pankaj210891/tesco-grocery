@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, Search, X, Check, Loader2, FolderOpen, Layers } f
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils/cn";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import NumberInput from "@/components/ui/NumberInput";
 
 interface Category {
   _id:          string;
@@ -354,8 +355,7 @@ export default function AdminCategoriesPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Display Order</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={form.order}
                     onChange={(e) => setForm((f) => ({ ...f, order: Number(e.target.value) }))}
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-[#0F4C75]"

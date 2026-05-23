@@ -16,7 +16,10 @@ function WishlistItem({ product }: { product: Product }) {
   const { addItem } = useCartStore();
 
   function handleAddToCart() {
-    if (!token) return;
+    if (!token) {
+      toast.error("Please sign in to add items to your cart");
+      return;
+    }
     void addItem(product, 1, token);
     toast.success(`${product.name} added to cart`);
   }

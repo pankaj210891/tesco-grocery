@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle, RotateCcw, Clock } from "lucide-react";
+import { ArrowLeft, Package, MapPin, CreditCard, Truck, Receipt, XCircle, RotateCcw, Clock, Tag, Undo2 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
@@ -13,7 +13,8 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils/format";
 import OrderTimeline from "@/components/account/OrderTimeline";
-import type { Order } from "@/types";
+import VendorOrderTracking from "@/components/account/VendorOrderTracking";
+import type { Order, VendorOrder } from "@/types";
 import type { ReorderResult } from "@/app/api/account/orders/[orderNumber]/reorder/route";
 import { use } from "react";
 
@@ -27,11 +28,15 @@ const CANCEL_REASONS = [
 ];
 
 const STATUS_STYLES: Record<Order["status"], string> = {
-  pending:    "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
-  processing: "bg-amber-50  dark:bg-amber-900/20   text-amber-700  dark:text-amber-400   border-amber-200  dark:border-amber-800/40",
-  shipped:    "bg-purple-50 dark:bg-purple-900/20  text-purple-700 dark:text-purple-400  border-purple-200 dark:border-purple-800/40",
-  delivered:  "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
-  cancelled:  "bg-red-50    dark:bg-red-900/20     text-red-700    dark:text-red-400     border-red-200    dark:border-red-800/40",
+  pending:               "bg-yellow-50 dark:bg-yellow-900/20  text-yellow-700 dark:text-yellow-400  border-yellow-200 dark:border-yellow-800/40",
+  partially_confirmed:   "bg-blue-50   dark:bg-blue-900/20    text-blue-700   dark:text-blue-400    border-blue-200   dark:border-blue-800/40",
+  processing:            "bg-amber-50  dark:bg-amber-900/20   text-amber-700  dark:text-amber-400   border-amber-200  dark:border-amber-800/40",
+  shipped:               "bg-purple-50 dark:bg-purple-900/20  text-purple-700 dark:text-purple-400  border-purple-200 dark:border-purple-800/40",
+  partially_delivered:   "bg-teal-50   dark:bg-teal-900/20    text-teal-700   dark:text-teal-400    border-teal-200   dark:border-teal-800/40",
+  completed:             "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
+  delivered:             "bg-green-50  dark:bg-green-900/20   text-green-700  dark:text-green-400   border-green-200  dark:border-green-800/40",
+  partially_cancelled:   "bg-orange-50 dark:bg-orange-900/20  text-orange-700 dark:text-orange-400  border-orange-200 dark:border-orange-800/40",
+  cancelled:             "bg-red-50    dark:bg-red-900/20     text-red-700    dark:text-red-400     border-red-200    dark:border-red-800/40",
 };
 
 function formatDate(iso: string) {
@@ -53,15 +58,21 @@ export default function OrderDetailPage({
   const { fetchCart } = useCartStore();
 
   const [order,         setOrder]         = useState<Order | null>(null);
+  const [vendorOrders,  setVendorOrders]  = useState<VendorOrder[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState("");
   const [showCancel,    setShowCancel]    = useState(false);
   const [cancelReason,  setCancelReason]  = useState("");
-  useScrollLock(showCancel);
   const [cancelComment, setCancelComment] = useState("");
   const [cancelling,    setCancelling]    = useState(false);
   const [cancelError,   setCancelError]   = useState("");
   const [reordering,    setReordering]    = useState(false);
+  const [showRefund,    setShowRefund]    = useState(false);
+  const [refundReason,  setRefundReason]  = useState("");
+  const [refunding,     setRefunding]     = useState(false);
+  const [refundError,   setRefundError]   = useState("");
+  const [refundDone,    setRefundDone]    = useState(false);
+  useScrollLock(showCancel || showRefund);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -75,7 +86,9 @@ export default function OrderDetailPage({
         const { data: json } = await axios.get(`/api/account/orders/${orderNumber}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOrder(json.data);
+        const { vendorOrders: vos, ...orderData } = json.data;
+        setOrder(orderData);
+        setVendorOrders(vos ?? []);
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           setError("Order not found.");
@@ -116,7 +129,14 @@ export default function OrderDetailPage({
   if (!order) return null;
 
   const isCOD         = order.paymentMethod === "cod";
-  const isCancellable = order.status === "pending" || order.status === "processing";
+  const isCancellable = (["pending", "processing", "partially_confirmed"] as Order["status"][]).includes(order.status);
+  const isRefundable  =
+    (["delivered", "completed", "partially_delivered"] as Order["status"][]).includes(order.status) &&
+    order.paymentStatus !== "refunded" &&
+    order.paymentStatus !== "partially_refunded" &&
+    order.refundStatus !== "initiated" &&
+    order.refundStatus !== "processed" &&
+    !refundDone;
 
   async function handleReorder() {
     if (!token || !order) return;
@@ -178,6 +198,32 @@ export default function OrderDetailPage({
     }
   }
 
+  async function handleRefundSubmit() {
+    if (!order || !token) return;
+    if (refundReason.trim().length < 5) {
+      setRefundError("Please provide at least 5 characters describing the issue.");
+      return;
+    }
+    setRefunding(true);
+    setRefundError("");
+    try {
+      await axios.post(
+        `/api/account/orders/${order.orderNumber}/refund`,
+        { reason: refundReason.trim() },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setRefundDone(true);
+      setShowRefund(false);
+      setRefundReason("");
+      toast.success("Refund request submitted. Our team will process it within 2–3 business days.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+      setRefundError(msg ?? "Failed to submit refund request. Please try again.");
+    } finally {
+      setRefunding(false);
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
       {/* Back link */}
@@ -216,6 +262,21 @@ export default function OrderDetailPage({
               <XCircle className="h-4 w-4" aria-hidden />
               Cancel Order
             </button>
+          )}
+          {isRefundable && (
+            <button
+              onClick={() => { setShowRefund(true); setRefundError(""); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/20 text-[#0F4C75] dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            >
+              <Undo2 className="h-4 w-4" aria-hidden />
+              Request Refund
+            </button>
+          )}
+          {refundDone && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border border-green-200 dark:border-green-800/40 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400">
+              <Undo2 className="h-4 w-4" aria-hidden />
+              Refund Requested
+            </span>
           )}
         </div>
       </div>
@@ -263,6 +324,9 @@ export default function OrderDetailPage({
           <OrderTimeline status={order.status} />
         </section>
 
+        {/* Per-vendor tracking (shown when order has vendor sub-orders) */}
+        {vendorOrders.length > 0 && <VendorOrderTracking vendorOrders={vendorOrders} />}
+
         {/* Items */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <h2 className="flex items-center gap-2 font-black text-gray-900 dark:text-white mb-4">
@@ -281,6 +345,12 @@ export default function OrderDetailPage({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                  {item.variantLabel && (
+                    <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <Tag className="h-3 w-3 shrink-0" aria-hidden />
+                      {item.variantLabel}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400">{formatPrice(item.price)} × {item.quantity}</p>
                 </div>
                 <span className="text-sm font-bold text-gray-900 dark:text-white shrink-0">
@@ -416,6 +486,68 @@ export default function OrderDetailPage({
         </section>
 
       </div>
+
+      {/* ── Request Refund Modal ── */}
+      {showRefund && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-white">Request a Refund</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Order <span className="font-semibold">{order.orderNumber}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowRefund(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <XCircle className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                Reason for refund <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={refundReason}
+                onChange={(e) => { setRefundReason(e.target.value); setRefundError(""); }}
+                rows={4}
+                maxLength={300}
+                placeholder="Please describe the issue with your order…"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0F4C75]/40 resize-none"
+              />
+              <p className="text-xs text-gray-400 text-right mt-0.5">{refundReason.length}/300</p>
+            </div>
+
+            {refundError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{refundError}</p>
+            )}
+
+            <p className="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl px-3 py-2.5">
+              Refunds are processed within <strong>2&ndash;3 business days</strong> after review. You&rsquo;ll be notified once it&rsquo;s approved.
+            </p>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setShowRefund(false)}
+                disabled={refunding}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleRefundSubmit()}
+                disabled={refunding}
+                className="flex-1 py-2.5 rounded-xl bg-[#0F4C75] hover:bg-[#0d3f63] text-white text-sm font-bold transition-colors disabled:opacity-60"
+              >
+                {refunding ? "Submitting…" : "Submit Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Cancel Order Modal ── */}
       {showCancel && (

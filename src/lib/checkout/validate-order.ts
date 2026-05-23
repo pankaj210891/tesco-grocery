@@ -40,7 +40,7 @@ export async function validateCheckoutOrder(params: {
 
   // ── Stock availability check (prevents overselling) ─────────────────────
   const stockCheck = await checkStock(
-    items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+    items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
   );
   if (!stockCheck.ok) {
     const names = stockCheck.unavailable.map((u) =>
@@ -51,6 +51,7 @@ export async function validateCheckoutOrder(params: {
 
   const subtotal    = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const rawDelivery = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
+  // COD charge only applies to cash-on-delivery; wallet and razorpay are free
   const codCharge   = paymentMethod === "cod" ? COD_CHARGE : 0;
 
   let discount          = 0;
@@ -112,7 +113,7 @@ export async function validateCheckoutOrder(params: {
  * Fire-and-forget — called after createOrder, non-blocking.
  */
 export async function fireStockDecrement(items: OrderItem[]): Promise<void> {
-  void decrementStock(items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
+  void decrementStock(items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })));
 }
 
 export async function firePromoUsage(

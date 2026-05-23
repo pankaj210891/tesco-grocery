@@ -38,8 +38,8 @@ const footerLinks = {
     { label: "About Prakash",            href: "#" },
     { label: "Careers",                  href: "#" },
     { label: "Corporate Responsibility", href: "#" },
-    { label: "Privacy Policy",           href: "#" },
-    { label: "Terms & Conditions",       href: "#" },
+    { label: "Privacy Policy",           href: "/privacy" },
+    { label: "Terms & Conditions",       href: "/terms" },
   ],
 };
 
@@ -214,8 +214,8 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Prakash Supermarket. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            <Link href="#" className="text-gray-400 text-xs hover:text-gray-600 dark:hover:text-gray-200 transition-colors">Privacy</Link>
-            <Link href="#" className="text-gray-400 text-xs hover:text-gray-600 dark:hover:text-gray-200 transition-colors">Terms</Link>
+            <Link href="/privacy" className="text-gray-400 text-xs hover:text-gray-600 dark:hover:text-gray-200 transition-colors">Privacy</Link>
+            <Link href="/terms" className="text-gray-400 text-xs hover:text-gray-600 dark:hover:text-gray-200 transition-colors">Terms</Link>
             <Link href="#" className="text-gray-400 text-xs hover:text-gray-600 dark:hover:text-gray-200 transition-colors">Cookies</Link>
             <span className="text-gray-300 dark:text-gray-600 text-xs">Built with Next.js</span>
           </div>

@@ -8,6 +8,7 @@ import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
 import { ProductsTable } from "@/components/common/ProductsTable";
 import DynamicAttributeFields from "@/components/product/DynamicAttributeFields";
+import NumberInput from "@/components/ui/NumberInput";
 import type { Product, ProductBadge, ProductVariant } from "@/types";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -210,8 +211,12 @@ export default function VendorProductsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this product?")) return;
-    await authClient(token!).delete(`/api/vendor/products/${id}`);
-    void load();
+    try {
+      await authClient(token!).delete(`/api/vendor/products/${id}`);
+      void load();
+    } catch {
+      setError("Failed to delete product. Please try again.");
+    }
   }
 
   return (
@@ -348,8 +353,7 @@ export default function VendorProductsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Price (₹)</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     step="1"
                     min="0"
                     value={form.price}
@@ -360,8 +364,7 @@ export default function VendorProductsPage() {
                 </div>
                 <div>
                   <label className={labelCls}>Original (₹)</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     step="1"
                     min="0"
                     value={form.originalPrice}
@@ -410,8 +413,7 @@ export default function VendorProductsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={labelCls}>Stock Qty</label>
-                      <input
-                        type="number"
+                      <NumberInput
                         min="0"
                         step="1"
                         value={form.stockQuantity}
@@ -423,8 +425,7 @@ export default function VendorProductsPage() {
                     </div>
                     <div>
                       <label className={labelCls}>Low-stock alert</label>
-                      <input
-                        type="number"
+                      <NumberInput
                         min="1"
                         step="1"
                         value={form.lowStockThreshold}
@@ -537,8 +538,7 @@ export default function VendorProductsPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className={labelCls}>Price override (₹)</label>
-                          <input
-                            type="number"
+                          <NumberInput
                             min="0"
                             step="1"
                             value={v.price}
@@ -554,8 +554,7 @@ export default function VendorProductsPage() {
                         </div>
                         <div>
                           <label className={labelCls}>Original price (₹)</label>
-                          <input
-                            type="number"
+                          <NumberInput
                             min="0"
                             step="1"
                             value={v.originalPrice}

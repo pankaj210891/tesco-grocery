@@ -5,9 +5,11 @@ import { getProducts } from "@/services/product.service";
 import { searchCategories } from "@/services/category.service";
 import ProductGrid from "@/components/product/ProductGrid";
 import SortControl from "@/components/product/SortControl";
+import Pagination from "@/components/ui/Pagination";
 import SearchHeader from "@/components/search/SearchHeader";
 import NoResults from "@/components/search/NoResults";
 import type { ProductFilters, Category } from "@/types";
+import { PRODUCTS_PER_PAGE } from "@/constants";
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -44,27 +46,32 @@ function CategoryChips({ categories }: { categories: Category[] }) {
 }
 
 export default async function SearchPage({ searchParams }: Props) {
-  const params = await searchParams;
-  const query  = typeof params.q === "string" ? params.q.trim() : "";
-  const sortBy = typeof params.sortBy === "string" ? params.sortBy : undefined;
+  const params  = await searchParams;
+  const query   = typeof params.q === "string" ? params.q.trim() : "";
+  const sortBy  = typeof params.sortBy === "string" ? params.sortBy : undefined;
+  const page    = typeof params.page === "string" ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
+  const limit   = PRODUCTS_PER_PAGE;
 
   let products: Awaited<ReturnType<typeof getProducts>>["products"] = [];
-  let total = 0;
+  let total      = 0;
+  let totalPages = 0;
   let matchingCategories: Category[] = [];
 
   if (query) {
     const filters: ProductFilters = {
       search: query,
       sortBy: sortBy as ProductFilters["sortBy"] | undefined,
-      limit:  100,
+      page,
+      limit,
     };
     const [productResult, cats] = await Promise.all([
       getProducts(filters),
       searchCategories(query),
     ]);
-    products            = productResult.products;
-    total               = productResult.total;
-    matchingCategories  = cats;
+    products           = productResult.products;
+    total              = productResult.total;
+    totalPages         = productResult.totalPages;
+    matchingCategories = cats;
   }
 
   return (
@@ -98,6 +105,18 @@ export default async function SearchPage({ searchParams }: Props) {
                 </span>
               </div>
               <ProductGrid products={products} />
+              {totalPages > 1 && (
+                <div className="mt-10">
+                  <Suspense fallback={null}>
+                    <Pagination
+                      currentPage={page}
+                      totalPages={totalPages}
+                      total={total}
+                      limit={limit}
+                    />
+                  </Suspense>
+                </div>
+              )}
             </div>
           )}
         </>

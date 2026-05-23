@@ -251,6 +251,27 @@ export function vendorApprovedTemplate(d: VendorApprovedData): { subject: string
   return { subject: `Your seller account for ${d.businessName} is approved!`, html };
 }
 
+export interface PhoneVerificationData {
+  customerName: string;
+  phone:        string;
+  otp:          string;
+  expiresInMin: number;
+}
+
+export function phoneVerificationTemplate(d: PhoneVerificationData): { subject: string; html: string } {
+  const masked = d.phone.slice(0, -4).replace(/\d/g, "•") + d.phone.slice(-4);
+  const html = base(
+    "Phone Verification OTP",
+    `<h2>Verify Your Phone Number</h2>
+     <p>Hi ${d.customerName},</p>
+     <p>Use the OTP below to verify your phone number <strong>${masked}</strong>:</p>
+     <div style="text-align:center"><div class="otp-box">${d.otp}</div></div>
+     <p style="text-align:center;color:#6b7280;font-size:13px">This OTP expires in <strong>${d.expiresInMin} minutes</strong>.</p>
+     <p>If you did not request this, please ignore this email — your account remains secure.</p>`,
+  );
+  return { subject: "Phone Verification OTP – Prakash Supermarket", html };
+}
+
 export function passwordResetTemplate(d: PasswordResetData): { subject: string; html: string } {
   const html = base(
     "Password Reset OTP",
@@ -263,4 +284,89 @@ export function passwordResetTemplate(d: PasswordResetData): { subject: string; 
   );
 
   return { subject: "Your Password Reset OTP", html };
+}
+
+// ─── Vendor Notification Templates ───────────────────────────────────────────
+
+export interface VendorNewOrderData {
+  vendorName:        string;
+  vendorOrderId:     string;
+  parentOrderNumber: string;
+  items: Array<{ name: string; quantity: number; price: number }>;
+  subtotal:          number;
+  dashboardUrl:      string;
+}
+
+export function vendorNewOrderTemplate(d: VendorNewOrderData): { subject: string; html: string } {
+  const rows = d.items.map(
+    (i) => `<tr>
+      <td>${i.name}</td>
+      <td style="text-align:center">${i.quantity}</td>
+      <td style="text-align:right">₹${(i.price * i.quantity).toFixed(2)}</td>
+    </tr>`,
+  ).join("");
+
+  const html = base(
+    "New Order Received",
+    `<h2>New Order Received! 🛒</h2>
+     <p>Hi ${d.vendorName},</p>
+     <p>You have a new order waiting for your confirmation. Please accept or reject it within 24 hours.</p>
+     <p><strong>Order:</strong> <span class="badge">${d.parentOrderNumber}</span></p>
+     <div class="table-wrap">
+       <table class="items">
+         <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr></thead>
+         <tbody>${rows}</tbody>
+         <tfoot><tr class="total-row"><td colspan="2">Your Earning</td><td style="text-align:right">₹${d.subtotal.toFixed(2)}</td></tr></tfoot>
+       </table>
+     </div>
+     <p style="text-align:center;margin:24px 0">
+       <a href="${d.dashboardUrl}" class="btn">View Order in Dashboard</a>
+     </p>
+     <p style="font-size:13px;color:#6b7280">Please process this order promptly to maintain your seller rating.</p>`,
+  );
+
+  return { subject: `New Order ${d.parentOrderNumber} — Action Required`, html };
+}
+
+export interface VendorOrderStatusData {
+  vendorName:        string;
+  parentOrderNumber: string;
+  newStatus:         string;
+  note?:             string;
+}
+
+export function vendorOrderStatusTemplate(d: VendorOrderStatusData): { subject: string; html: string } {
+  const html = base(
+    "Order Status Update",
+    `<h2>Order Status Updated</h2>
+     <p>Hi ${d.vendorName},</p>
+     <p>The status of order <strong>${d.parentOrderNumber}</strong> has been updated to:</p>
+     <p style="margin:16px 0"><span class="badge" style="font-size:15px">${d.newStatus}</span></p>
+     ${d.note ? `<p><strong>Note:</strong> ${d.note}</p>` : ""}
+     <p>Log in to your dashboard to view the full order details.</p>`,
+  );
+
+  return { subject: `Order ${d.parentOrderNumber} — Status: ${d.newStatus}`, html };
+}
+
+export interface VendorPayoutData {
+  vendorName:    string;
+  amount:        number;
+  payoutRef:     string;
+  orderNumbers:  string[];
+}
+
+export function vendorPayoutTemplate(d: VendorPayoutData): { subject: string; html: string } {
+  const html = base(
+    "Payout Processed",
+    `<h2>Payout Processed 💰</h2>
+     <p>Hi ${d.vendorName},</p>
+     <p>Great news! A payout of <strong>₹${d.amount.toFixed(2)}</strong> has been released to your registered bank account.</p>
+     <p><strong>Payout Reference:</strong> ${d.payoutRef}</p>
+     <p><strong>Orders covered:</strong> ${d.orderNumbers.join(", ")}</p>
+     <p>The amount should reflect in your account within 1–3 business days depending on your bank.</p>
+     <p style="font-size:13px;color:#6b7280">If you have any questions about this payout, please contact our seller support team.</p>`,
+  );
+
+  return { subject: `Payout of ₹${d.amount.toFixed(2)} Processed`, html };
 }

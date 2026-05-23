@@ -6,6 +6,7 @@ import { Banknote, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react"
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
+import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils/format";
 import type { VendorEarning, EarningStatus } from "@/types";
 
@@ -74,6 +75,8 @@ export default function AdminEarningsPage() {
         payoutRef: payoutRef[earningId] ?? "",
       });
       void load();
+    } catch {
+      toast.error("Failed to release earning. Please try again.");
     } finally {
       setReleasing(null);
     }
@@ -143,8 +146,8 @@ export default function AdminEarningsPage() {
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
                       {new Date(e.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-xs font-mono">
-                      {e.vendorId.slice(-6)}
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-xs">
+                      {e.vendorName ?? <span className="font-mono text-gray-400">{e.vendorId.slice(-6)}</span>}
                     </td>
                     <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
                       {formatPrice(e.grossAmount)}

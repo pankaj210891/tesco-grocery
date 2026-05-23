@@ -24,6 +24,7 @@ const BADGE_MAP: Record<string, { bg: string; text: string }> = {
   LIMITED:   { bg: "bg-orange-500",  text: "text-white" },
   ORGANIC:   { bg: "bg-green-600",   text: "text-white" },
   EXCLUSIVE: { bg: "bg-purple-600",  text: "text-white" },
+  SALE:      { bg: "bg-[#EE1C2E]",   text: "text-white" },
 };
 
 const SLIDE_MS = 4000;
@@ -111,9 +112,21 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const cartItem = items.find((i) => i.product._id === product._id);
   const qty      = cartItem?.quantity ?? 0;
 
+  // When base price is 0 and variants exist, derive display price from cheapest variant
+  const variantPrices = (product.variants ?? [])
+    .map((v) => v.price)
+    .filter((p): p is number => p != null && p > 0);
+  const displayPrice =
+    product.price === 0 && variantPrices.length > 0
+      ? Math.min(...variantPrices)
+      : product.price;
+  const hasMultiplePrices =
+    product.price === 0 && variantPrices.length > 1 &&
+    new Set(variantPrices).size > 1;
+
   const discount =
-    product.originalPrice && product.originalPrice > product.price
-      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    product.originalPrice && product.originalPrice > displayPrice
+      ? Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100)
       : null;
 
   function handleCartAction(quantity: number) {
@@ -188,9 +201,9 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       {/* ── Body ── */}
       <div className="flex flex-col flex-1 p-3.5 pt-3 gap-2">
 
-        {/* Category */}
+        {/* Subcategory (falls back to L0 category when not set) */}
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
-          {product.category}
+          {product.subcategory ?? product.category}
         </p>
 
         {/* Name */}
@@ -211,9 +224,12 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         {/* Price */}
         <div className="flex items-baseline gap-2 mt-auto pt-1">
           <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
-            ₹{product.price.toFixed(0)}
+            {hasMultiplePrices && (
+              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 mr-0.5">From </span>
+            )}
+            ₹{displayPrice.toFixed(0)}
           </span>
-          {product.originalPrice && product.originalPrice > product.price && (
+          {product.originalPrice && product.originalPrice > displayPrice && (
             <span className="text-xs text-gray-400 dark:text-gray-500 line-through">
               ₹{product.originalPrice.toFixed(0)}
             </span>

@@ -1,6 +1,6 @@
 // ─── Product ────────────────────────────────────────────────────────────────
 
-export type ProductBadge  = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE";
+export type ProductBadge  = "NEW" | "HOT" | "LIMITED" | "ORGANIC" | "EXCLUSIVE" | "SALE";
 export type ProductStatus = "pending" | "approved" | "rejected";
 export type DeliveryOption = "express" | "standard" | "collection";
 export type SortBy = "price-asc" | "price-desc" | "rating" | "newest" | "popularity";
@@ -165,6 +165,19 @@ export interface SeedResult {
   durationMs: number;
 }
 
+// ─── Dietary Options ─────────────────────────────────────────────────────────
+
+export interface DietaryOption {
+  _id:       string;
+  value:     string;
+  label:     string;
+  emoji:     string;
+  isActive:  boolean;
+  order:     number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Cart ───────────────────────────────────────────────────────────────────
 
 export interface CartItem {
@@ -205,13 +218,39 @@ export interface CartRecommendation {
 export type UserRole = "customer" | "vendor" | "admin";
 export type UserStatus = "active" | "suspended";
 
+export type MarketingPreference = "email_digital_post" | "digital_post_only" | "unsubscribed";
+
 export interface User {
   _id: string;
   name: string;
   email: string;
   role: UserRole;
   status: UserStatus;
+  // Extended profile fields (populated after profile fetch)
+  phone?: string | null;
+  isPhoneVerified?: boolean;
+  dietaryPreferences?: string[];
+  marketingPreference?: MarketingPreference | null;
+  hearFromBrands?: boolean;
   createdAt: string;
+}
+
+export interface AccountSetupStep {
+  key:        string;
+  label:      string;
+  description: string;
+  completed:  boolean;
+  href:       string;
+  linkLabel:  string;
+}
+
+export interface AccountProfile extends User {
+  setupProgress: {
+    totalSteps:     number;
+    completedSteps: number;
+    percentage:     number;
+    steps:          AccountSetupStep[];
+  };
 }
 
 export interface AuthFormData {
@@ -301,6 +340,7 @@ export interface EarningLineItem {
 export interface VendorEarning {
   _id:             string;
   vendorId:        string;
+  vendorName?:     string | null;
   orderId:         string;
   orderNumber:     string;
   orderDate:       string;
@@ -333,7 +373,7 @@ export interface CommissionConfig {
   vendorRates: CommissionVendorRate[];
 }
 
-export type PaymentMethodType = "razorpay" | "cod";
+export type PaymentMethodType = "razorpay" | "cod" | "wallet";
 export type PaymentStatus    = "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
 export type RefundStatus     = "initiated" | "processed" | "failed";
 export type RefundType       = "full" | "partial";
@@ -344,6 +384,88 @@ export interface RefundItem {
   quantity:  number;
   amount:    number;
 }
+
+// ─── Vendor Sub-Orders ────────────────────────────────────────────────────────
+
+export type VendorOrderStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "PACKED"
+  | "READY_FOR_PICKUP"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "RETURNED"
+  | "REFUNDED"
+  | "FAILED";
+
+export type VendorRefundStatus = "none" | "partial" | "full";
+
+export interface VendorOrderStatusHistory {
+  status:    string;
+  note:      string;
+  updatedBy: string | null;
+  role:      "admin" | "vendor" | "system";
+  changedAt: string;
+}
+
+export interface VendorOrderItem {
+  productId:        string;
+  variantId?:       string | null;
+  variantLabel?:    string | null;
+  name:             string;
+  slug:             string;
+  price:            number;
+  quantity:         number;
+  image:            string;
+  commissionRate:   number;
+  commissionAmount: number;
+  vendorEarning:    number;
+}
+
+export interface VendorOrder {
+  _id:               string;
+  parentOrderId:     string;
+  parentOrderNumber: string;
+  vendorId:          string;
+  vendorName:        string;
+  customerId?:       string | null;
+  delivery?: {
+    fullName: string;
+    email:    string;
+    phone:    string;
+    address:  string;
+    city:     string;
+    postcode: string;
+  };
+  items:             VendorOrderItem[];
+  subtotal:          number;
+  commissionTotal:   number;
+  vendorEarning:     number;
+  status:            VendorOrderStatus;
+  statusHistory:     VendorOrderStatusHistory[];
+  trackingNumber?:   string | null;
+  estimatedDelivery?: string | null;
+  rejectionReason?:  string | null;
+  cancellationReason?: string | null;
+  refundStatus:      VendorRefundStatus;
+  refundedAmount:    number;
+  earningId?:        string | null;
+  createdAt:         string;
+  updatedAt:         string;
+}
+
+export type ParentOrderStatus =
+  | "pending"
+  | "partially_confirmed"
+  | "processing"
+  | "partially_delivered"
+  | "completed"
+  | "partially_cancelled"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export interface Order {
   _id:         string;
@@ -367,7 +489,9 @@ export interface Order {
   deliverySlotId?:     string | null;
   deliverySlotDate?:   string | null;
   deliverySlotWindow?: string | null;
-  status:         "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  vendorOrderIds?: string[];
+  walletAmount?:  number;
+  status:         ParentOrderStatus;
   paymentMethod:  PaymentMethodType;
   paymentStatus:  PaymentStatus;
   razorpayOrderId?:   string;
@@ -656,6 +780,92 @@ export interface PaginatedResult<T> {
   total:      number;
   page:       number;
   totalPages: number;
+}
+
+// ─── Legal Pages ──────────────────────────────────────────────────────────────
+
+export type LegalPageSlug = "terms" | "privacy";
+export type ContentBlockType =
+  | "paragraph"
+  | "bulletList"
+  | "numberedList"
+  | "subheading"
+  | "highlight";
+
+export interface ContentBlock {
+  type: ContentBlockType;
+  text?: string;
+  items?: string[];
+}
+
+export interface LegalSection {
+  id: string;
+  title: string;
+  order: number;
+  blocks: ContentBlock[];
+}
+
+export interface LegalPage {
+  _id: string;
+  slug: LegalPageSlug;
+  title: string;
+  introText: string;
+  lastUpdated: string;
+  effectiveDate: string;
+  version: string;
+  isPublished: boolean;
+  sections: LegalSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+
+export type WalletTransactionReason =
+  | "topup"
+  | "order_payment"
+  | "refund"
+  | "admin_credit"
+  | "admin_debit";
+
+export interface Wallet {
+  _id:       string;
+  userId:    string;
+  balance:   number;
+  isActive:  boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalletTransaction {
+  _id:         string;
+  walletId:    string;
+  userId:      string;
+  type:        "credit" | "debit";
+  amount:      number;
+  balanceAfter:number;
+  reason:      WalletTransactionReason;
+  description: string;
+  orderId:     string | null;
+  orderNumber: string | null;
+  performedBy: string | null;
+  status:      "completed" | "failed";
+  createdAt:   string;
+}
+
+export interface AdminWalletTransaction extends WalletTransaction {
+  performedByName: string | null; // resolved admin name for admin_credit / admin_debit
+}
+
+export interface AdminWalletRow {
+  walletId:    string;
+  userId:      string;
+  userName:    string;
+  userEmail:   string;
+  balance:     number;
+  isActive:    boolean;
+  lastTopupAt: string | null;
+  createdAt:   string;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

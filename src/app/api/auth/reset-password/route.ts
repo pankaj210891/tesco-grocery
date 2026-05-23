@@ -30,14 +30,23 @@ export async function POST(req: NextRequest) {
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    await UserModel.updateOne(
-      { _id: user._id },
+    // Atomic update: only clear the token if it still matches (prevents race on concurrent resets)
+    const updated = await UserModel.findOneAndUpdate(
+      { _id: user._id, passwordResetToken: token, passwordResetExpires: { $gt: new Date() } },
       {
-        password:             hashed,
-        passwordResetToken:   null,
-        passwordResetExpires: null,
+        $set: {
+          password:             hashed,
+          passwordResetToken:   null,
+          passwordResetExpires: null,
+        },
       },
     );
+    if (!updated) {
+      return NextResponse.json({
+        success: false,
+        error: "Reset link was already used or has expired. Please request a new one.",
+      }, { status: 400 });
+    }
 
     return NextResponse.json({ success: true, message: "Password reset successfully. You can now sign in." });
   } catch (err) {

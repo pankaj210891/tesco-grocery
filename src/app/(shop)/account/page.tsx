@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   User, Package, ChevronRight, LogOut, ShoppingBag,
-  MapPin, Filter, TrendingUp, CheckCircle, Clock, ReceiptText,
-  Heart, HelpCircle,
+  MapPin, Filter, Heart, HelpCircle, Plus, Clock, Wallet,
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
@@ -15,14 +14,21 @@ import { formatPrice } from "@/lib/utils/format";
 import { useDateFilter } from "@/hooks/useDateFilter";
 import DateFilter from "@/components/ui/DateFilter";
 import type { Order } from "@/types";
-import AddressSection from "@/components/account/AddressSection";
+import AddressSection, { type AddressSectionHandle } from "@/components/account/AddressSection";
+import AccountOverview from "@/components/account/AccountOverview";
+import DeliverySlotPanel from "@/components/account/DeliverySlotPanel";
+import WalletPanel from "@/components/account/WalletPanel";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
-  pending:    "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
-  processing: "bg-amber-50   dark:bg-amber-900/20   text-[#FCA311]   dark:text-amber-400   border-amber-200   dark:border-amber-800/40",
-  shipped:    "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/40",
-  delivered:  "bg-green-50  dark:bg-green-900/20  text-green-700  dark:text-green-400  border-green-200  dark:border-green-800/40",
-  cancelled:  "bg-red-50    dark:bg-red-900/20    text-red-700    dark:text-red-400    border-red-200    dark:border-red-800/40",
+  pending:             "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
+  partially_confirmed: "bg-blue-50   dark:bg-blue-900/20   text-blue-700   dark:text-blue-400   border-blue-200   dark:border-blue-800/40",
+  processing:          "bg-amber-50  dark:bg-amber-900/20  text-[#FCA311]  dark:text-amber-400  border-amber-200  dark:border-amber-800/40",
+  shipped:             "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/40",
+  partially_delivered: "bg-teal-50   dark:bg-teal-900/20   text-teal-700   dark:text-teal-400   border-teal-200   dark:border-teal-800/40",
+  completed:           "bg-green-50  dark:bg-green-900/20  text-green-700  dark:text-green-400  border-green-200  dark:border-green-800/40",
+  delivered:           "bg-green-50  dark:bg-green-900/20  text-green-700  dark:text-green-400  border-green-200  dark:border-green-800/40",
+  partially_cancelled: "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800/40",
+  cancelled:           "bg-red-50    dark:bg-red-900/20    text-red-700    dark:text-red-400    border-red-200    dark:border-red-800/40",
 };
 
 function localDateStr(d: Date): string {
@@ -47,26 +53,38 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
-type Tab = "overview" | "orders" | "addresses" | "wishlist";
+type Tab = "overview" | "orders" | "addresses" | "wishlist" | "delivery-slots" | "wallet";
 
 const SIDEBAR_LINKS: { id: Tab; label: string; Icon: React.FC<{ className?: string }> }[] = [
-  { id: "overview",  label: "Dashboard",       Icon: User    },
-  { id: "orders",    label: "My Orders",       Icon: Package },
-  { id: "addresses", label: "Saved Addresses", Icon: MapPin  },
-  { id: "wishlist",  label: "Wishlist",        Icon: Heart   },
+  { id: "overview",       label: "Dashboard",       Icon: User    },
+  { id: "orders",         label: "My Orders",       Icon: Package },
+  { id: "wallet",         label: "My Wallet",       Icon: Wallet  },
+  { id: "delivery-slots", label: "Delivery Slots",  Icon: Clock   },
+  { id: "addresses",      label: "Saved Addresses", Icon: MapPin  },
+  { id: "wishlist",       label: "Wishlist",        Icon: Heart   },
 ];
 
+const VALID_TABS = new Set<Tab>(["overview", "orders", "addresses", "wishlist", "delivery-slots", "wallet"]);
+
 export default function AccountPage() {
-  const router   = useRouter();
-  const hydrated = useHydrated();
+  const router      = useRouter();
+  const searchParams = useSearchParams();
+  const hydrated    = useHydrated();
   const { user, token, logout } = useAuthStore();
 
-  const [activeTab,            setActiveTab]            = useState<Tab>("overview");
+  const rawTab   = searchParams.get("tab") ?? "overview";
+  const activeTab: Tab = VALID_TABS.has(rawTab as Tab) ? (rawTab as Tab) : "overview";
+
+  function switchTab(tab: Tab) {
+    router.replace(tab === "overview" ? "/account" : `/account?tab=${tab}`);
+  }
   const [allOrders,            setAllOrders]            = useState<Order[]>([]);
   const [serverFilteredOrders, setServerFilteredOrders] = useState<Order[]>([]);
   const [fetchedFilterKey,     setFetchedFilterKey]     = useState("");
   const [loading,              setLoading]              = useState(true);
   const [error,                setError]                = useState("");
+  const [addressCount,         setAddressCount]         = useState<number | null>(null);
+  const addressSectionRef = useRef<AddressSectionHandle>(null);
 
   const dateFilter = useDateFilter("all");
 
@@ -76,13 +94,6 @@ export default function AccountPage() {
   const currentFilterKey = `${fromParam}|${toParam}`;
   const filterLoading    = !!(fromParam || toParam) && fetchedFilterKey !== currentFilterKey;
   const displayOrders    = fromParam || toParam ? serverFilteredOrders : allOrders;
-
-  const stats = useMemo(() => {
-    const delivered  = allOrders.filter((o) => o.status === "delivered").length;
-    const pending    = allOrders.filter((o) => o.status === "pending" || o.status === "processing").length;
-    const totalSpent = allOrders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
-    return { delivered, pending, totalSpent };
-  }, [allOrders]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -167,7 +178,7 @@ export default function AccountPage() {
               {SIDEBAR_LINKS.map(({ id, label, Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => switchTab(id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                     activeTab === id
                       ? "bg-amber-50 dark:bg-amber-900/20 text-[#FCA311] dark:text-amber-400 font-semibold"
@@ -183,7 +194,7 @@ export default function AccountPage() {
 
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60 space-y-0.5">
               <Link
-                href="/account/wishlist"
+                href="/help"
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <HelpCircle className="h-4 w-4 shrink-0" />
@@ -206,7 +217,7 @@ export default function AccountPage() {
             {SIDEBAR_LINKS.map(({ id, label, Icon }) => (
               <button
                 key={id}
-                onClick={() => setActiveTab(id)}
+                onClick={() => switchTab(id)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
                   activeTab === id
                     ? "bg-[#FCA311] text-white shadow-sm"
@@ -225,76 +236,13 @@ export default function AccountPage() {
 
           {/* ── Dashboard / Overview ── */}
           {activeTab === "overview" && (
-            <>
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: "Total Orders", value: allOrders.length, Icon: Package,    color: "text-[#FCA311]", bg: "bg-amber-50 dark:bg-amber-900/20" },
-                  { label: "Delivered",    value: loading ? "—" : stats.delivered,   Icon: CheckCircle, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/20" },
-                  { label: "In Progress",  value: loading ? "—" : stats.pending,     Icon: Clock,       color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
-                  { label: "Total Spent",  value: loading ? "—" : formatPrice(stats.totalSpent), Icon: TrendingUp, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20" },
-                ].map(({ label, value, Icon, color, bg }) => (
-                  <div key={label} className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 p-4">
-                    <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center mb-3`}>
-                      <Icon className={`h-4.5 w-4.5 ${color}`} style={{ width: "1.125rem", height: "1.125rem" }} />
-                    </div>
-                    <p className="text-xl font-black text-gray-900 dark:text-white leading-none mb-1">{value}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total Spent banner */}
-              <div className="bg-gradient-to-r from-[#0F4C75] to-[#FCA311] rounded-xl p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                  <ReceiptText className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-2xl font-black text-white">{loading ? "—" : formatPrice(stats.totalSpent)}</p>
-                  <p className="text-sm text-white/70 mt-0.5">Lifetime spend (excl. cancelled)</p>
-                </div>
-              </div>
-
-              {/* Recent orders preview */}
-              <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-                  <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
-                    <Package className="h-4 w-4 text-[#FCA311]" />
-                    Recent Orders
-                  </h2>
-                  <button
-                    onClick={() => setActiveTab("orders")}
-                    className="text-xs font-semibold text-[#FCA311] hover:underline"
-                  >
-                    View all
-                  </button>
-                </div>
-                <div className="p-5">
-                  {loading ? (
-                    <div className="space-y-3">
-                      {[1,2,3].map((n) => <div key={n} className="h-16 animate-pulse bg-gray-100 dark:bg-gray-700/40 rounded-xl" />)}
-                    </div>
-                  ) : allOrders.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
-                        <ShoppingBag className="h-7 w-7 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">No orders yet</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Start exploring and place your first order.</p>
-                      <Link href="/products" className="px-5 py-2 bg-[#FCA311] text-white text-sm font-bold rounded-xl hover:bg-[#E8920A] transition-colors">
-                        Start shopping
-                      </Link>
-                    </div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {allOrders.slice(0, 5).map((order) => (
-                        <OrderRow key={order._id} order={order} />
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </>
+            <AccountOverview
+              userName={user.name}
+              userEmail={user.email}
+              orders={allOrders}
+              ordersLoading={loading}
+              onSwitchTab={(tab) => switchTab(tab as Tab)}
+            />
           )}
 
           {/* ── Orders ── */}
@@ -352,14 +300,55 @@ export default function AccountPage() {
           {/* ── Addresses ── */}
           {activeTab === "addresses" && (
             <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
-              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 relative z-10">
                 <h2 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-[#FCA311]" />
                   Saved Addresses
+                  {addressCount !== null && (
+                    <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
+                      ({addressCount})
+                    </span>
+                  )}
                 </h2>
+                <button
+                  onClick={() => addressSectionRef.current?.openAddModal()}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#FCA311] text-white text-sm font-semibold rounded-xl hover:bg-[#E8920A] transition-colors"
+                >
+                  <Plus className="h-4 w-4" aria-hidden /> Add address
+                </button>
               </div>
               <div className="p-5">
-                <AddressSection />
+                <AddressSection
+                  ref={addressSectionRef}
+                  showHeader={false}
+                  onCountChange={setAddressCount}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Wallet ── */}
+          {activeTab === "wallet" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <Wallet className="h-4 w-4 text-[#FCA311]" />
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm">My Wallet</h2>
+              </div>
+              <div className="p-5">
+                <WalletPanel />
+              </div>
+            </div>
+          )}
+
+          {/* ── Delivery Slots ── */}
+          {activeTab === "delivery-slots" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <Clock className="h-4 w-4 text-[#FCA311]" />
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm">Delivery Slots</h2>
+              </div>
+              <div className="p-5">
+                <DeliverySlotPanel orders={allOrders} />
               </div>
             </div>
           )}

@@ -6,19 +6,25 @@ import { ChevronLeft, ChevronRight, ChevronDown, Package } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useVendorStore } from "@/store/vendor.store";
 import { fetchVendorOrders, updateVendorOrderStatus } from "@/services/vendor.service";
+import { toast } from "sonner";
+import {
+  VENDOR_TRANSITIONS,
+  TERMINAL_STATUSES,
+  STATUS_META,
+  type VendorOrderStatus,
+} from "@/constants/order-status";
 
-const STATUSES = ["all", "pending", "processing", "shipped", "delivered", "cancelled"] as const;
-
-const STATUS_COLORS: Record<string, string> = {
-  pending:    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-  processing: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  shipped:    "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-  delivered:  "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-  cancelled:  "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300",
-};
-
-// Shipment statuses vendors are allowed to set
-const VENDOR_STATUS_OPTIONS = ["processing", "shipped", "delivered"] as const;
+const FILTER_STATUSES: Array<{ label: string; value: string }> = [
+  { label: "All",              value: "" },
+  { label: "Pending",          value: "PENDING" },
+  { label: "Accepted",         value: "ACCEPTED" },
+  { label: "Preparing",        value: "PREPARING" },
+  { label: "Packed",           value: "PACKED" },
+  { label: "Ready for Pickup", value: "READY_FOR_PICKUP" },
+  { label: "Out for Delivery", value: "OUT_FOR_DELIVERY" },
+  { label: "Delivered",        value: "DELIVERED" },
+  { label: "Cancelled",        value: "CANCELLED" },
+];
 
 export default function VendorOrdersPage() {
   const { user, token } = useAuthStore();
@@ -36,15 +42,15 @@ export default function VendorOrdersPage() {
       const res = await fetchVendorOrders(token, ordersPage, 20, ordersStatus);
       setOrders(res.data, { total: res.total, page: res.page, totalPages: res.totalPages });
     } catch {
-      // Keep previous state on error
+      toast.error("Failed to load orders. Please refresh the page.");
     } finally {
       setOrdersLoading(false);
     }
   }, [token, ordersPage, ordersStatus, setOrders, setOrdersLoading]);
 
   useEffect(() => {
-    if (!user)                                          { router.push("/login"); return; }
-    if (user.role !== "vendor" && user.role !== "admin") { router.push("/");     return; }
+    if (!user)                                            { router.push("/login"); return; }
+    if (user.role !== "vendor" && user.role !== "admin")  { router.push("/");     return; }
     void load();
   }, [user, router, load]);
 
@@ -53,8 +59,8 @@ export default function VendorOrdersPage() {
     try {
       await updateVendorOrderStatus(token, id, newStatus);
       updateOrderStatus(id, newStatus);
-    } catch {
-      // Status update failed silently — UI will remain unchanged
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update order status");
     }
   }
 
@@ -69,18 +75,18 @@ export default function VendorOrdersPage() {
 
       {/* Status filter */}
       <div className="flex gap-1 flex-wrap">
-        {STATUSES.map((s) => (
+        {FILTER_STATUSES.map((s) => (
           <button
-            key={s}
-            onClick={() => setOrdersStatus(s === "all" ? "" : s)}
+            key={s.value}
+            onClick={() => setOrdersStatus(s.value)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
-              (s === "all" && ordersStatus === "") || ordersStatus === s
+              ordersStatus === s.value
                 ? "bg-[#1a7a4a] text-white"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
-            data-testid={`vendor-order-status-${s}`}
+            data-testid={`vendor-order-status-${s.value || "all"}`}
           >
-            {s}
+            {s.label}
           </button>
         ))}
       </div>
@@ -91,7 +97,7 @@ export default function VendorOrdersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
               <tr>
-                {["Order", "Customer", "My Items", "City", "Date", "Status", "Update Shipment"].map((h) => (
+                {["Order", "Customer", "My Items", "City", "Date", "Status", "Update Status"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -103,57 +109,79 @@ export default function VendorOrdersPage() {
                 ))
               ) : orders.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No orders yet</td></tr>
-              ) : orders.map((order) => (
-                <tr key={order._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-order-row">
-                  <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">#{order.orderNumber}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{order.delivery.fullName}</p>
-                    <p className="text-xs text-gray-400">{order.delivery.email}</p>
-                  </td>
-                  {/* Show only vendor's items in the order */}
-                  <td className="px-4 py-3">
-                    <div className="space-y-1 max-w-[200px]">
-                      {order.items.map((item, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                          <Package className="h-3 w-3 text-gray-400 shrink-0" />
-                          <span className="text-xs text-gray-700 dark:text-gray-300 truncate">
-                            {item.name} ×{item.quantity}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{order.delivery.city}</td>
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
-                    {new Date(order.createdAt).toLocaleDateString("en-GB")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[order.status] ?? ""}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {order.status !== "delivered" && order.status !== "cancelled" ? (
-                      <div className="relative inline-block">
-                        <select
-                          defaultValue=""
-                          onChange={(e) => { if (e.target.value) handleStatusUpdate(order._id, e.target.value); }}
-                          className="appearance-none pl-3 pr-7 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
-                          data-testid={`vendor-order-update-${order._id}`}
-                        >
-                          <option value="" disabled>Update</option>
-                          {VENDOR_STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s} disabled={s === order.status}>{s}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+              ) : orders.map((order) => {
+                const currentStatus = order.status as VendorOrderStatus;
+                const isTerminal    = TERMINAL_STATUSES.has(currentStatus);
+                // Compute valid next steps from central transition map
+                const nextOptions   = (VENDOR_TRANSITIONS[currentStatus] ?? []) as VendorOrderStatus[];
+                const meta          = STATUS_META[currentStatus];
+
+                return (
+                  <tr key={order._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-order-row">
+                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
+                      #{order.parentOrderNumber}
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                        {order.delivery?.fullName ?? "—"}
+                      </p>
+                      <p className="text-xs text-gray-400">{order.delivery?.email ?? ""}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-1 max-w-[200px]">
+                        {order.items.map((item, i) => (
+                          <div key={i} className="flex items-center gap-1.5">
+                            <Package className="h-3 w-3 text-gray-400 shrink-0" />
+                            <span className="text-xs text-gray-700 dark:text-gray-300 truncate">
+                              {item.name}
+                              {item.variantLabel && (
+                                <span className="text-gray-400 dark:text-gray-500"> · {item.variantLabel}</span>
+                              )}
+                              {" "}×{item.quantity}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+                      {order.delivery?.city ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
+                      {new Date(order.createdAt).toLocaleDateString("en-GB")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${meta?.bgCls ?? ""} ${meta?.colorCls ?? ""}`}>
+                        {meta?.label ?? order.status.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {!isTerminal && nextOptions.length > 0 ? (
+                        <div className="relative inline-block">
+                          <select
+                            defaultValue=""
+                            key={order._id + order.status}
+                            onChange={(e) => {
+                              if (e.target.value) void handleStatusUpdate(order._id, e.target.value);
+                            }}
+                            className="appearance-none pl-3 pr-7 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
+                            data-testid={`vendor-order-update-${order._id}`}
+                          >
+                            <option value="" disabled>Move to…</option>
+                            {nextOptions.map((s) => (
+                              <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-300 dark:text-gray-600">
+                          {isTerminal ? "Done" : "—"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { z } from "zod";
-import { validateCheckoutOrder, firePromoUsage, fireStockDecrement } from "@/lib/checkout/validate-order";
+import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
 import { createOrder } from "@/services/order.service";
 import { bookDeliverySlot } from "@/services/delivery-slot.service";
 import { sendOrderConfirmation } from "@/services/email.service";
@@ -117,14 +117,17 @@ export async function POST(req: Request) {
       deliverySlotWindow:  deliverySlot?.window,
     });
 
-    await firePromoUsage(
-      validated.promoCode,
-      validated.promoDocId,
-      userId,
-      result.orderId,
-      validated.discount,
-    );
-    void fireStockDecrement(validated.items);
+    try {
+      await firePromoUsage(
+        validated.promoCode,
+        validated.promoDocId,
+        userId,
+        result.orderId,
+        validated.discount,
+      );
+    } catch (promoErr) {
+      console.error("[razorpay] Failed to record promo usage (order still created):", promoErr);
+    }
 
     try {
       await sendOrderConfirmation(delivery.email, {

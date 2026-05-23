@@ -3,6 +3,9 @@ import Link from "next/link";
 import { getAllCategories } from "@/services/category.service";
 import { cn } from "@/lib/utils/cn";
 
+// Categories are added/removed by admin only — 1-hour ISR is sufficient.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Shop by Category",
   description:

@@ -148,7 +148,7 @@ export default function CartItem({ item }: CartItemProps) {
           <button
             onClick={handleRemove}
             aria-label={`Remove ${product.name}`}
-            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            className="shrink-0 p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors sm:opacity-0 group-hover:opacity-100 focus:opacity-100"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -219,9 +219,10 @@ export default function CartItem({ item }: CartItemProps) {
             {/* Save for later */}
             <button
               onClick={handleSaveForLater}
+              disabled={!token}
               aria-label={`Save ${product.name} for later`}
               data-testid="save-for-later"
-              className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors flex items-center gap-1 font-medium"
+              className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#FCA311] dark:hover:text-amber-400 transition-colors flex items-center gap-1 font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400"
             >
               <Bookmark className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Save</span>

@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
   const status   = searchParams.get("status")   ?? undefined;
   const vendorId = searchParams.get("vendorId") ?? undefined;
 
-  const result = await getAllEarnings({ vendorId, status, page, limit });
-  return NextResponse.json({ success: true, data: result });
+  try {
+    const result = await getAllEarnings({ vendorId, status, page, limit });
+    return NextResponse.json({ success: true, data: result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to fetch earnings";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
 }

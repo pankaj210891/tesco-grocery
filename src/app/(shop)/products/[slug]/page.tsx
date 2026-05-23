@@ -32,10 +32,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// Stale-while-revalidate: rebuild each product page at most every 5 min so
+// prices, inventory, and ratings stay fresh without blocking requests.
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   const slugs = await getAllProductSlugs();
   return slugs.map((slug) => ({ slug }));
 }
+
+const PRODUCT_BADGE_STYLES: Record<string, string> = {
+  NEW:       "bg-blue-500 text-white",
+  HOT:       "bg-red-500 text-white",
+  LIMITED:   "bg-orange-500 text-white",
+  ORGANIC:   "bg-green-600 text-white",
+  EXCLUSIVE: "bg-purple-600 text-white",
+  SALE:      "bg-[#EE1C2E] text-white",
+};
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
@@ -48,6 +61,13 @@ export default async function ProductDetailPage({ params }: Props) {
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : null;
 
+  // When the product has variants, availability is determined by the variants, not
+  // the top-level inStock flag (which can become stale after individual variant updates).
+  const hasVariants = (product.variants?.length ?? 0) > 0;
+  const isAvailable = hasVariants
+    ? (product.variants ?? []).some((v) => v.inStock)
+    : product.inStock;
+
   const breadcrumbs = [
     { label: "Home",     href: "/" },
     { label: "Products", href: "/products" },
@@ -57,11 +77,11 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const infoChips = [
     {
-      Icon:  product.inStock ? CheckCircle : ShieldCheck,
-      color: product.inStock ? "text-green-600 dark:text-green-400" : "text-gray-400",
-      bg:    product.inStock ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30" : "bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700",
+      Icon:  isAvailable ? CheckCircle : ShieldCheck,
+      color: isAvailable ? "text-green-600 dark:text-green-400" : "text-gray-400",
+      bg:    isAvailable ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30" : "bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700",
       label: "Availability",
-      text:  product.inStock ? "In stock" : "Out of stock",
+      text:  isAvailable ? "In stock" : "Out of stock",
     },
     {
       Icon:  Truck,
@@ -106,8 +126,13 @@ export default async function ProductDetailPage({ params }: Props) {
             <span className="text-[11px] font-bold text-[#FCA311] uppercase tracking-widest bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/30 px-2.5 py-1 rounded-full">
               {product.category}
             </span>
+            {product.badge && PRODUCT_BADGE_STYLES[product.badge] && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${PRODUCT_BADGE_STYLES[product.badge]}`}>
+                {product.badge}
+              </span>
+            )}
             {discount && <Badge variant="sale" label={`-${discount}%`} />}
-            {!product.inStock && <Badge variant="outOfStock" />}
+            {!isAvailable && <Badge variant="outOfStock" />}
           </div>
 
           {/* Title */}

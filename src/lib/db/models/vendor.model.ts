@@ -19,7 +19,7 @@ const VendorSchema = new Schema(
     slug:        { type: String, required: true, unique: true, lowercase: true, trim: true },
     description: { type: String, default: "" },
     logo:        { type: String, default: "" },
-    email:       { type: String, required: true, lowercase: true, trim: true },
+    email:       { type: String, required: true, unique: true, lowercase: true, trim: true },
     phone:       { type: String, default: "" },
     address:     { type: String, default: "" },
     city:        { type: String, default: "" },
@@ -33,6 +33,8 @@ const VendorSchema = new Schema(
 
 VendorSchema.index({ ownerId: 1 });
 VendorSchema.index({ status: 1 });
+VendorSchema.index({ email: 1 }, { unique: true });
+VendorSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema> & {
   _id: mongoose.Types.ObjectId;

@@ -68,11 +68,11 @@ export default function VendorKycPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await authClient(token).get<ApiResponse<VendorKyc>>("/api/vendor/kyc");
-      const data = res.data.data as VendorKyc;
+      const res = await authClient(token).get<ApiResponse<VendorKyc | null>>("/api/vendor/kyc");
+      const data = res.data.data ?? null;
       setKyc(data);
-      if (data.panNumber)  setPan(data.panNumber);
-      if (data.gstNumber)  setGst(data.gstNumber);
+      if (data?.panNumber) setPan(data.panNumber);
+      if (data?.gstNumber) setGst(data.gstNumber);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load KYC status");
     } finally {
@@ -310,14 +310,16 @@ export default function VendorKycPage() {
               </label>
               <input
                 id="kyc-aadhaar"
-                type="password"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
                 value={aadhaar}
                 onChange={(e) => setAadhaar(e.target.value.replace(/\D/g, ""))}
                 placeholder="Enter 12-digit Aadhaar number"
                 maxLength={12}
                 required
                 data-testid="kyc-aadhaar-input"
-                className={`${inputCls} font-mono`}
+                className={`${inputCls} font-mono tracking-widest`}
               />
               <p className="mt-1 text-xs text-gray-400">
                 Your Aadhaar number is masked and only the last 4 digits are stored.

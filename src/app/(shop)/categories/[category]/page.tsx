@@ -22,6 +22,11 @@ function str(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
+// ── Cache ─────────────────────────────────────────────────────────────────────
+
+// Products are added/removed per category; rebuild cached pages every 5 min.
+export const revalidate = 300;
+
 // ── Static generation ─────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {

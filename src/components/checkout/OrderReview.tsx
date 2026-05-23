@@ -13,8 +13,10 @@ export default function OrderReview({ items }: OrderReviewProps) {
         Your order ({items.reduce((s, i) => s + i.quantity, 0)} items)
       </h2>
       <ul className="space-y-3">
-        {items.map(({ product, quantity }) => (
-          <li key={product._id} className="flex items-center gap-3">
+        {items.map(({ product, quantity, selectedVariant, variantId }) => {
+          const effectivePrice = selectedVariant?.price != null ? selectedVariant.price : product.price;
+          return (
+          <li key={`${product._id}-${variantId ?? "base"}`} className="flex items-center gap-3">
             <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600">
               {product.images[0] ? (
                 <Image
@@ -29,16 +31,19 @@ export default function OrderReview({ items }: OrderReviewProps) {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
+                {selectedVariant?.label ?? product.name}
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {formatPrice(product.price)} × {quantity}
+                {formatPrice(effectivePrice)} × {quantity}
               </p>
             </div>
             <span className="text-sm font-bold text-gray-900 dark:text-white shrink-0">
-              {formatPrice(product.price * quantity)}
+              {formatPrice(effectivePrice * quantity)}
             </span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
