@@ -53,9 +53,10 @@ const OrderSchema = new Schema(
       ],
       default: "pending",
     },
+    walletAmount:  { type: Number, default: 0 },
     paymentMethod: {
       type:     String,
-      enum:     ["razorpay", "cod"],
+      enum:     ["razorpay", "cod", "wallet"],
       required: true,
     },
     paymentStatus: {

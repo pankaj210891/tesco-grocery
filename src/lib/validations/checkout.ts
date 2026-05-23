@@ -17,7 +17,7 @@ export const checkoutSchema = z.object({
     .regex(/^[A-Z0-9 ]{5,8}$/i, "Enter a valid postcode"),
 
   // ── Payment method ────────────────────────────────────────────────────────
-  paymentMethod: z.enum(["razorpay", "cod"], {
+  paymentMethod: z.enum(["razorpay", "cod", "wallet"], {
     error: "Select a payment method",
   }),
 });

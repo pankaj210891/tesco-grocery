@@ -13,7 +13,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useDeliverySlotStore } from "@/store/delivery-slot.store";
 import { checkoutSchema, type CheckoutFormData } from "@/lib/validations/checkout";
 import { cn } from "@/lib/utils/cn";
-import type { Address, PaymentMethodType, DeliverySlotBooking } from "@/types";
+import type { Address, PaymentMethodType, DeliverySlotBooking, Wallet } from "@/types";
 import type { AddressFormData } from "@/lib/validations/address";
 import AddressSelectModal from "./AddressSelectModal";
 import AddressFormModal from "@/components/account/AddressFormModal";
@@ -80,16 +80,16 @@ export default function CheckoutPageContent() {
   const { user, token, hasHydrated } = useAuthStore();
   const { pendingSlot, clearPendingSlot } = useDeliverySlotStore();
 
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [showAddressFormModal, setShowAddressFormModal] = useState(false);
-  const [deliverySlot,     setDeliverySlot]     = useState<DeliverySlotBooking | null>(null);
-  const [slotInitialized,  setSlotInitialized]  = useState(false);
+  const [savedAddresses,      setSavedAddresses]      = useState<Address[]>([]);
+  const [selectedAddress,     setSelectedAddress]     = useState<Address | null>(null);
+  const [showAddressModal,    setShowAddressModal]    = useState(false);
+  const [showAddressFormModal,setShowAddressFormModal]= useState(false);
+  const [deliverySlot,        setDeliverySlot]        = useState<DeliverySlotBooking | null>(null);
+  const [slotInitialized,     setSlotInitialized]     = useState(false);
+  const [wallet,              setWallet]              = useState<Wallet | null>(null);
+  const [walletLoading,       setWalletLoading]       = useState(true);
 
-  // Pre-fill from account slot planner once Zustand persist has hydrated.
-  // Watching pendingSlot (not just []) handles the case where localStorage
-  // hydration completes after the first render.
+  // Pre-fill from account slot planner
   useEffect(() => {
     if (!slotInitialized && pendingSlot) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -127,7 +127,6 @@ export default function CheckoutPageContent() {
       .then((res) => {
         const addresses = res.data.data ?? [];
         setSavedAddresses(addresses);
-
         const defaultAddr = addresses.find((a) => a.isDefault) ?? addresses[0] ?? null;
         if (defaultAddr) {
           setSelectedAddress(defaultAddr);
@@ -140,6 +139,22 @@ export default function CheckoutPageContent() {
       })
       .catch(() => { /* non-fatal */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, user]);
+
+  // Fetch wallet balance when user is logged in
+  useEffect(() => {
+    if (!token || !user) return;
+    async function fetchWallet() {
+      try {
+        const res = await authClient(token!).get<{ data: Wallet }>("/api/account/wallet");
+        setWallet(res.data.data ?? null);
+      } catch {
+        // non-fatal — wallet section just won't show balance
+      } finally {
+        setWalletLoading(false);
+      }
+    }
+    void fetchWallet();
   }, [token, user]);
 
   function applyAddress(addr: Address | null) {
@@ -169,7 +184,6 @@ export default function CheckoutPageContent() {
       variantLabel: i.selectedVariant?.label ?? undefined,
       name:         i.product.name,
       slug:         i.product.slug,
-      // Use variant price when a variant is selected so the order total is correct
       price:        i.selectedVariant?.price != null ? i.selectedVariant.price : i.product.price,
       quantity:     i.quantity,
       image:        i.product.images[0] ?? "",
@@ -297,10 +311,49 @@ export default function CheckoutPageContent() {
     router.push(`/checkout/confirmation?${params.toString()}`);
   }
 
+  async function handleWallet(data: CheckoutFormData) {
+    if (!user?._id || !token) {
+      toast.error("Please sign in to pay with your wallet.");
+      return;
+    }
+    const orderItems = buildOrderItems();
+    const delivery   = buildDelivery(data);
+
+    const { data: json } = await authClient(token).post("/api/payments/wallet", {
+      delivery,
+      items:        orderItems,
+      promoCode:    promoCode ?? undefined,
+      userId:       user._id,
+      deliverySlot: deliverySlot ?? undefined,
+    });
+
+    const { orderNumber, total: serverTotal, walletBalance } = json.data as {
+      orderNumber:   string;
+      total:         number;
+      walletBalance: number;
+    };
+
+    // Update local wallet balance
+    if (wallet) setWallet({ ...wallet, balance: walletBalance });
+
+    if (token) void clearCart(token);
+    clearPendingSlot();
+
+    const params = new URLSearchParams({
+      order: orderNumber,
+      email: delivery.email,
+      total: serverTotal.toFixed(2),
+      pm:    "wallet",
+    });
+    router.push(`/checkout/confirmation?${params.toString()}`);
+  }
+
   async function onSubmit(data: CheckoutFormData) {
     try {
       if (data.paymentMethod === "razorpay") {
         await handleRazorpay(data);
+      } else if (data.paymentMethod === "wallet") {
+        await handleWallet(data);
       } else {
         await handleCOD(data);
       }
@@ -362,7 +415,7 @@ export default function CheckoutPageContent() {
       <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* ── Left column ───────────────────────────────────── */}
+          {/* ── Left column ──────────────────────────────────── */}
           <div className="lg:col-span-7 space-y-5">
 
             {/* ── Section 1: Delivery details ── */}
@@ -508,6 +561,8 @@ export default function CheckoutPageContent() {
                   value={paymentMethod ?? ""}
                   onChange={(m) => setValue("paymentMethod", m, { shouldValidate: true })}
                   error={errors.paymentMethod}
+                  walletBalance={walletLoading ? undefined : (wallet?.balance ?? 0)}
+                  orderTotal={totalPrice}
                 />
 
                 {paymentMethod === "razorpay" && (
@@ -521,13 +576,18 @@ export default function CheckoutPageContent() {
                     Please keep the exact amount ready at delivery. COD orders are confirmed immediately.
                   </p>
                 )}
+                {paymentMethod === "wallet" && (
+                  <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-400 shrink-0" />
+                    Instant payment — your order is confirmed immediately.
+                  </p>
+                )}
               </div>
             </section>
           </div>
 
-          {/* ── Right column (sticky) ──────────────────────── */}
+          {/* ── Right column (sticky) ────────────────────────── */}
           <div className="lg:col-span-5 lg:sticky lg:top-28 space-y-4">
-            {/* Order summary card */}
             <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
                 <h3 className="font-bold text-gray-900 dark:text-white text-sm">Order Summary</h3>
@@ -540,6 +600,7 @@ export default function CheckoutPageContent() {
                     postcode={postcodeValue}
                     isSubmitting={isSubmitting}
                     paymentMethod={paymentMethod}
+                    walletBalance={wallet?.balance}
                   />
                 </div>
               </div>

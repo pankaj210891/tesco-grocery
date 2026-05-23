@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Tag, X, Loader2, CreditCard, Truck, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Tag, X, Loader2, CreditCard, Truck, Wallet, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
@@ -18,6 +18,7 @@ interface Props {
   isSubmitting:   boolean;
   postcode?:      string;
   paymentMethod?: PaymentMethodType;
+  walletBalance?: number;
 }
 
 function Row({ label, value, className }: { label: string; value: string; className?: string }) {
@@ -32,10 +33,11 @@ function Row({ label, value, className }: { label: string; value: string; classN
 const PM_LABELS: Record<PaymentMethodType, { label: string; icon: React.ReactNode }> = {
   razorpay: { label: "Pay with Razorpay", icon: <CreditCard className="h-4 w-4" /> },
   cod:      { label: "Place COD Order",   icon: <Truck      className="h-4 w-4" /> },
+  wallet:   { label: "Pay with Wallet",   icon: <Wallet     className="h-4 w-4" /> },
 };
 
 export default function CheckoutPricingSummary({
-  subtotal, isSubmitting, paymentMethod,
+  subtotal, isSubmitting, paymentMethod, walletBalance,
 }: Props) {
   const items        = useCartStore((s) => s.items);
   const promoCode    = useCartStore((s) => s.promoCode);
@@ -58,7 +60,6 @@ export default function CheckoutPricingSummary({
     quantity:  i.quantity,
   }));
 
-  // Fetch eligible promos whenever cart changes
   useEffect(() => {
     let cancelled = false;
     apiClient
@@ -75,7 +76,6 @@ export default function CheckoutPricingSummary({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey, subtotal]);
 
-  // Re-validate applied promo whenever cart changes
   useEffect(() => {
     if (!promoCode || items.length === 0) return;
     let cancelled = false;
@@ -106,7 +106,6 @@ export default function CheckoutPricingSummary({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey, subtotal]);
 
-  // Pricing — discountAmount is always server-calculated
   const deliveryCost      = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
   const effectiveDelivery = promoInfo?.discountType === "freeDelivery" ? 0 : deliveryCost;
   const codCharge         = paymentMethod === "cod" ? COD_CHARGE : 0;
@@ -158,7 +157,7 @@ export default function CheckoutPricingSummary({
   return (
     <div className="space-y-4">
 
-      {/* Promo code — identical to cart OrderSummary */}
+      {/* Promo code */}
       <div className="space-y-3">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           Promo Code
@@ -257,6 +256,16 @@ export default function CheckoutPricingSummary({
         {promoInfo?.discountType === "freeDelivery" && (
           <Row label={`${promoCode} — free delivery`} value={`–${formatPrice(deliveryCost)}`} className="text-green-600" />
         )}
+
+        {/* Wallet deduction row — shown when wallet is selected */}
+        {paymentMethod === "wallet" && walletBalance !== undefined && (
+          <Row
+            label="Wallet deduction"
+            value={`–${formatPrice(Math.min(walletBalance, total))}`}
+            className="text-[#FCA311] dark:text-amber-400"
+          />
+        )}
+
         <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
           <span className="font-black text-gray-900 dark:text-white">Total</span>
           <span className="text-xl font-black text-gray-900 dark:text-white">{formatPrice(total)}</span>
@@ -295,6 +304,11 @@ export default function CheckoutPricingSummary({
           Pay in cash when your order arrives. ₹{COD_CHARGE} COD charge applies.
         </p>
       )}
+      {paymentMethod === "wallet" && (
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+          Debited from your Prakash Wallet instantly upon confirmation.
+        </p>
+      )}
       {!paymentMethod && (
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
           Select a payment method above to continue.
@@ -303,4 +317,3 @@ export default function CheckoutPricingSummary({
     </div>
   );
 }
-

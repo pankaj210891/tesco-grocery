@@ -51,6 +51,7 @@ export async function validateCheckoutOrder(params: {
 
   const subtotal    = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const rawDelivery = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_COST;
+  // COD charge only applies to cash-on-delivery; wallet and razorpay are free
   const codCharge   = paymentMethod === "cod" ? COD_CHARGE : 0;
 
   let discount          = 0;

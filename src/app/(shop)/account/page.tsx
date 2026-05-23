@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   User, Package, ChevronRight, LogOut, ShoppingBag,
-  MapPin, Filter, Heart, HelpCircle, Plus, Clock,
+  MapPin, Filter, Heart, HelpCircle, Plus, Clock, Wallet,
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
@@ -17,6 +17,7 @@ import type { Order } from "@/types";
 import AddressSection, { type AddressSectionHandle } from "@/components/account/AddressSection";
 import AccountOverview from "@/components/account/AccountOverview";
 import DeliverySlotPanel from "@/components/account/DeliverySlotPanel";
+import WalletPanel from "@/components/account/WalletPanel";
 
 const STATUS_STYLES: Record<Order["status"], string> = {
   pending:             "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/40",
@@ -52,22 +53,31 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
-type Tab = "overview" | "orders" | "addresses" | "wishlist" | "delivery-slots";
+type Tab = "overview" | "orders" | "addresses" | "wishlist" | "delivery-slots" | "wallet";
 
 const SIDEBAR_LINKS: { id: Tab; label: string; Icon: React.FC<{ className?: string }> }[] = [
   { id: "overview",       label: "Dashboard",       Icon: User    },
   { id: "orders",         label: "My Orders",       Icon: Package },
+  { id: "wallet",         label: "My Wallet",       Icon: Wallet  },
   { id: "delivery-slots", label: "Delivery Slots",  Icon: Clock   },
   { id: "addresses",      label: "Saved Addresses", Icon: MapPin  },
   { id: "wishlist",       label: "Wishlist",        Icon: Heart   },
 ];
 
+const VALID_TABS = new Set<Tab>(["overview", "orders", "addresses", "wishlist", "delivery-slots", "wallet"]);
+
 export default function AccountPage() {
-  const router   = useRouter();
-  const hydrated = useHydrated();
+  const router      = useRouter();
+  const searchParams = useSearchParams();
+  const hydrated    = useHydrated();
   const { user, token, logout } = useAuthStore();
 
-  const [activeTab,            setActiveTab]            = useState<Tab>("overview");
+  const rawTab   = searchParams.get("tab") ?? "overview";
+  const activeTab: Tab = VALID_TABS.has(rawTab as Tab) ? (rawTab as Tab) : "overview";
+
+  function switchTab(tab: Tab) {
+    router.replace(tab === "overview" ? "/account" : `/account?tab=${tab}`);
+  }
   const [allOrders,            setAllOrders]            = useState<Order[]>([]);
   const [serverFilteredOrders, setServerFilteredOrders] = useState<Order[]>([]);
   const [fetchedFilterKey,     setFetchedFilterKey]     = useState("");
@@ -168,7 +178,7 @@ export default function AccountPage() {
               {SIDEBAR_LINKS.map(({ id, label, Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => switchTab(id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                     activeTab === id
                       ? "bg-amber-50 dark:bg-amber-900/20 text-[#FCA311] dark:text-amber-400 font-semibold"
@@ -207,7 +217,7 @@ export default function AccountPage() {
             {SIDEBAR_LINKS.map(({ id, label, Icon }) => (
               <button
                 key={id}
-                onClick={() => setActiveTab(id)}
+                onClick={() => switchTab(id)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
                   activeTab === id
                     ? "bg-[#FCA311] text-white shadow-sm"
@@ -231,7 +241,7 @@ export default function AccountPage() {
               userEmail={user.email}
               orders={allOrders}
               ordersLoading={loading}
-              onSwitchTab={setActiveTab}
+              onSwitchTab={(tab) => switchTab(tab as Tab)}
             />
           )}
 
@@ -313,6 +323,19 @@ export default function AccountPage() {
                   showHeader={false}
                   onCountChange={setAddressCount}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* ── Wallet ── */}
+          {activeTab === "wallet" && (
+            <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700/60">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                <Wallet className="h-4 w-4 text-[#FCA311]" />
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm">My Wallet</h2>
+              </div>
+              <div className="p-5">
+                <WalletPanel />
               </div>
             </div>
           )}
