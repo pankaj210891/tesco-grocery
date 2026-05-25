@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, Bookmark, Truck, Zap, Store, AlertCircle, Tag } from "lucide-react";
@@ -43,43 +44,48 @@ function DeliveryBadge({ options }: { options?: DeliveryOption[] }) {
 const AMBER      = "#FCA311";
 const AMBER_DARK = "#E8920A";
 
-export default function CartItem({ item }: CartItemProps) {
-  const { updateQuantity, removeItem, saveForLater } = useCartStore();
-  const token   = useAuthStore((s) => s.token) ?? "";
+function CartItem({ item }: CartItemProps) {
+  // Stable action selectors — Zustand actions never change, so these don't trigger re-renders
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem     = useCartStore((s) => s.removeItem);
+  const saveForLater   = useCartStore((s) => s.saveForLater);
+  const token          = useAuthStore((s) => s.token) ?? "";
+
   const { product, quantity, variantId = null, selectedVariant } = item;
 
-  // Effective price: variant price if a variant is selected, else product base price
-  const effectivePrice         = selectedVariant?.price        != null ? selectedVariant.price        : product.price;
-  const effectiveOriginalPrice = selectedVariant?.originalPrice != null ? selectedVariant.originalPrice : product.originalPrice;
+  // Derived price/discount — memoized so they don't recalculate on unrelated re-renders
+  const { effectivePrice, effectiveOriginalPrice, lineTotal, discount, isInStock } = useMemo(() => {
+    const ep  = selectedVariant?.price        != null ? selectedVariant.price        : product.price;
+    const eop = selectedVariant?.originalPrice != null ? selectedVariant.originalPrice : product.originalPrice;
+    return {
+      effectivePrice:         ep,
+      effectiveOriginalPrice: eop,
+      lineTotal:              ep * quantity,
+      discount:               eop && eop > ep ? Math.round(((eop - ep) / eop) * 100) : null,
+      isInStock:              selectedVariant != null ? selectedVariant.inStock : product.inStock,
+    };
+  }, [selectedVariant, product.price, product.originalPrice, product.inStock, quantity]);
 
-  const lineTotal = effectivePrice * quantity;
-  const discount  = effectiveOriginalPrice && effectiveOriginalPrice > effectivePrice
-    ? Math.round(((effectiveOriginalPrice - effectivePrice) / effectiveOriginalPrice) * 100)
-    : null;
+  const handleRemove = useCallback(() => {
+    void removeItem(product._id, variantId, token);
+    const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
+    toast.success(`${label} removed from cart`);
+  }, [removeItem, product._id, variantId, token, selectedVariant, product.name]);
 
-  // Stock is determined by the variant when one is selected
-  const isInStock = selectedVariant != null ? selectedVariant.inStock : product.inStock;
-
-  function handleQtyChange(newQty: number) {
+  const handleQtyChange = useCallback((newQty: number) => {
     if (newQty <= 0) {
       handleRemove();
     } else {
       void updateQuantity(product._id, variantId, newQty, token);
     }
-  }
+  }, [handleRemove, updateQuantity, product._id, variantId, token]);
 
-  function handleRemove() {
-    void removeItem(product._id, variantId, token);
-    const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
-    toast.success(`${label} removed from cart`);
-  }
-
-  function handleSaveForLater() {
+  const handleSaveForLater = useCallback(() => {
     if (!token) { toast.error("Sign in to save items"); return; }
     void saveForLater(product._id, variantId, token);
     const label = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name;
     toast.success(`${label} saved for later`);
-  }
+  }, [saveForLater, product._id, variantId, token, selectedVariant, product.name]);
 
   return (
     <article
@@ -245,3 +251,5 @@ export default function CartItem({ item }: CartItemProps) {
     </article>
   );
 }
+
+export default memo(CartItem);

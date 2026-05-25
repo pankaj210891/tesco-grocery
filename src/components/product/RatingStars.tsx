@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,7 +22,7 @@ const textMap = {
   lg: "text-base",
 };
 
-export default function RatingStars({
+function RatingStars({
   rating,
   reviewCount,
   size = "md",
@@ -65,3 +66,5 @@ export default function RatingStars({
     </div>
   );
 }
+
+export default memo(RatingStars);
