@@ -3,6 +3,8 @@ import ProductModel from "@/lib/db/models/product.model";
 import { getCategoryAttributesBySlug } from "@/services/category-attributes.service";
 import { CATEGORY_NAME_MAP } from "@/constants";
 import type { DynamicFilterGroup, DynamicFiltersResult } from "@/types";
+import { withCache } from "@/lib/redis/cache";
+import { CacheKey, TTL } from "@/lib/redis/keys";
 
 interface DynamicFiltersInput {
   category?: string;
@@ -24,7 +26,7 @@ interface DynamicFiltersInput {
 //    "narrowing" filters that show only relevant values.
 // 5. Return groups sorted by attribute.order, excluding empty value sets.
 
-export async function getDynamicFilters(
+async function computeDynamicFilters(
   input: DynamicFiltersInput,
 ): Promise<DynamicFiltersResult> {
   await connectDB();
@@ -147,4 +149,34 @@ export async function getDynamicFilters(
     }));
 
   return { filters };
+}
+
+/**
+ * Public entry point. Applies a Redis cache only for the base-case query
+ * (category slug only, no active brands / attrs / inStock / search).
+ *
+ * Filtered states (after user interaction) are always computed fresh because
+ * the result set is highly specific to the current filter combination and would
+ * generate too many ephemeral cache entries. The base-case accounts for the
+ * majority of requests (initial category page load).
+ */
+export async function getDynamicFilters(
+  input: DynamicFiltersInput,
+): Promise<DynamicFiltersResult> {
+  const isBaseCase =
+    input.category &&
+    !input.search &&
+    (!input.brands  || input.brands.length  === 0) &&
+    !input.inStock  &&
+    (!input.attrs   || Object.keys(input.attrs).length === 0);
+
+  if (isBaseCase) {
+    return withCache(
+      CacheKey.dynamicFilters(input.category!.toLowerCase()),
+      TTL.SHORT,
+      () => computeDynamicFilters(input),
+    );
+  }
+
+  return computeDynamicFilters(input);
 }

@@ -1,5 +1,5 @@
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis/client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,13 +29,11 @@ class NoopLimiter implements Limiter {
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 function makeLimiter(requests: number, window: Duration): Limiter {
-  const url   = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (!url || !token) return new NoopLimiter();
+  const redis = getRedis();
+  if (!redis) return new NoopLimiter();
 
   return new Ratelimit({
-    redis: new Redis({ url, token }),
+    redis,
     limiter: Ratelimit.slidingWindow(requests, window),
     prefix: "@rl",
     analytics: false,

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import HomepageSection from "@/lib/db/models/homepage-section.model";
 import { requireAdmin } from "@/lib/utils/apiAuth";
+import { cacheDel } from "@/lib/redis/cache";
+import { CacheKey } from "@/lib/redis/keys";
 
 const SECTION_TYPES = [
   "product-carousel", "offer-cards", "brand-inspiration", "info-cards",
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const doc = await HomepageSection.create({ ...parsed.data, items: [] });
+    void cacheDel(CacheKey.homepageSections());
     return NextResponse.json({ success: true, data: doc }, { status: 201 });
   } catch (err: unknown) {
     const isDupe = (err as { code?: number })?.code === 11000;

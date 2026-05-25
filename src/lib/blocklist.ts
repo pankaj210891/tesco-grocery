@@ -1,20 +1,6 @@
-import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis/client";
 
 const KEY_PREFIX = "revoked:jti:";
-
-// Lazily create the Redis client so the module can be imported without
-// crashing in environments that haven't set Upstash credentials.
-let _redis: Redis | null | undefined; // undefined = not yet resolved
-
-function getRedis(): Redis | null {
-  if (_redis !== undefined) return _redis;
-
-  const url   = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  _redis = url && token ? new Redis({ url, token }) : null;
-  return _redis;
-}
 
 /**
  * Mark a JWT as revoked.

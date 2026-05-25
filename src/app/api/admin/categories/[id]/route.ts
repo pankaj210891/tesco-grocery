@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import CategoryModel from "@/lib/db/models/category.model";
 import { requireAdmin } from "@/lib/utils/apiAuth";
+import { invalidateCategoryCache } from "@/services/category.service";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -23,6 +24,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   try {
     const doc = await CategoryModel.findByIdAndUpdate(id, update, { new: true, runValidators: true });
     if (!doc) return NextResponse.json({ success: false, error: "Category not found" }, { status: 404 });
+    void invalidateCategoryCache(doc.slug);
     return NextResponse.json({ success: true, data: doc });
   } catch (err: unknown) {
     const msg = (err as { code?: number })?.code === 11000
@@ -43,5 +45,6 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const doc = await CategoryModel.findByIdAndDelete(id);
   if (!doc) return NextResponse.json({ success: false, error: "Category not found" }, { status: 404 });
 
+  void invalidateCategoryCache(doc.slug);
   return NextResponse.json({ success: true });
 }
