@@ -7,8 +7,8 @@ import {
   VENDOR_TRANSITIONS,
 } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
-import { confirmEarningsForOrder } from "@/services/vendor-earning.service";
-import { sendOrderStatus } from "@/services/email.service";
+import { enqueueConfirmEarnings } from "@/lib/queue/jobs/payout.jobs";
+import { enqueueOrderStatus } from "@/lib/queue/jobs/email.jobs";
 import { connectDB } from "@/lib/db/mongoose";
 import OrderModel from "@/lib/db/models/order.model";
 import type { VendorOrderStatus } from "@/lib/db/models/vendor-order.model";
@@ -77,30 +77,32 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Sync parent order status after every sub-order status change
     await syncParentOrderStatus(updated.parentOrderId);
 
-    // When delivered, confirm this vendor's earning so admin can release payout
+    // When delivered, confirm this vendor's earning via durable queue
     if (status === "DELIVERED") {
-      void confirmEarningsForOrder(updated.parentOrderId, auth.vendorId);
+      void enqueueConfirmEarnings(updated.parentOrderId, auth.vendorId);
     }
 
-    // Notify customer of this vendor's delivery status change
-    try {
-      await connectDB();
-      const parentOrder = await OrderModel
-        .findById(updated.parentOrderId)
-        .select("delivery orderNumber total")
-        .lean<{ delivery: { email: string; fullName: string }; orderNumber: string; total: number }>();
+    // Notify customer of this vendor's delivery status change via durable queue
+    void (async () => {
+      try {
+        await connectDB();
+        const parentOrder = await OrderModel
+          .findById(updated.parentOrderId)
+          .select("delivery orderNumber total")
+          .lean<{ delivery: { email: string; fullName: string }; orderNumber: string; total: number }>();
 
-      if (parentOrder?.delivery?.email) {
-        await sendOrderStatus(parentOrder.delivery.email, {
-          orderNumber:  parentOrder.orderNumber,
-          customerName: parentOrder.delivery.fullName,
-          newStatus:    `${updated.vendorName}: ${status}`,
-          total:        parentOrder.total,
-        });
+        if (parentOrder?.delivery?.email) {
+          void enqueueOrderStatus(parentOrder.delivery.email, {
+            orderNumber:  parentOrder.orderNumber,
+            customerName: parentOrder.delivery.fullName,
+            newStatus:    `${updated.vendorName}: ${status}`,
+            total:        parentOrder.total,
+          });
+        }
+      } catch {
+        // DB fetch is non-critical — email will be skipped rather than crashing the response
       }
-    } catch {
-      // Email failure is non-critical
-    }
+    })();
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

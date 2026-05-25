@@ -5,7 +5,8 @@ import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-o
 import { paymentLimiter, applyRateLimit, getClientIp } from "@/lib/ratelimit";
 import { createOrder } from "@/services/order.service";
 import { bookDeliverySlot } from "@/services/delivery-slot.service";
-import { sendOrderConfirmation } from "@/services/email.service";
+import { enqueueOrderConfirmation } from "@/lib/queue/jobs/email.jobs";
+import { enqueueAnalyticsEvent } from "@/lib/queue/jobs/analytics.jobs";
 
 const deliverySchema = z.object({
   fullName: z.string().min(2),
@@ -139,19 +140,21 @@ export async function POST(req: NextRequest) {
       console.error("[razorpay] Failed to record promo usage (order still created):", promoErr);
     }
 
-    try {
-      await sendOrderConfirmation(delivery.email, {
-        orderNumber:     result.orderNumber,
-        customerName:    delivery.fullName,
-        items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-        total:           validated.total,
-        paymentMethod:   "Razorpay",
-        deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
-      });
-      console.log("[razorpay] Order confirmation email sent to", delivery.email);
-    } catch (emailErr) {
-      console.error("[razorpay] Failed to send order confirmation email:", emailErr);
-    }
+    void enqueueOrderConfirmation(delivery.email, {
+      orderNumber:     result.orderNumber,
+      customerName:    delivery.fullName,
+      items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      total:           validated.total,
+      paymentMethod:   "Razorpay",
+      deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
+    });
+
+    void enqueueAnalyticsEvent("order.created", {
+      orderNumber:   result.orderNumber,
+      paymentMethod: "razorpay",
+      total:         validated.total,
+      itemCount:     validated.items.length,
+    }, userId);
 
     return Response.json({
       success: true,

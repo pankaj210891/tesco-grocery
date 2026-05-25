@@ -31,6 +31,10 @@ const schema = z.object({
   // Upstash Redis — optional (rate limiting + revocation disabled when absent)
   UPSTASH_REDIS_REST_URL:   z.string().url("UPSTASH_REDIS_REST_URL must be a valid URL").optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
+  // BullMQ / ioredis — optional (queue jobs fall back to direct async when absent)
+  // Accepts redis:// (local) or rediss:// (TLS, e.g. Upstash TCP endpoint)
+  REDIS_URL: z.string().url("REDIS_URL must be a valid URL").optional(),
 });
 
 export type Env = z.infer<typeof schema>;

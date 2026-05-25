@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import { rejectVendorOrder } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
-import { restoreStock } from "@/services/inventory.service";
+import { enqueueRestoreStock } from "@/lib/queue/jobs/stock.jobs";
 import { connectDB } from "@/lib/db/mongoose";
 import VendorOrderModel from "@/lib/db/models/vendor-order.model";
 
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ success: false, error: "Failed to reject order" }, { status: 400 });
     }
 
-    // Restore stock for rejected items
-    void restoreStock(
+    // Restore stock for rejected items via durable queue
+    void enqueueRestoreStock(
       vendorOrder.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
     );
 
