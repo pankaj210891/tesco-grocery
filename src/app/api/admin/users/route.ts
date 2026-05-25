@@ -3,12 +3,18 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import UserModel from "@/lib/db/models/user.model";
 import { AdminUserQuerySchema } from "@/lib/validations/admin-filters";
+import {
+  decodeCursor,
+  findKeyset,
+  COMMON_SORT_CONFIGS,
+  type SortConfig,
+} from "@/lib/pagination/keyset";
 
-const SORT_MAP: Record<string, Record<string, 1 | -1>> = {
-  newest:       { createdAt: -1 },
-  oldest:       { createdAt: 1 },
-  "name-asc":   { name: 1 },
-  "name-desc":  { name: -1 },
+const SORT_MAP: Record<string, SortConfig> = {
+  newest:      COMMON_SORT_CONFIGS.newest,
+  oldest:      COMMON_SORT_CONFIGS.oldest,
+  "name-asc":  COMMON_SORT_CONFIGS["name-asc"],
+  "name-desc": COMMON_SORT_CONFIGS["name-desc"],
 };
 
 export async function GET(req: NextRequest) {
@@ -25,7 +31,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { page, limit, search, role, status, dateFrom, dateTo, sortBy } = parsed.data;
+  const { page, limit, cursor: rawCursor, search, role, status, dateFrom, dateTo, sortBy } = parsed.data;
 
   try {
     await connectDB();
@@ -49,12 +55,31 @@ export async function GET(req: NextRequest) {
       filter.createdAt = dateFilter;
     }
 
-    const sort = SORT_MAP[sortBy] ?? { createdAt: -1 };
+    const sortCfg = SORT_MAP[sortBy] ?? SORT_MAP.newest;
 
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj) {
+      const { docs, nextCursor, hasMore } = await findKeyset({
+        model:      UserModel,
+        filter,
+        cursor:     cursorObj,
+        limit,
+        projection: { password: 0 },
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { users: docs, nextCursor, hasMore },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
     const [users, total] = await Promise.all([
       UserModel.find(filter)
         .select("-password")
-        .sort(sort)
+        .sort(sortCfg.sort)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),

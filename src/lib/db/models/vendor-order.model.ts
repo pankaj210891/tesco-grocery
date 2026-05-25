@@ -80,6 +80,10 @@ VendorOrderSchema.index({ vendorId: 1, status: 1 });
 VendorOrderSchema.index({ customerId: 1, createdAt: -1 });
 VendorOrderSchema.index({ parentOrderNumber: 1 });
 VendorOrderSchema.index({ status: 1, createdAt: -1 });
+// Keyset pagination: _id tiebreaker for seek-based queries
+VendorOrderSchema.index({ vendorId: 1, createdAt: -1, _id: -1 });
+VendorOrderSchema.index({ status: 1, createdAt: -1, _id: -1 });
+VendorOrderSchema.index({ createdAt: -1, _id: -1 });
 
 export type VendorOrderDoc = InferSchemaType<typeof VendorOrderSchema> & {
   _id:       mongoose.Types.ObjectId;

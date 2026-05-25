@@ -3,6 +3,14 @@ import { connectDB } from "@/lib/db/mongoose";
 import { getAuthUser } from "@/lib/utils/apiAuth";
 import ProductModel from "@/lib/db/models/product.model";
 import { z } from "zod";
+import {
+  decodeCursor,
+  mergeWithKeysetFilter,
+  buildKeysetFilter,
+  cursorFromDoc,
+  encodeCursor,
+  type KeysetCursor,
+} from "@/lib/pagination/keyset";
 
 function requireAdmin(req: NextRequest) {
   const auth = getAuthUser(req);
@@ -20,10 +28,11 @@ const BulkUpdateSchema = z.object({
   updates: z.array(UpdateStockSchema).min(1),
 });
 
+const INVENTORY_SELECT = "_id name slug category brand inStock stockQuantity lowStockThreshold";
+
 /**
- * GET /api/admin/inventory?page=1&limit=20&lowStock=true
- *
- * Returns product stock levels. Use lowStock=true to filter for items below threshold.
+ * Inventory sorts by stockQuantity ASC (nulls first in MongoDB).
+ * The keyset cursor uses field="stockQuantity", dir=1 with null-aware filter.
  */
 export async function GET(req: NextRequest) {
   if (!requireAdmin(req)) {
@@ -37,20 +46,57 @@ export async function GET(req: NextRequest) {
     const limit     = Math.min(100, Number(searchParams.get("limit") ?? 20));
     const lowStock  = searchParams.get("lowStock") === "true";
     const search    = searchParams.get("search") ?? "";
-    const skip      = (page - 1) * limit;
+    const rawCursor = searchParams.get("cursor") ?? "";
 
     const query: Record<string, unknown> = {};
-    if (search) query.name = { $regex: search, $options: "i" };
+    if (search)   query.name = { $regex: search, $options: "i" };
     if (lowStock) {
       query.stockQuantity = { $ne: null };
       query.$expr = { $lte: ["$stockQuantity", "$lowStockThreshold"] };
     }
 
+    const INVENTORY_SORT = { stockQuantity: 1 as const, _id: 1 as const };
+    const CURSOR_CFG: Pick<KeysetCursor, "field" | "dir"> = { field: "stockQuantity", dir: 1 };
+
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj && cursorObj.field === "stockQuantity" && cursorObj.dir === 1) {
+      const keysetFilter = buildKeysetFilter(cursorObj, "stockQuantity");
+      const merged       = mergeWithKeysetFilter(query, keysetFilter);
+
+      const docs = await ProductModel
+        .find(merged)
+        .select(INVENTORY_SELECT)
+        .sort(INVENTORY_SORT)
+        .limit(limit + 1)
+        .lean();
+
+      const hasMore = docs.length > limit;
+      const trimmed = hasMore ? docs.slice(0, limit) : docs;
+      const last    = trimmed[trimmed.length - 1];
+      const nextCursor = hasMore && last
+        ? encodeCursor(cursorFromDoc(last as Record<string, unknown>, CURSOR_CFG.field, CURSOR_CFG.dir))
+        : undefined;
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          products: trimmed.map(mapInventory),
+          nextCursor,
+          hasMore,
+        },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
+    const skip = (page - 1) * limit;
+
     const [products, total] = await Promise.all([
       ProductModel
         .find(query)
-        .select("_id name slug category brand inStock stockQuantity lowStockThreshold")
-        .sort({ stockQuantity: 1 })
+        .select(INVENTORY_SELECT)
+        .sort(INVENTORY_SORT)
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -60,16 +106,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        products: products.map((p) => ({
-          _id:               (p._id as { toString(): string }).toString(),
-          name:              p.name,
-          slug:              p.slug,
-          category:          p.category,
-          brand:             p.brand,
-          inStock:           p.inStock,
-          stockQuantity:     (p as { stockQuantity?: number | null }).stockQuantity ?? null,
-          lowStockThreshold: (p as { lowStockThreshold?: number }).lowStockThreshold ?? 5,
-        })),
+        products: products.map(mapInventory),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -81,11 +118,21 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function mapInventory(p: Record<string, unknown>) {
+  return {
+    _id:               (p._id as { toString(): string }).toString(),
+    name:              p.name,
+    slug:              p.slug,
+    category:          p.category,
+    brand:             p.brand,
+    inStock:           p.inStock,
+    stockQuantity:     (p as { stockQuantity?: number | null }).stockQuantity ?? null,
+    lowStockThreshold: (p as { lowStockThreshold?: number }).lowStockThreshold ?? 5,
+  };
+}
+
 /**
- * PATCH /api/admin/inventory
- *
- * Bulk update stock quantities.
- * Body: { updates: [{ productId, stockQuantity, lowStockThreshold? }] }
+ * PATCH /api/admin/inventory — Bulk update stock quantities.
  */
 export async function PATCH(req: NextRequest) {
   if (!requireAdmin(req)) {
@@ -107,7 +154,6 @@ export async function PATCH(req: NextRequest) {
       updates.map((u) => {
         const set: Record<string, unknown> = { stockQuantity: u.stockQuantity };
         if (u.lowStockThreshold !== undefined) set.lowStockThreshold = u.lowStockThreshold;
-        // Auto-set inStock based on stockQuantity
         if (typeof u.stockQuantity === "number") {
           set.inStock = u.stockQuantity > 0;
         }

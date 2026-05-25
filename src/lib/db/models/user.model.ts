@@ -30,6 +30,10 @@ UserSchema.index({ status: 1 });
 UserSchema.index({ createdAt: -1 });
 UserSchema.index({ role: 1, status: 1 });
 UserSchema.index({ name: 1 });
+// Keyset pagination: _id tiebreaker for seek-based queries
+UserSchema.index({ createdAt: -1, _id: -1 });
+UserSchema.index({ name: 1, _id: 1 });
+UserSchema.index({ name: -1, _id: -1 });
 
 export type UserDoc = InferSchemaType<typeof UserSchema> & {
   _id: mongoose.Types.ObjectId;

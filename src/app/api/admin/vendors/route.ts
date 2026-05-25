@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import VendorModel from "@/lib/db/models/vendor.model";
 import { AdminVendorQuerySchema } from "@/lib/validations/admin-filters";
+import { decodeCursor, findKeyset, COMMON_SORT_CONFIGS } from "@/lib/pagination/keyset";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { page, limit, q, status, dateFrom, dateTo } = parsed.data;
+  const { page, limit, cursor: rawCursor, q, status, dateFrom, dateTo } = parsed.data;
 
   try {
     await connectDB();
@@ -39,9 +40,27 @@ export async function GET(req: NextRequest) {
       filter.createdAt = dateFilter;
     }
 
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj) {
+      const { docs, nextCursor, hasMore } = await findKeyset({
+        model:  VendorModel,
+        filter,
+        cursor: cursorObj,
+        limit,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { vendors: docs, nextCursor, hasMore },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
     const [vendors, total] = await Promise.all([
       VendorModel.find(filter)
-        .sort({ createdAt: -1 })
+        .sort(COMMON_SORT_CONFIGS.newest.sort)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
@@ -76,7 +95,6 @@ export async function POST(req: NextRequest) {
 
     const normalizedEmail = (email as string).toLowerCase().trim();
 
-    // Guard: no existing vendor with the same email
     const existingByEmail = await VendorModel.findOne({ email: normalizedEmail }).lean();
     if (existingByEmail) {
       return NextResponse.json(
@@ -85,7 +103,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Guard: no existing vendor with the same store name (case-insensitive)
     const existingByName = await VendorModel.findOne({
       name: { $regex: `^${escapeRegex(name as string)}$`, $options: "i" },
     }).lean();

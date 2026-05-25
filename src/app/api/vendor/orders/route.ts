@@ -9,9 +9,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const page   = Math.max(1, Number(searchParams.get("page")  ?? 1));
-    const limit  = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const status = searchParams.get("status") ?? "";
+    const page      = Math.max(1, Number(searchParams.get("page")  ?? 1));
+    const limit     = Math.min(50, Number(searchParams.get("limit") ?? 20));
+    const status    = searchParams.get("status") ?? "";
+    const cursor    = searchParams.get("cursor") ?? undefined;
 
     const validStatus = VENDOR_ORDER_STATUSES.includes(status as VendorOrderStatus)
       ? (status as VendorOrderStatus)
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
       status:   validStatus,
       page,
       limit,
+      cursor,
     });
 
     return NextResponse.json({ success: true, data: result });

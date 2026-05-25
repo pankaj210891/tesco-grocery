@@ -18,6 +18,8 @@ const ReviewSchema = new Schema(
 
 // One review per user per product
 ReviewSchema.index({ productSlug: 1, userId: 1 }, { unique: true });
+// Keyset pagination for product review listing
+ReviewSchema.index({ productSlug: 1, isApproved: 1, createdAt: -1, _id: -1 });
 
 export interface IReview extends Document {
   productId:          mongoose.Types.ObjectId;

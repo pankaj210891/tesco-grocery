@@ -69,8 +69,8 @@ export default async function SearchPage({ searchParams }: Props) {
       searchCategories(query),
     ]);
     products           = productResult.products;
-    total              = productResult.total;
-    totalPages         = productResult.totalPages;
+    total              = productResult.total ?? 0;
+    totalPages         = productResult.totalPages ?? 1;
     matchingCategories = cats;
   }
 
