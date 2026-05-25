@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:webpack": "next dev",
+    "workers": "tsx watch src/workers/index.ts",
+    "workers:start": "tsx src/workers/index.ts",
     "build": "next build",
     "analyze": "ANALYZE=true next build",
     "start": "next start",
@@ -36,7 +38,9 @@
     "@upstash/redis": "^1.38.0",
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.77.3",
     "clsx": "^2.1.1",
+    "ioredis": "^5.10.1",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.14.0",

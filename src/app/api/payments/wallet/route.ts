@@ -6,7 +6,8 @@ import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-o
 import { createOrder } from "@/services/order.service";
 import { deductWalletForOrder } from "@/services/wallet.service";
 import { bookDeliverySlot } from "@/services/delivery-slot.service";
-import { sendOrderConfirmation } from "@/services/email.service";
+import { enqueueOrderConfirmation } from "@/lib/queue/jobs/email.jobs";
+import { enqueueAnalyticsEvent } from "@/lib/queue/jobs/analytics.jobs";
 
 const deliverySchema = z.object({
   fullName: z.string().min(2),
@@ -145,18 +146,21 @@ export async function POST(req: NextRequest) {
       validated.discount,
     );
 
-    try {
-      await sendOrderConfirmation(delivery.email, {
-        orderNumber:     result.orderNumber,
-        customerName:    delivery.fullName,
-        items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-        total:           validated.total,
-        paymentMethod:   "Wallet",
-        deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
-      });
-    } catch (emailErr) {
-      console.error("[wallet] Failed to send confirmation email:", emailErr);
-    }
+    void enqueueOrderConfirmation(delivery.email, {
+      orderNumber:     result.orderNumber,
+      customerName:    delivery.fullName,
+      items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      total:           validated.total,
+      paymentMethod:   "Wallet",
+      deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
+    });
+
+    void enqueueAnalyticsEvent("order.created", {
+      orderNumber:   result.orderNumber,
+      paymentMethod: "wallet",
+      total:         validated.total,
+      itemCount:     validated.items.length,
+    }, userId);
 
     return Response.json({
       success: true,

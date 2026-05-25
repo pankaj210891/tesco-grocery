@@ -6,6 +6,8 @@ import VendorEarningModel from "@/lib/db/models/vendor-earning.model";
 import ProductModel from "@/lib/db/models/product.model";
 import { getConfig, getRateForVendor } from "@/services/commission.service";
 import { buildVendorOrderDocs, type CreateVendorOrderInput } from "@/services/vendor-order.service";
+import { enqueueMarkOutOfStock } from "@/lib/queue/jobs/stock.jobs";
+import { enqueueVendorNewOrderNotifications, type VendorGroupForQueue } from "@/lib/queue/jobs/vendor.jobs";
 import type {
   Order,
   ParentOrderStatus,
@@ -331,81 +333,25 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
     await session.endSession();
   }
 
-  // Post-transaction: mark out-of-stock products (non-critical, fire-and-forget)
-  void markOutOfStockProducts(enrichedItems);
+  // Post-transaction: mark out-of-stock products via durable queue (non-critical)
+  const stockItems = enrichedItems.map((i) => ({
+    productId: i.productId,
+    variantId: i.variantId ?? null,
+    quantity:  i.quantity,
+  }));
+  void enqueueMarkOutOfStock(stockItems);
 
-  // Fire-and-forget: notify each vendor of their new sub-order
-  void fireVendorNewOrderNotifications(orderId, orderNumber, vendorGroups);
+  // Notify each vendor of their new sub-order via durable queue
+  const vendorGroupsForQueue: VendorGroupForQueue[] = Array.from(vendorGroups.entries()).map(
+    ([vendorId, items]) => ({
+      vendorId,
+      items:    items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      subtotal: items.reduce((s, i) => s + i.price * i.quantity, 0),
+    }),
+  );
+  void enqueueVendorNewOrderNotifications(orderId, orderNumber, vendorGroupsForQueue);
 
   return { orderId, orderNumber, vendorOrderIds };
-}
-
-async function fireVendorNewOrderNotifications(
-  parentOrderId:  string,
-  orderNumber:    string,
-  vendorGroups:   Map<string, Array<{ vendorId: string | null; vendorName: string | null; price: number; quantity: number; name: string }>>,
-): Promise<void> {
-  try {
-    const VendorModel = (await import("@/lib/db/models/vendor.model")).default;
-    await connectDB();
-
-    const vendorIds = Array.from(vendorGroups.keys());
-    const vendors = await VendorModel
-      .find({ _id: { $in: vendorIds } })
-      .select("_id email name")
-      .lean<Array<{ _id: { toString(): string }; email: string; name: string }>>();
-
-    const { sendVendorNewOrder } = await import("@/services/email.service");
-    const dashboardBase = process.env.NEXT_PUBLIC_APP_URL ?? "";
-
-    await Promise.allSettled(
-      vendors.map(async (vendor) => {
-        const items = vendorGroups.get(vendor._id.toString()) ?? [];
-        await sendVendorNewOrder(vendor.email, {
-          vendorName:        vendor.name,
-          vendorOrderId:     parentOrderId,
-          parentOrderNumber: orderNumber,
-          items:             items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-          subtotal:          items.reduce((s, i) => s + i.price * i.quantity, 0),
-          dashboardUrl:      `${dashboardBase}/vendor/orders`,
-        });
-      }),
-    );
-  } catch (err) {
-    console.error("[order] Failed to send vendor new-order notifications:", err);
-  }
-}
-
-async function markOutOfStockProducts(
-  items: Array<{ productId: string; variantId?: string | null; quantity: number }>,
-): Promise<void> {
-  try {
-    await Promise.all(
-      items.map(async (item) => {
-        if (item.variantId) {
-          const variantObjId = new mongoose.Types.ObjectId(item.variantId);
-          const product = await ProductModel
-            .findOne({ _id: item.productId, "variants._id": variantObjId })
-            .select("variants.$")
-            .lean<{ variants?: Array<{ _id: unknown; stockQuantity?: number | null }> }>();
-          const v = product?.variants?.[0];
-          if (v && typeof v.stockQuantity === "number" && v.stockQuantity <= 0) {
-            await ProductModel.findOneAndUpdate(
-              { _id: item.productId, "variants._id": variantObjId },
-              { $set: { "variants.$.inStock": false } },
-            );
-          }
-          return;
-        }
-        const product = await ProductModel.findById(item.productId).select("stockQuantity").lean<{ stockQuantity?: number | null }>();
-        if (product && typeof product.stockQuantity === "number" && product.stockQuantity <= 0) {
-          await ProductModel.findByIdAndUpdate(item.productId, { inStock: false });
-        }
-      }),
-    );
-  } catch (err) {
-    console.error("[order] Failed to mark out-of-stock products:", err);
-  }
 }
 
 // ─── Cancellation ─────────────────────────────────────────────────────────────
