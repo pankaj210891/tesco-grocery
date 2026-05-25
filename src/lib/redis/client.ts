@@ -16,7 +16,12 @@ export function getRedis(): Redis | null {
   const url   = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  _client = url && token ? new Redis({ url, token }) : null;
+  // Use `no-cache` instead of the Upstash default `no-store`.
+  // `no-store` tells Next.js App Router the route is dynamic, which breaks
+  // ISR pages (generateStaticParams + revalidate). For POST requests to
+  // Upstash, `no-cache` is functionally identical — HTTP caches never store
+  // POST responses — but does not trigger Next.js's static-generation guard.
+  _client = url && token ? new Redis({ url, token, cache: "no-cache" }) : null;
   return _client;
 }
 
