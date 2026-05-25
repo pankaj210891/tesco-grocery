@@ -12,6 +12,7 @@ import {
 } from "@/lib/otp/generate";
 import { transporter, FROM_ADDRESS } from "@/lib/email/mailer";
 import { phoneVerificationTemplate } from "@/lib/email/templates";
+import logger from "@/lib/logger";
 
 type UserLean = {
   _id:              { toString(): string };
@@ -79,13 +80,13 @@ export async function POST(req: Request) {
   try {
     await transporter.sendMail({ from: FROM_ADDRESS, to: user.email, subject, html });
   } catch (mailErr) {
-    console.error("[send-otp] email failed:", mailErr);
-    // Don't expose mail errors to client — OTP is still stored, dev can read from console
+    logger.error({ err: mailErr }, "send-otp email failed");
+    // Don't expose mail errors to client — OTP is still stored in DB
   }
 
-  // Always log to console in development for easy testing
+  // Log OTP to structured output in development for easy testing
   if (process.env.NODE_ENV !== "production") {
-    console.log(`\n📱 [DEV] Phone OTP for ${user.phone}: ${otp} (expires in ${OTP_TTL_MIN} min)\n`);
+    logger.debug({ phone: user.phone, otp, expiresInMin: OTP_TTL_MIN }, "dev OTP");
   }
 
   return Response.json({

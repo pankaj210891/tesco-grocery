@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import logger from "@/lib/logger";
 import { connectDB } from "@/lib/db/mongoose";
 import UserModel from "@/lib/db/models/user.model";
 
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Password reset successfully. You can now sign in." });
   } catch (err) {
-    console.error("[POST /api/auth/reset-password]", err);
+    logger.error({ err }, "reset-password error");
     return NextResponse.json({ success: false, error: "Something went wrong" }, { status: 500 });
   }
 }
