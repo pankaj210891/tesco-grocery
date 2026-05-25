@@ -10,6 +10,7 @@ const ISO_DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD");
 export const AdminProductQuerySchema = z.object({
   page:        z.coerce.number().int().min(1).default(1),
   limit:       z.coerce.number().int().min(1).max(50).default(20),
+  cursor:      z.string().optional(),
   search:      z.string().optional(),
   category:    z.string().optional(),
   subcategory: z.string().optional(),
@@ -35,6 +36,7 @@ export type AdminProductQuery = z.infer<typeof AdminProductQuerySchema>;
 export const AdminUserQuerySchema = z.object({
   page:     z.coerce.number().int().min(1).default(1),
   limit:    z.coerce.number().int().min(1).max(50).default(20),
+  cursor:   z.string().optional(),
   search:   z.string().optional(),
   role:     z.preprocess(emptyToUndefined, z.enum(["customer", "vendor", "admin"]).optional()),
   status:   z.preprocess(emptyToUndefined, z.enum(["active", "suspended"]).optional()),
@@ -51,6 +53,7 @@ export type AdminUserQuery = z.infer<typeof AdminUserQuerySchema>;
 export const AdminOrderQuerySchema = z.object({
   page:     z.coerce.number().int().min(1).default(1),
   limit:    z.coerce.number().int().min(1).max(50).default(20),
+  cursor:   z.string().optional(),
   status:   z.preprocess(
     (v) => (!v || v === "all" || v === "" ? undefined : v),
     z.enum(["pending", "processing", "shipped", "delivered", "cancelled"]).optional(),
@@ -131,6 +134,7 @@ export type AdminRefund = z.infer<typeof AdminRefundSchema>;
 export const AdminVendorQuerySchema = z.object({
   page:     z.coerce.number().int().min(1).default(1),
   limit:    z.coerce.number().int().min(1).max(100).default(20),
+  cursor:   z.string().optional(),
   q:        z.string().optional(),
   status:   z.preprocess(emptyToUndefined, z.enum(["pending", "active", "suspended"]).optional()),
   dateFrom: z.preprocess(emptyToUndefined, ISO_DATE.optional()),

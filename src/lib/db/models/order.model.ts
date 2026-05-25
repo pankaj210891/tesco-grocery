@@ -103,6 +103,10 @@ OrderSchema.index({ createdAt: -1 });
 // Refund + payment indexes
 OrderSchema.index({ paymentStatus: 1 });
 OrderSchema.index({ refundStatus: 1 });
+// Keyset pagination: _id tiebreaker appended so seeks are index-covered
+OrderSchema.index({ createdAt: -1, _id: -1 });
+OrderSchema.index({ status: 1, createdAt: -1, _id: -1 });
+OrderSchema.index({ "items.vendorId": 1, createdAt: -1, _id: -1 });
 
 export type OrderDoc = InferSchemaType<typeof OrderSchema> & {
   _id:       mongoose.Types.ObjectId;

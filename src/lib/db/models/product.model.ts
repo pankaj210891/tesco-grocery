@@ -73,6 +73,14 @@ ProductSchema.index({ "attributes.flavor": 1 });
 ProductSchema.index({ "attributes.organic": 1 });
 // Full-text search
 ProductSchema.index({ name: "text", description: "text", brand: "text", tags: "text" });
+// Keyset pagination: compound indexes with _id tiebreaker
+ProductSchema.index({ createdAt: -1, _id: -1 });
+ProductSchema.index({ vendorId: 1, createdAt: -1, _id: -1 });
+ProductSchema.index({ status: 1, createdAt: -1, _id: -1 });
+ProductSchema.index({ price: 1, _id: 1 });
+ProductSchema.index({ price: -1, _id: -1 });
+ProductSchema.index({ rating: -1, _id: -1 });
+ProductSchema.index({ name: 1, _id: 1 });
 
 export type ProductDoc = InferSchemaType<typeof ProductSchema> & {
   _id:               mongoose.Types.ObjectId;
