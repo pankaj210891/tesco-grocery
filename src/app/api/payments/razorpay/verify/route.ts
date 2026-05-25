@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { z } from "zod";
+import { NextRequest } from "next/server";
 import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
+import { paymentLimiter, applyRateLimit, getClientIp } from "@/lib/ratelimit";
 import { createOrder } from "@/services/order.service";
 import { bookDeliverySlot } from "@/services/delivery-slot.service";
 import { sendOrderConfirmation } from "@/services/email.service";
@@ -41,7 +43,15 @@ const bodySchema = z.object({
   deliverySlot:      deliverySlotSchema,
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const ip    = getClientIp(req);
+  const limit = await applyRateLimit(paymentLimiter, `payment:${ip}`);
+  if (limit.limited) {
+    return Response.json(
+      { success: false, error: "Too many payment requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
   try {
     const body   = await req.json();
     const parsed = bodySchema.safeParse(body);

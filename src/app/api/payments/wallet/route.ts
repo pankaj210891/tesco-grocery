@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/utils/apiAuth";
+import { paymentLimiter, applyRateLimit, getClientIp } from "@/lib/ratelimit";
 import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
 import { createOrder } from "@/services/order.service";
 import { deductWalletForOrder } from "@/services/wallet.service";
@@ -41,7 +43,15 @@ const bodySchema = z.object({
   deliverySlot: deliverySlotSchema,
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const ip    = getClientIp(req);
+  const limit = await applyRateLimit(paymentLimiter, `payment:${ip}`);
+  if (limit.limited) {
+    return Response.json(
+      { success: false, error: "Too many payment requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
   // Wallet payment requires authentication
   const auth = getAuthUser(req);
   if (!auth) {
