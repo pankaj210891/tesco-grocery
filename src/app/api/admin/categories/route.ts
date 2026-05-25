@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import CategoryModel from "@/lib/db/models/category.model";
 import { requireAdmin } from "@/lib/utils/apiAuth";
+import { invalidateCategoryCache } from "@/services/category.service";
 
 // GET /api/admin/categories — list all categories
 export async function GET(req: NextRequest) {
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       order:       body.order ?? 0,
       isActive:    body.isActive ?? true,
     });
+    void invalidateCategoryCache();
     return NextResponse.json({ success: true, data: doc }, { status: 201 });
   } catch (err: unknown) {
     const msg = (err as { code?: number })?.code === 11000

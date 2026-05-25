@@ -7,6 +7,8 @@ import type {
   CreateCategoryAttributesInput,
   UpdateCategoryAttributesInput,
 } from "@/lib/validations/category-attributes";
+import { withCache, cacheDel } from "@/lib/redis/cache";
+import { CacheKey, TTL } from "@/lib/redis/keys";
 
 // ── Serialiser ────────────────────────────────────────────────────────────────
 
@@ -65,11 +67,14 @@ export async function getActiveCategoryAttributes(): Promise<CategoryAttributes[
 export async function getCategoryAttributesBySlug(
   category: string,
 ): Promise<CategoryAttributes | null> {
-  await connectDB();
-  const doc = await CategoryAttributesModel
-    .findOne({ category: category.toLowerCase() })
-    .lean<CategoryAttributesDoc>();
-  return doc ? toCategory(doc) : null;
+  const key = CacheKey.categoryAttrs(category.toLowerCase());
+  return withCache(key, TTL.LONG, async () => {
+    await connectDB();
+    const doc = await CategoryAttributesModel
+      .findOne({ category: category.toLowerCase() })
+      .lean<CategoryAttributesDoc>();
+    return doc ? toCategory(doc) : null;
+  });
 }
 
 export async function createCategoryAttributes(
@@ -99,13 +104,29 @@ export async function updateCategoryAttributes(
       { new: true, runValidators: true },
     )
     .lean<CategoryAttributesDoc>();
-  return doc ? toCategory(doc) : null;
+  if (!doc) return null;
+
+  // Bust per-category cache using the (possibly updated) category slug
+  await cacheDel(CacheKey.categoryAttrs(doc.category));
+  return toCategory(doc);
 }
 
-export async function deleteCategoryAttributes(id: string): Promise<boolean> {
+export interface DeleteCategoryAttributesResult {
+  deleted: boolean;
+  /** Category slug of the deleted entry — used for targeted cache invalidation. */
+  category: string | null;
+}
+
+export async function deleteCategoryAttributes(id: string): Promise<DeleteCategoryAttributesResult> {
   await connectDB();
-  const res = await CategoryAttributesModel.findByIdAndDelete(id);
-  return res !== null;
+  const res = await CategoryAttributesModel
+    .findByIdAndDelete(id)
+    .lean<CategoryAttributesDoc>();
+  if (!res) return { deleted: false, category: null };
+
+  // Bust per-category cache
+  await cacheDel(CacheKey.categoryAttrs(res.category));
+  return { deleted: true, category: res.category };
 }
 
 // ── Utility — fetch filterable attr defs for a category ───────────────────────
