@@ -7,7 +7,6 @@ import axios from "axios";
 import { cn } from "@/lib/utils/cn";
 import MiniBannerCard from "@/components/ui/MiniBannerCard";
 import type { CategoryNode, Offer } from "@/types";
-import { useScrollLock } from "@/hooks/useScrollLock";
 
 const AMBER = "#FCA311";
 
@@ -209,11 +208,12 @@ function SubSubList({ parent: parentNode, items, onClose }: { parent: CategoryNo
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 interface Props {
-  isOpen:  boolean;
-  onClose: () => void;
+  isOpen:   boolean;
+  onClose:  () => void;
+  navRef?:  React.RefObject<HTMLElement | null>;
 }
 
-export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
+export default function DepartmentMegaPanel({ isOpen, onClose, navRef }: Props) {
   const [shouldRender, setShouldRender] = useState(false);
   const [visible,      setVisible]      = useState(false);
 
@@ -228,6 +228,28 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
   // null = nothing selected
   const [activeDepIdx, setActiveDepIdx] = useState<number | null>(null);
   const [activeSubIdx, setActiveSubIdx] = useState<number | null>(null);
+
+  // Dynamic top offset: bottom of the secondary nav in viewport coords.
+  // Using position:fixed for the panel (instead of absolute top-full) so it
+  // always anchors to the viewport regardless of page scroll or body scroll-lock.
+  const [panelTop, setPanelTop] = useState(108);
+
+  useEffect(() => {
+    function computeTop() {
+      if (navRef?.current) {
+        setPanelTop(navRef.current.getBoundingClientRect().bottom);
+      }
+    }
+    computeTop();
+    window.addEventListener("resize", computeTop);
+    return () => window.removeEventListener("resize", computeTop);
+  }, [navRef]);
+
+  useEffect(() => {
+    if (isOpen && navRef?.current) {
+      setPanelTop(navRef.current.getBoundingClientRect().bottom);
+    }
+  }, [isOpen, navRef]);
 
   useEffect(() => {
     if (isOpen) {
@@ -274,7 +296,6 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
   }, [isOpen, offersLoaded]);
 
   const handleClose = useCallback(() => onClose(), [onClose]);
-  useScrollLock(isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -293,7 +314,7 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
   // Key changes when switching right-panel content so CSS enter animation replays
   const rightPanelKey = showSubSubDepts ? `subsubdept-${activeDepIdx}-${activeSubIdx}` : "offers";
 
-  const PANEL_MAX_H = "calc(100dvh - 108px)";
+  const PANEL_MAX_H = `calc(100dvh - ${panelTop}px)`;
 
   if (!shouldRender) return null;
 
@@ -304,10 +325,11 @@ export default function DepartmentMegaPanel({ isOpen, onClose }: Props) {
       <div
         data-testid="dept-mega-panel"
         className={cn(
-          "absolute top-full left-0 right-0 z-50",
+          "fixed left-0 right-0 z-50",
           "transition-[opacity,transform] duration-[220ms] ease-out",
           visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3 pointer-events-none",
         )}
+        style={{ top: panelTop }}
         role="dialog"
         aria-label="Shop by department"
       >

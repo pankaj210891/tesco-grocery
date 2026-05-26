@@ -501,19 +501,21 @@ describe("Department Mega Menu", () => {
     cy.get('[data-testid="dept-mega-panel"]', { timeout: 1000 }).should("not.exist");
   });
 
-  /* ── Scroll lock ─────────────────────────────────────────────────────── */
+  /* ── Scroll behaviour ────────────────────────────────────────────────── */
 
-  it("locks background scroll (html overflow: hidden) when the panel is open", () => {
+  it("does not lock background scroll when the panel is open (mega menu, not modal)", () => {
     openMegaMenu();
-    cy.get("html").should("have.css", "overflow", "hidden");
+    // Panel is position:fixed so page scroll stays available
+    cy.get("html").should("not.have.css", "overflow", "hidden");
+    cy.get("body").should("not.have.css", "position", "fixed");
   });
 
-  it("restores background scroll when the panel is closed", () => {
+  it("panel remains visible at any scroll position (fixed positioning)", () => {
     openMegaMenu();
-    cy.get("html").should("have.css", "overflow", "hidden");
-    cy.contains("button", "Shop By Departments").click(); // toggle close
-    cy.get('[data-testid="dept-mega-panel"]', { timeout: 1000 }).should("not.exist");
-    cy.get("html").invoke("css", "overflow").should("not.equal", "hidden");
+    cy.get('[data-testid="dept-mega-panel"]').should("be.visible");
+    cy.scrollTo(0, 500);
+    cy.get('[data-testid="dept-mega-panel"]').should("be.visible");
+    cy.scrollTo(0, 0);
   });
 
   /* ── Outside click on page content ──────────────────────────────────── */

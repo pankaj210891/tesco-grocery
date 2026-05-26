@@ -443,7 +443,7 @@ export default function Navbar() {
         </div>
 
         {/* Mega menu panel — always mounted; isOpen drives enter/exit animation */}
-        <DepartmentMegaPanel isOpen={deptOpen} onClose={() => setDeptOpen(false)} />
+        <DepartmentMegaPanel isOpen={deptOpen} onClose={() => setDeptOpen(false)} navRef={deptNavRef} />
       </nav>
 
       {/* ── Mobile drawer ────────────────────────────────────────── */}
