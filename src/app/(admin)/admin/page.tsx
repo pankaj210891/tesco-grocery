@@ -11,6 +11,13 @@ import type { AdminVendorStats } from "@/types";
 import { toast } from "sonner";
 import { useAdminSSE } from "@/hooks/useAdminSSE";
 import type { AdminSSENewOrderEvent } from "@/hooks/useAdminSSE";
+import dynamic from "next/dynamic";
+import { ADMIN_TOUR_STEPS } from "@/components/onboarding/adminTourSteps";
+
+const OnboardingTour = dynamic(
+  () => import("@/components/onboarding/OnboardingTour"),
+  { ssr: false }
+);
 
 interface TopVendorRevenue {
   vendorId:   string;
@@ -98,6 +105,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <OnboardingTour tourKey="admin-dashboard-v1" steps={ADMIN_TOUR_STEPS} />
       <div>
         <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-0.5">Welcome back, {user?.name}</p>

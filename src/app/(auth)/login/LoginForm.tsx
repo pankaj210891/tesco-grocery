@@ -6,13 +6,53 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2, Store } from "lucide-react";
+import { Eye, EyeOff, Loader2, Store, Zap } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
 import { useAuthStore } from "@/store/auth.store";
 import { usePendingAction } from "@/hooks/usePendingAction";
 import AuthFormField from "@/components/auth/AuthFormField";
+
+// ── Demo accounts — matches users.seed.ts U01, U02, U11 ──────────────────────
+const DEMO_ACCOUNTS = [
+  { role: "Admin",    label: "Admin",    email: "priya.sharma@example.com",  password: "Prakash@123", color: "bg-[#0F4C75]" },
+  { role: "Vendor",   label: "Vendor",   email: "neha.verma@example.com",    password: "Prakash@123", color: "bg-purple-600" },
+  { role: "Customer", label: "Customer", email: "rahul.mehta@example.com",   password: "Prakash@123", color: "bg-green-600" },
+] as const;
+
+function DemoCredentials({ onSelect }: { onSelect: (email: string, password: string) => void }) {
+  return (
+    <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="h-3.5 w-3.5 text-[#FCA311]" aria-hidden />
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          Demo accounts — click to auto-fill
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {DEMO_ACCOUNTS.map((acct) => (
+          <button
+            key={acct.role}
+            type="button"
+            onClick={() => onSelect(acct.email, acct.password)}
+            className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-[#FCA311] dark:hover:border-[#FCA311] transition-colors group"
+          >
+            <span className={`text-[10px] font-black text-white px-2 py-0.5 rounded-md ${acct.color} group-hover:brightness-110`}>
+              {acct.label}
+            </span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate w-full text-center leading-tight">
+              {acct.email.split("@")[0]}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="text-center text-[10px] text-gray-400 dark:text-gray-500 mt-2.5">
+        Password: <span className="font-mono font-semibold">Prakash@123</span>
+      </p>
+    </div>
+  );
+}
 
 const ROLE_DESTINATIONS: Record<string, string> = {
   admin:    "/admin",
@@ -39,6 +79,7 @@ export default function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
@@ -137,6 +178,13 @@ export default function LoginForm() {
             Create one
           </Link>
         </p>
+
+        <DemoCredentials
+          onSelect={(email, password) => {
+            setValue("email",    email,    { shouldValidate: true });
+            setValue("password", password, { shouldValidate: true });
+          }}
+        />
       </div>
     </div>
   );
