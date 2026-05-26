@@ -51,3 +51,9 @@ CLAUDE.local.md
 
 # build output
 dist
+
+# architecture reports (generated documents, not source)
+architecture-report.md
+architecture-report.pdf
+docs/architecture-report.md
+docs/architecture-report.pdf

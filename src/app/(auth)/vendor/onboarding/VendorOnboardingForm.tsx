@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, Store, Eye, EyeOff, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { apiClient } from "@/lib/axios";
 import type { User } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -115,30 +116,28 @@ export default function VendorOnboardingForm() {
   const verifyToken = useCallback(async () => {
     if (!token) { setStep("invalid"); setInvalidMsg("No invite token found in the link."); return; }
 
-    let res: Response;
-    let json: { success: boolean; data?: InviteData; error?: string };
     try {
-      res  = await fetch(`/api/vendor/onboarding/verify?token=${encodeURIComponent(token)}`);
-      json = await res.json() as typeof json;
+      const res = await apiClient.get<{ success: boolean; data?: InviteData; error?: string }>(
+        `/api/vendor/onboarding/verify?token=${encodeURIComponent(token)}`
+      );
+      if (!res.data.success || !res.data.data) {
+        setInvalidMsg(res.data.error ?? "Invalid invite link.");
+        setStep("invalid");
+        return;
+      }
+      const data = res.data.data;
+      setInvite(data);
+      setForm((f) => ({
+        ...f,
+        name:         data.contactName,
+        businessName: data.businessName,
+        slug:         toSlug(data.businessName),
+      }));
     } catch {
       setInvalidMsg("Failed to verify invite link. Please check your connection and try again.");
       setStep("invalid");
       return;
     }
-
-    if (!json.success || !json.data) {
-      setInvalidMsg(json.error ?? "Invalid invite link.");
-      setStep("invalid");
-      return;
-    }
-
-    setInvite(json.data);
-    setForm((f) => ({
-      ...f,
-      name:         json.data!.contactName,
-      businessName: json.data!.businessName,
-      slug:         toSlug(json.data!.businessName),
-    }));
     setStep("form");
   }, [token]);
 
@@ -191,25 +190,22 @@ export default function VendorOnboardingForm() {
     setSubmitting(true);
     setSubmitError("");
 
-    const res  = await fetch("/api/vendor/onboarding/complete", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ token, ...form }),
-    });
-    const json = await res.json() as {
-      success: boolean;
-      error?: string;
-      data?: { user: User; token: string };
-    };
-
-    setSubmitting(false);
-
-    if (!json.success || !json.data) {
-      setSubmitError(json.error ?? "Onboarding failed. Please try again.");
+    try {
+      const res = await apiClient.post<{ success: boolean; error?: string; data?: { user: User; token: string } }>(
+        "/api/vendor/onboarding/complete",
+        { token, ...form }
+      );
+      setSubmitting(false);
+      if (!res.data.success || !res.data.data) {
+        setSubmitError(res.data.error ?? "Onboarding failed. Please try again.");
+        return;
+      }
+      setAuth(res.data.data.user, res.data.data.token);
+    } catch {
+      setSubmitting(false);
+      setSubmitError("Network error. Please try again.");
       return;
     }
-
-    setAuth(json.data.user, json.data.token);
     setStep("success");
   }
 

@@ -7,6 +7,7 @@ import { syncParentOrderStatus } from "@/services/order-status.service";
 import { connectDB } from "@/lib/db/mongoose";
 import VendorOrderModel from "@/lib/db/models/vendor-order.model";
 import { ALL_VENDOR_ORDER_STATUSES, type VendorOrderStatus } from "@/constants/order-status";
+import { emitAfterVendorStatusChange } from "@/lib/sse/emitter";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -67,6 +68,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     await syncParentOrderStatus(updated.parentOrderId);
+
+    void emitAfterVendorStatusChange(
+      updated._id,
+      updated.parentOrderNumber,
+      updated.vendorId,
+      updated.status,
+    );
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

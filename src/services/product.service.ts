@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import ProductModel, { type ProductDoc } from "@/lib/db/models/product.model";
 import CategoryModel from "@/lib/db/models/category.model";
@@ -10,6 +9,13 @@ import {
   isAtlasSearchAvailable,
   atlasSearchProductsPipeline,
 } from "@/lib/search/atlas-search";
+import { escapeRegex, brandRegex } from "@/lib/search/search-utils";
+import {
+  decodeCursor,
+  findKeyset,
+  COMMON_SORT_CONFIGS,
+  type SortConfig,
+} from "@/lib/pagination/keyset";
 
 // ── Category slug resolver ────────────────────────────────────────────────────
 // Resolves any category slug (L0 / L1 / L2) to the correct Mongoose filter
@@ -31,7 +37,7 @@ async function resolveCategoryFilter(
     const mapped = CATEGORY_NAME_MAP[slug];
     if (mapped) return { category: mapped };
     const nameFromSlug = slug.replace(/-/g, " ");
-    const escaped = nameFromSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = escapeRegex(nameFromSlug);
     return { category: new RegExp(`^${escaped}$`, "i") };
   }
 
@@ -111,6 +117,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
     category, subcategory, brands, inStock,
     rating, discount, deliveryOptions, sortBy, search,
     page = 1, limit = PRODUCTS_PER_PAGE, slugs, attrs,
+    cursor: rawCursor,
   } = filters;
 
   const { minPrice, maxPrice } = filters;
@@ -130,7 +137,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   }
   if (brands && brands.length > 0) {
     query.brand = {
-      $in: brands.map((b) => new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")),
+      $in: brands.map(brandRegex),
     };
   }
   if (inStock) {
@@ -187,27 +194,23 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
     }
   }
 
-  type SortSpec = Record<string, mongoose.SortOrder>;
-  const sortMap: Record<string, SortSpec> = {
-    "price-asc":  { price:        1 as mongoose.SortOrder },
-    "price-desc": { price:       -1 as mongoose.SortOrder },
-    "rating":     { rating:      -1 as mongoose.SortOrder },
-    "newest":     { createdAt:   -1 as mongoose.SortOrder },
-    "popularity": { reviewCount: -1 as mongoose.SortOrder },
+  const PRODUCT_SORT_MAP: Record<string, SortConfig> = {
+    "price-asc":  COMMON_SORT_CONFIGS["price-asc"],
+    "price-desc": COMMON_SORT_CONFIGS["price-desc"],
+    "rating":     COMMON_SORT_CONFIGS.rating,
+    "newest":     COMMON_SORT_CONFIGS.newest,
+    "popularity": COMMON_SORT_CONFIGS.popularity,
   };
-  const defaultSort: SortSpec = { createdAt: -1 as mongoose.SortOrder };
-  const sort = sortBy ? (sortMap[sortBy] ?? defaultSort) : defaultSort;
+  const sortCfg: SortConfig = (sortBy ? PRODUCT_SORT_MAP[sortBy] : undefined) ?? COMMON_SORT_CONFIGS.newest;
 
   const skip = (page - 1) * limit;
 
   // ── Atlas Search path (when search term is present and Atlas index is live) ──
+  // Atlas Search handles its own pagination internally; keyset is not applied here.
   if (search) {
     const atlasAvailable = await isAtlasSearchAvailable();
 
     if (atlasAvailable) {
-      const mongoSort = Object.fromEntries(
-        Object.entries(sort).map(([k, v]) => [k, v as 1 | -1])
-      );
       const { pipeline, countPipeline } = await atlasSearchProductsPipeline({
         search,
         category:        typeof query.category === "string" ? query.category : undefined,
@@ -220,7 +223,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
         deliveryOptions: deliveryOptions as string[] | undefined,
         skip,
         limit,
-        sort:            Object.keys(mongoSort).length > 0 ? mongoSort : undefined,
+        sort:            sortCfg.sort,
       });
 
       type CountDoc = { total: number };
@@ -243,8 +246,23 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   }
 
   // ── Standard Mongoose query path ─────────────────────────────────────────────
+
+  // Keyset mode: skip-free page retrieval for the standard path
+  const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+  if (cursorObj) {
+    const { docs, nextCursor, hasMore } = await findKeyset({
+      model:  ProductModel,
+      filter: query as Record<string, unknown>,
+      cursor: cursorObj,
+      limit,
+    });
+    return { products: (docs as unknown as ProductDoc[]).map(toProduct), nextCursor, hasMore };
+  }
+
+  // Offset mode (backward compatible)
   const [docs, total] = await Promise.all([
-    ProductModel.find(query).sort(sort).skip(skip).limit(limit).lean<ProductDoc[]>(),
+    ProductModel.find(query).sort(sortCfg.sort).skip(skip).limit(limit).lean<ProductDoc[]>(),
     ProductModel.countDocuments(query),
   ]);
 

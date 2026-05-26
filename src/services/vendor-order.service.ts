@@ -11,6 +11,7 @@ import {
   type ActorRole,
 } from "@/constants/order-status";
 import type { VendorOrder, VendorOrderItem } from "@/types";
+import { decodeCursor, findKeyset, COMMON_SORT_CONFIGS } from "@/lib/pagination/keyset";
 
 // ─── Serialization ────────────────────────────────────────────────────────────
 
@@ -105,20 +106,27 @@ export function buildVendorOrderDocs(inputs: CreateVendorOrderInput[]) {
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export interface VendorOrderFilters {
-  vendorId:  string;
-  status?:   VendorOrderStatus;
-  page?:     number;
-  limit?:    number;
+  vendorId: string;
+  status?:  VendorOrderStatus;
+  page?:    number;
+  limit?:   number;
+  cursor?:  string;
 }
 
-export async function getVendorOrders(filters: VendorOrderFilters): Promise<{
+export interface VendorOrdersResult {
   data:       VendorOrder[];
-  total:      number;
-  page:       number;
-  totalPages: number;
-}> {
+  // Offset mode
+  total?:      number;
+  page?:       number;
+  totalPages?: number;
+  // Cursor mode
+  nextCursor?: string;
+  hasMore?:    boolean;
+}
+
+export async function getVendorOrders(filters: VendorOrderFilters): Promise<VendorOrdersResult> {
   await connectDB();
-  const { vendorId, status, page = 1, limit = 20 } = filters;
+  const { vendorId, status, page = 1, limit = 20, cursor: rawCursor } = filters;
 
   const query: Record<string, unknown> = {
     vendorId: new mongoose.Types.ObjectId(vendorId),
@@ -127,15 +135,42 @@ export async function getVendorOrders(filters: VendorOrderFilters): Promise<{
     query.status = status;
   }
 
-  const skip = (page - 1) * limit;
-  const [docs, total] = await Promise.all([
-    VendorOrderModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    VendorOrderModel.countDocuments(query),
-  ]);
+  // ── Keyset mode ─────────────────────────────────────────────────────────────
+  const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
 
-  // Populate delivery info from parent orders so the vendor can see customer details
+  let rawDocs: Record<string, unknown>[];
+  let nextCursor: string | undefined;
+  let hasMore = false;
+  let total: number | undefined;
+
+  if (cursorObj) {
+    const result = await findKeyset({
+      model:  VendorOrderModel,
+      filter: query,
+      cursor: cursorObj,
+      limit,
+    });
+    rawDocs    = result.docs;
+    nextCursor = result.nextCursor;
+    hasMore    = result.hasMore;
+  } else {
+    // ── Offset mode (backward compatible) ──────────────────────────────────
+    const skip = (page - 1) * limit;
+    const [offsetDocs, countResult] = await Promise.all([
+      VendorOrderModel.find(query)
+        .sort(COMMON_SORT_CONFIGS.newest.sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      VendorOrderModel.countDocuments(query),
+    ]);
+    rawDocs = offsetDocs as Record<string, unknown>[];
+    total   = countResult;
+  }
+
+  // Populate delivery info from parent orders so vendor can see customer details
   const parentOrderIds = [...new Set(
-    (docs as unknown as Array<{ parentOrderId: mongoose.Types.ObjectId }>)
+    (rawDocs as unknown as Array<{ parentOrderId: mongoose.Types.ObjectId }>)
       .map((d) => d.parentOrderId),
   )];
 
@@ -151,18 +186,21 @@ export async function getVendorOrders(filters: VendorOrderFilters): Promise<{
     parentOrders.map((o) => [o._id.toString(), o.delivery]),
   );
 
-  const vendorOrders = (docs as unknown as Record<string, unknown>[]).map((doc) => {
+  const vendorOrders = (rawDocs as unknown as Record<string, unknown>[]).map((doc) => {
     const vo       = toVendorOrder(doc);
     const delivery = deliveryByOrderId.get(vo.parentOrderId);
     if (delivery) vo.delivery = delivery;
     return vo;
   });
 
+  if (cursorObj) {
+    return { data: vendorOrders, nextCursor, hasMore };
+  }
   return {
     data:       vendorOrders,
     total,
     page,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.ceil((total ?? 0) / limit),
   };
 }
 

@@ -4,9 +4,10 @@ import { z } from "zod";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import { cancelVendorOrder } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
-import { restoreStock } from "@/services/inventory.service";
+import { enqueueRestoreStock } from "@/lib/queue/jobs/stock.jobs";
 import { connectDB } from "@/lib/db/mongoose";
 import VendorOrderModel from "@/lib/db/models/vendor-order.model";
+import { emitAfterVendorStatusChange } from "@/lib/sse/emitter";
 
 const bodySchema = z.object({
   reason: z.string().min(5).max(300),
@@ -55,12 +56,19 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ success: false, error: "Failed to cancel order" }, { status: 400 });
     }
 
-    // Restore stock for cancelled items
-    void restoreStock(
+    // Restore stock for cancelled items via durable queue
+    void enqueueRestoreStock(
       vendorOrder.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
     );
 
     await syncParentOrderStatus(updated.parentOrderId);
+
+    void emitAfterVendorStatusChange(
+      updated._id,
+      updated.parentOrderNumber,
+      auth.vendorId,
+      updated.status,
+    );
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

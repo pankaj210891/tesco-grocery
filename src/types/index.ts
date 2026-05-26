@@ -62,6 +62,8 @@ export interface ProductFilters {
   slugs?:          string[];
   // Dynamic attribute filters — key=attrKey, values=multiselect values
   attrs?:          Record<string, string[]>;
+  // Keyset cursor (base64url) — when present, page is ignored
+  cursor?:         string;
 }
 
 export interface FilterMeta {
@@ -112,10 +114,14 @@ export interface DynamicFiltersResult {
 }
 
 export interface PaginatedProducts {
-  products: Product[];
-  total: number;
-  page: number;
-  totalPages: number;
+  products:   Product[];
+  // Offset mode
+  total?:      number;
+  page?:       number;
+  totalPages?: number;
+  // Cursor mode
+  nextCursor?: string;
+  hasMore?:    boolean;
 }
 
 // ─── Category ───────────────────────────────────────────────────────────────

@@ -5,6 +5,14 @@ import ProductModel from "@/lib/db/models/product.model";
 import OrderModel from "@/lib/db/models/order.model";
 import { getAuthUser } from "@/lib/utils/apiAuth";
 import type { RatingSummary } from "@/types";
+import mongoose from "mongoose";
+import {
+  decodeCursor,
+  mergeWithKeysetFilter,
+  buildKeysetFilter,
+  cursorFromDoc,
+  encodeCursor,
+} from "@/lib/pagination/keyset";
 
 // NOTE: param is named "id" to share the [id] folder, but the value is a slug string
 type Params = { params: Promise<{ id: string }> };
@@ -27,19 +35,17 @@ export async function GET(req: NextRequest, { params }: Params) {
     await connectDB();
     const { id: slug } = await params;
     const { searchParams } = new URL(req.url);
-    const page  = Math.max(1, Number(searchParams.get("page")  ?? 1));
-    const limit = Math.min(20, Number(searchParams.get("limit") ?? 10));
-    const skip  = (page - 1) * limit;
+    const page      = Math.max(1, Number(searchParams.get("page")  ?? 1));
+    const limit     = Math.min(20, Number(searchParams.get("limit") ?? 10));
+    const rawCursor = searchParams.get("cursor") ?? "";
 
-    const [reviews, total, dist] = await Promise.all([
-      Review.find({ productSlug: slug, isApproved: true })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Review.countDocuments({ productSlug: slug, isApproved: true }),
+    const baseFilter = { productSlug: slug, isApproved: true };
+
+    // Rating distribution and summary are always computed over the full filter
+    const [total, dist] = await Promise.all([
+      Review.countDocuments(baseFilter),
       Review.aggregate<{ _id: number; count: number }>([
-        { $match: { productSlug: slug, isApproved: true } },
+        { $match: baseFilter },
         { $group: { _id: "$rating", count: { $sum: 1 } } },
       ]),
     ]);
@@ -52,6 +58,43 @@ export async function GET(req: NextRequest, { params }: Params) {
       : 0;
 
     const summary: RatingSummary = { average, total, distribution };
+
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj && cursorObj.field === "createdAt" && cursorObj.dir === -1) {
+      const keysetFilter = buildKeysetFilter(cursorObj, "createdAt");
+      const merged       = mergeWithKeysetFilter(
+        baseFilter as Record<string, unknown>,
+        keysetFilter,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const docs = await Review.find(merged as any)
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(limit + 1)
+        .lean();
+
+      const hasMore = docs.length > limit;
+      const trimmed = hasMore ? docs.slice(0, limit) : docs;
+      const last    = trimmed[trimmed.length - 1];
+      const nextCursor = hasMore && last
+        ? encodeCursor(cursorFromDoc(last as unknown as Record<string, unknown>, "createdAt", -1))
+        : undefined;
+
+      return NextResponse.json({
+        success: true,
+        data: { reviews: trimmed, summary, nextCursor, hasMore },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
+    const skip     = (page - 1) * limit;
+    const reviews  = await Review.find(baseFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     return NextResponse.json({
       success: true,
@@ -78,10 +121,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!body.body?.trim())
       return NextResponse.json({ success: false, error: "Review text is required" }, { status: 422 });
 
-    const product = await ProductModel.findOne({ slug }).lean<{ _id: import("mongoose").Types.ObjectId }>();
+    const product = await ProductModel.findOne({ slug }).lean<{ _id: mongoose.Types.ObjectId }>();
     if (!product) return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
 
-    // Verified purchase: user must have a delivered/shipped order containing this product
     const verifiedOrder = await OrderModel.findOne({
       userId: authUser.userId,
       status: { $in: ["delivered", "shipped"] },

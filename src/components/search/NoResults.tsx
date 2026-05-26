@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { SearchX, TrendingUp } from "lucide-react";
 import { slugify } from "@/lib/utils/format";
 
-const POPULAR_CATEGORIES = [
+const FALLBACK_CATEGORIES = [
   "Fresh Food",
   "Bakery",
   "Dairy & Eggs",
@@ -20,9 +20,11 @@ const TIPS = [
 
 interface NoResultsProps {
   query: string;
+  /** Top searched queries from Redis — passed from the server page component. */
+  popularSearches?: string[];
 }
 
-export default function NoResults({ query }: NoResultsProps) {
+export default function NoResults({ query, popularSearches = [] }: NoResultsProps) {
   return (
     <div className="flex flex-col items-center text-center py-16 max-w-lg mx-auto">
       <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-5 mb-5">
@@ -33,8 +35,7 @@ export default function NoResults({ query }: NoResultsProps) {
         No results for &ldquo;{query}&rdquo;
       </h2>
       <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-        We couldn&apos;t find anything matching your search. Here are some
-        suggestions:
+        We couldn&apos;t find anything matching your search. Here are some suggestions:
       </p>
 
       {/* Tips */}
@@ -47,13 +48,35 @@ export default function NoResults({ query }: NoResultsProps) {
         ))}
       </ul>
 
-      {/* Popular categories */}
+      {/* Popular searches — only shown when the sorted set has data */}
+      {popularSearches.length > 0 && (
+        <div className="w-full mb-8">
+          <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-center gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Popular searches
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {popularSearches.map((term) => (
+              <Link
+                key={term}
+                href={`/search?q=${encodeURIComponent(term)}`}
+                data-testid="popular-search-term"
+                className="px-3 py-1.5 border border-[#FCA311]/40 bg-amber-50 dark:bg-amber-950/20 rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#FCA311] hover:text-[#FCA311] transition-colors"
+              >
+                {term}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Popular categories — fallback when no popular searches are recorded yet */}
       <div className="w-full">
         <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
           Browse popular categories
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          {POPULAR_CATEGORIES.map((cat) => (
+          {FALLBACK_CATEGORIES.map((cat) => (
             <Link
               key={cat}
               href={`/products?category=${slugify(cat)}`}

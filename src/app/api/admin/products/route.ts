@@ -5,19 +5,23 @@ import { requireAdmin } from "@/lib/utils/apiAuth";
 import ProductModel from "@/lib/db/models/product.model";
 import VendorModel from "@/lib/db/models/vendor.model";
 import { AdminProductQuerySchema, AdminProductCreateSchema } from "@/lib/validations/admin-filters";
+import {
+  decodeCursor,
+  findKeyset,
+  COMMON_SORT_CONFIGS,
+  type SortConfig,
+} from "@/lib/pagination/keyset";
 
-const SORT_MAP: Record<string, Record<string, 1 | -1>> = {
-  newest:     { createdAt: -1 },
-  oldest:     { createdAt: 1 },
-  "price-asc":  { price: 1 },
-  "price-desc": { price: -1 },
-  rating:     { rating: -1 },
-  "name-asc": { name: 1 },
+const SORT_MAP: Record<string, SortConfig> = {
+  newest:       COMMON_SORT_CONFIGS.newest,
+  oldest:       COMMON_SORT_CONFIGS.oldest,
+  "price-asc":  COMMON_SORT_CONFIGS["price-asc"],
+  "price-desc": COMMON_SORT_CONFIGS["price-desc"],
+  rating:       COMMON_SORT_CONFIGS.rating,
+  "name-asc":   COMMON_SORT_CONFIGS["name-asc"],
 };
 
 export async function GET(req: NextRequest) {
-  // Validate query params first so callers get a 400 for invalid input
-  // even before auth — avoids misleading "401" for clearly bad requests.
   const parsed = AdminProductQuerySchema.safeParse(
     Object.fromEntries(new URL(req.url).searchParams),
   );
@@ -32,7 +36,8 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const {
-    page, limit, search, category, subcategory, brand, vendorId,
+    page, limit, cursor: rawCursor,
+    search, category, subcategory, brand, vendorId,
     status, badge, inStock, minPrice, maxPrice, rating, discount,
     dateFrom, dateTo, sortBy,
   } = parsed.data;
@@ -42,12 +47,12 @@ export async function GET(req: NextRequest) {
 
     const filter: Record<string, unknown> = {};
 
-    if (search)     filter.$text = { $search: search };
-    if (category)   filter.category = category;
+    if (search)      filter.$text = { $search: search };
+    if (category)    filter.category = category;
     if (subcategory) filter.subcategory = subcategory;
-    if (brand)      filter.brand = brand;
-    if (badge)      filter.badge = badge;
-    if (status)     filter.status = status;
+    if (brand)       filter.brand = brand;
+    if (badge)       filter.badge = badge;
+    if (status)      filter.status = status;
 
     if (vendorId) {
       if (!mongoose.isValidObjectId(vendorId)) {
@@ -86,11 +91,29 @@ export async function GET(req: NextRequest) {
       filter.createdAt = dateFilter;
     }
 
-    const sort = SORT_MAP[sortBy] ?? { createdAt: -1 };
+    const sortCfg = SORT_MAP[sortBy] ?? SORT_MAP.newest;
 
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj) {
+      const { docs, nextCursor, hasMore } = await findKeyset({
+        model:  ProductModel,
+        filter,
+        cursor: cursorObj,
+        limit,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { products: docs, nextCursor, hasMore },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
     const [products, total] = await Promise.all([
       ProductModel.find(filter)
-        .sort(sort)
+        .sort(sortCfg.sort)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
@@ -124,7 +147,6 @@ export async function POST(req: NextRequest) {
 
     const { vendorId, ...fields } = parsed.data;
 
-    // Resolve vendor snapshot — admin must assign an active vendor only
     let resolvedVendorId: mongoose.Types.ObjectId | null = null;
     let resolvedVendorName: string | null = null;
 

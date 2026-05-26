@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import HomepageSection from "@/lib/db/models/homepage-section.model";
 import { requireAdmin } from "@/lib/utils/apiAuth";
+import { cacheDel } from "@/lib/redis/cache";
+import { CacheKey } from "@/lib/redis/keys";
 
 const SECTION_TYPES = [
   "product-carousel", "offer-cards", "brand-inspiration", "info-cards",
@@ -65,6 +67,7 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "Section not found" }, { status: 404 });
     }
 
+    void cacheDel(CacheKey.homepageSections());
     return NextResponse.json({ success: true, data: updated });
   } catch (err: unknown) {
     const isDupe = (err as { code?: number })?.code === 11000;
@@ -95,5 +98,6 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: "Section not found" }, { status: 404 });
   }
 
+  void cacheDel(CacheKey.homepageSections());
   return NextResponse.json({ success: true, message: "Section deleted." });
 }

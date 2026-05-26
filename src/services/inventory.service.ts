@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import ProductModel from "@/lib/db/models/product.model";
+import logger from "@/lib/logger";
 
 export interface StockItem {
   productId: string;
@@ -119,6 +120,46 @@ export async function decrementStock(items: StockItem[]): Promise<void> {
       }
     }),
   );
+}
+
+/**
+ * Post-transaction cleanup: marks products / variants as inStock=false when
+ * their stockQuantity has reached 0 after an order was placed.
+ *
+ * Called via the stock-updates queue (previously fire-and-forget in order.service.ts).
+ * Throws on failure so BullMQ can retry.
+ */
+export async function markOutOfStockProducts(items: StockItem[]): Promise<void> {
+  await connectDB();
+
+  await Promise.all(
+    items.map(async (item) => {
+      if (item.variantId) {
+        const variantObjId = new mongoose.Types.ObjectId(item.variantId);
+        const product = await ProductModel
+          .findOne({ _id: item.productId, "variants._id": variantObjId })
+          .select("variants.$")
+          .lean<{ variants?: Array<{ _id: unknown; stockQuantity?: number | null }> }>();
+        const v = product?.variants?.[0];
+        if (v && typeof v.stockQuantity === "number" && v.stockQuantity <= 0) {
+          await ProductModel.findOneAndUpdate(
+            { _id: item.productId, "variants._id": variantObjId },
+            { $set: { "variants.$.inStock": false } },
+          );
+        }
+        return;
+      }
+      const product = await ProductModel
+        .findById(item.productId)
+        .select("stockQuantity")
+        .lean<{ stockQuantity?: number | null }>();
+      if (product && typeof product.stockQuantity === "number" && product.stockQuantity <= 0) {
+        await ProductModel.findByIdAndUpdate(item.productId, { inStock: false });
+      }
+    }),
+  );
+
+  logger.debug({ count: items.length }, "[inventory] markOutOfStockProducts completed");
 }
 
 /**

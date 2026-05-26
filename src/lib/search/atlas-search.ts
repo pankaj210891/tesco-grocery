@@ -1,5 +1,6 @@
 import type { PipelineStage } from "mongoose";
 import ProductModel from "@/lib/db/models/product.model";
+import { brandRegex } from "@/lib/search/search-utils";
 
 // ── Availability check (TTL cache — retries after 1 min on failure, 5 min on success) ──
 
@@ -43,7 +44,7 @@ export async function isAtlasSearchAvailable(): Promise<boolean> {
   return _atlasInflight;
 }
 
-// ── Suggestion pipeline (autocomplete + fuzzy on name/brand) ─────────────────
+// ── Suggestion pipeline (autocomplete + fuzzy on name/brand/subcategory) ──────
 
 export interface SuggestionProduct {
   _id:      string;
@@ -55,17 +56,15 @@ export interface SuggestionProduct {
   brand:    string;
 }
 
-export interface SuggestionBrand {
-  name: string;
-}
-
 export async function atlasSearchSuggestions(q: string): Promise<{
   products: SuggestionProduct[];
   brands:   string[];
 }> {
-  // compound: autocomplete on name + autocomplete on brand (should clause)
-  // boost name matches higher than brand matches
-  // $search is Atlas-specific; cast to PipelineStage[] for aggregate()
+  // Weighted compound query:
+  //   name autocomplete  boost:5  — direct name prefix is highest signal
+  //   brand autocomplete boost:2  — brand prefix is secondary signal
+  //   subcategory autocomplete boost:1 — category-level signal
+  // inStock boost: products in stock rank above out-of-stock at equal score
   const pipeline = [
     {
       $search: {
@@ -75,18 +74,34 @@ export async function atlasSearchSuggestions(q: string): Promise<{
           should: [
             {
               autocomplete: {
-                query:       q,
-                path:        "name",
-                fuzzy:       { maxEdits: 1, prefixLength: 2 },
-                score:       { boost: { value: 3 } },
+                query:  q,
+                path:   "name",
+                fuzzy:  { maxEdits: 1, prefixLength: 2 },
+                score:  { boost: { value: 5 } },
               },
             },
             {
               autocomplete: {
-                query:       q,
-                path:        "brand",
-                fuzzy:       { maxEdits: 1, prefixLength: 2 },
-                score:       { boost: { value: 1 } },
+                query:  q,
+                path:   "brand",
+                fuzzy:  { maxEdits: 1, prefixLength: 2 },
+                score:  { boost: { value: 2 } },
+              },
+            },
+            {
+              autocomplete: {
+                query:  q,
+                path:   "subcategory",
+                fuzzy:  { maxEdits: 1, prefixLength: 2 },
+                score:  { boost: { value: 1 } },
+              },
+            },
+            // Boost in-stock products — equals clause in should adds score delta
+            {
+              equals: {
+                path:  "inStock",
+                value: true,
+                score: { boost: { value: 1.5 } },
               },
             },
           ],
@@ -94,7 +109,7 @@ export async function atlasSearchSuggestions(q: string): Promise<{
         },
       },
     },
-    { $limit: 12 },
+    { $limit: 15 },
     {
       $project: {
         _id:      1,
@@ -104,6 +119,9 @@ export async function atlasSearchSuggestions(q: string): Promise<{
         price:    1,
         category: 1,
         brand:    1,
+        inStock:  1,
+        // Atlas score for client-side debugging / future re-ranking
+        score: { $meta: "searchScore" },
       },
     },
   ] as unknown as PipelineStage[];
@@ -116,16 +134,20 @@ export async function atlasSearchSuggestions(q: string): Promise<{
     price:    number;
     category: string;
     brand:    string;
+    inStock:  boolean;
+    score:    number;
   };
 
   const docs = await ProductModel.aggregate<Raw>(pipeline);
 
   const brandSet = new Set<string>();
   const products: SuggestionProduct[] = [];
+  const lowerQ = q.toLowerCase();
 
   for (const d of docs) {
-    const lowerQ = q.toLowerCase();
-    if (d.brand && d.brand.toLowerCase().includes(lowerQ)) {
+    // Only promote brand to the brands section when brand text starts with query
+    // (Atlas matched it via autocomplete edgeGram, so prefix check is reliable)
+    if (d.brand && d.brand.toLowerCase().startsWith(lowerQ)) {
       brandSet.add(d.brand);
     }
     products.push({
@@ -139,11 +161,8 @@ export async function atlasSearchSuggestions(q: string): Promise<{
     });
   }
 
-  // Deduplicate products that appeared only for brand matches (show at most 6)
-  const uniqueProducts = products.slice(0, 6);
-
   return {
-    products: uniqueProducts,
+    products: products.slice(0, 6),
     brands:   Array.from(brandSet).slice(0, 3),
   };
 }
@@ -188,36 +207,86 @@ export async function atlasSearchProductsPipeline(
     });
   }
 
+  // Weighted relevance scoring:
+  //   autocomplete on name  boost:5  — exact-prefix product name matches are top signal
+  //   text on name          boost:4  — full-word matches across the whole name
+  //   text on brand         boost:3  — brand name match
+  //   text on tags          boost:2  — curated tag match
+  //   text on description   boost:1  — broad semantic match
+  // inStock + rating boosts applied as should clauses — they add to the
+  // relevance score of matching documents without filtering out non-matches.
+  const shouldClauses: object[] = [
+    {
+      autocomplete: {
+        query: search,
+        path:  "name",
+        fuzzy: { maxEdits: 1, prefixLength: 2 },
+        score: { boost: { value: 5 } },
+      },
+    },
+    {
+      text: {
+        query: search,
+        path:  "name",
+        fuzzy: { maxEdits: 1, prefixLength: 2 },
+        score: { boost: { value: 4 } },
+      },
+    },
+    {
+      text: {
+        query: search,
+        path:  "brand",
+        fuzzy: { maxEdits: 1, prefixLength: 2 },
+        score: { boost: { value: 3 } },
+      },
+    },
+    {
+      text: {
+        query: search,
+        path:  ["tags", "subcategory"],
+        fuzzy: { maxEdits: 1, prefixLength: 2 },
+        score: { boost: { value: 2 } },
+      },
+    },
+    {
+      text: {
+        query: search,
+        path:  "description",
+        fuzzy: { maxEdits: 1, prefixLength: 2 },
+        score: { boost: { value: 1 } },
+      },
+    },
+    // Quality signals: in-stock products and higher-rated products rank above
+    // equivalent-relevance results (boosts are additive on top of text score).
+    {
+      equals: {
+        path:  "inStock",
+        value: true,
+        score: { boost: { value: 1.5 } },
+      },
+    },
+    {
+      near: {
+        path:   "rating",
+        origin: 5,
+        pivot:  2,
+        score:  { boost: { value: 1 } },
+      },
+    },
+  ];
+
   const searchStage = {
     $search: {
       index: "product_search",
       compound: {
-        must:   mustFilters,
-        should: [
-          {
-            text: {
-              query:  search,
-              path:   ["name", "brand", "category", "tags", "description"],
-              fuzzy:  { maxEdits: 1, prefixLength: 2 },
-              score:  { boost: { value: 2 } },
-            },
-          },
-          {
-            autocomplete: {
-              query:  search,
-              path:   "name",
-              fuzzy:  { maxEdits: 1, prefixLength: 2 },
-              score:  { boost: { value: 3 } },
-            },
-          },
-        ],
+        must:               mustFilters,
+        should:             shouldClauses,
         minimumShouldMatch: 1,
       },
     },
   };
 
-  // Post-search $match applies non-text filters (inStock, price, brand, etc.)
-  // without disturbing Atlas relevance scoring from the $search stage.
+  // Post-search $match applies non-text filters without disturbing Atlas scoring.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const postMatch: Record<string, any> = {};
 
@@ -230,11 +299,7 @@ export async function atlasSearchProductsPipeline(
     if (maxPrice !== undefined) postMatch.price.$lte = maxPrice;
   }
   if (brands && brands.length > 0) {
-    postMatch.brand = {
-      $in: brands.map(
-        (b) => new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
-      ),
-    };
+    postMatch.brand = { $in: brands.map(brandRegex) };
   }
   if (rating !== undefined) {
     postMatch.rating = { $gte: rating };
@@ -265,11 +330,12 @@ export async function atlasSearchProductsPipeline(
   }
 
   const matchStage  = Object.keys(postMatch).length > 0 ? [{ $match: postMatch }] : [];
+  // Sort is applied after Atlas scoring. When sort is undefined (relevance mode)
+  // Atlas's natural score order is preserved. When user picks price/rating sort,
+  // it overrides Atlas order — this is the intended UX.
   const sortStage   = sort ? [{ $sort: sort }] : [];
   const countStage  = { $count: "total" as const };
 
-  // $search is an Atlas-specific stage not in Mongoose's PipelineStage union;
-  // cast required for aggregate() compatibility.
   const pipeline = [
     searchStage,
     ...matchStage,

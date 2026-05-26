@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import VendorEarningModel from "@/lib/db/models/vendor-earning.model";
 import type { VendorEarning, VendorEarningsSummary, EarningStatus } from "@/types";
+import { enqueuePayoutNotification } from "@/lib/queue/jobs/payout.jobs";
 
 function toEarning(doc: Record<string, unknown>): VendorEarning {
   return {
@@ -60,37 +61,10 @@ export async function releaseEarning(earningId: string, payoutRef?: string): Pro
   if (!doc) return null;
   const earning = toEarning(doc as unknown as Record<string, unknown>);
 
-  // Fire-and-forget: notify vendor of payout
-  void notifyVendorPayout(earning.vendorId, earning.netAmount, payoutRef ?? "", [earning.orderNumber]);
+  // Notify vendor of payout via durable queue (previously fire-and-forget)
+  void enqueuePayoutNotification(earning.vendorId, earning.netAmount, payoutRef ?? "", [earning.orderNumber]);
 
   return earning;
-}
-
-async function notifyVendorPayout(
-  vendorId:     string,
-  amount:       number,
-  payoutRef:    string,
-  orderNumbers: string[],
-): Promise<void> {
-  try {
-    const VendorModel = (await import("@/lib/db/models/vendor.model")).default;
-    const vendor = await VendorModel
-      .findById(vendorId)
-      .select("email name")
-      .lean<{ email: string; name: string }>();
-
-    if (!vendor?.email) return;
-
-    const { sendVendorPayout } = await import("@/services/email.service");
-    await sendVendorPayout(vendor.email, {
-      vendorName:   vendor.name,
-      amount,
-      payoutRef,
-      orderNumbers,
-    });
-  } catch (err) {
-    console.error("[earning] Failed to send vendor payout notification:", err);
-  }
 }
 
 export async function getVendorEarnings(

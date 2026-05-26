@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { apiClient } from "@/lib/axios";
 import type { PlaceDetailsResult } from "@/app/api/places/details/route";
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -131,10 +132,9 @@ export default function AddressAutocomplete({
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const res  = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(v)}`);
-        const json = (await res.json()) as { success: boolean; data: Suggestion[] };
-        if (json.success && json.data.length > 0) {
-          setSuggestions(json.data);
+        const res = await apiClient.get<{ success: boolean; data: Suggestion[] }>(`/api/places/autocomplete?input=${encodeURIComponent(v)}`);
+        if (res.data.success && res.data.data.length > 0) {
+          setSuggestions(res.data.data);
           calcPos();
           setOpen(true);
         } else {
@@ -158,15 +158,14 @@ export default function AddressAutocomplete({
     setResolving(true);
 
     try {
-      const res  = await fetch(`/api/places/details?placeId=${encodeURIComponent(s.placeId)}`);
-      const json = (await res.json()) as { success: boolean; data?: PlaceDetailsResult };
+      const res = await apiClient.get<{ success: boolean; data?: PlaceDetailsResult }>(`/api/places/details?placeId=${encodeURIComponent(s.placeId)}`);
 
-      if (!json.success || !json.data) {
+      if (!res.data.success || !res.data.data) {
         onSelect({ line1: s.mainText, line2: s.secondaryText, city: "", postcode: "", country: "" });
         return;
       }
 
-      const { city, postcode, country } = json.data;
+      const { city, postcode, country } = res.data.data;
       const line2 = city ? extractLine2(s, city) : s.secondaryText;
 
       onSelect({ line1: s.mainText, line2, city, postcode, country });

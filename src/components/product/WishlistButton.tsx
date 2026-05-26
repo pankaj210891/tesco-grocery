@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
@@ -14,14 +15,16 @@ interface Props {
   className?: string;
 }
 
-export default function WishlistButton({ product, className }: Props) {
-  const { toggleItem, hasItem } = useWishlistStore();
-  const { token }  = useAuthStore();
-  const router     = useRouter();
-  const pathname   = usePathname();
-  const saved = hasItem(product._id);
+function WishlistButton({ product, className }: Props) {
+  // Granular selectors — re-renders only when this product's saved state or token changes
+  const saved      = useWishlistStore(useCallback((s) => s.items.some((i) => i._id === product._id), [product._id]));
+  const toggleItem = useWishlistStore((s) => s.toggleItem);
+  const token      = useAuthStore((s) => s.token);
 
-  async function handleToggle(e: React.MouseEvent) {
+  const router   = useRouter();
+  const pathname = usePathname();
+
+  const handleToggle = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!token) {
@@ -37,7 +40,7 @@ export default function WishlistButton({ product, className }: Props) {
     } else {
       toast.success("Saved to wishlist");
     }
-  }
+  }, [token, saved, toggleItem, product, router, pathname]);
 
   return (
     <button
@@ -60,3 +63,5 @@ export default function WishlistButton({ product, className }: Props) {
     </button>
   );
 }
+
+export default memo(WishlistButton);

@@ -216,11 +216,13 @@ describe("SearchBar — short query suppression", () => {
     cy.get('[data-testid="search-suggestions"]').should("not.exist");
   });
 
-  it("dropdown stays closed when API returns empty suggestions", () => {
+  it("shows no-results state in dropdown when API returns empty suggestions", () => {
     interceptSuggestions(EMPTY_SUGGESTIONS);
     cy.get('[data-testid="search-input"]').first().type("zzznoresult", TYPE_OPTS);
     cy.wait("@getSuggestions");
-    cy.get('[data-testid="search-suggestions"]').should("not.exist");
+    // Dropdown now opens with a no-results message instead of closing silently
+    cy.get('[data-testid="search-suggestions"]').first().should("be.visible");
+    cy.get('[data-testid="search-no-results"]').first().should("be.visible");
   });
 });
 

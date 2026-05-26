@@ -122,7 +122,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const filtersWithAttrs: ProductFilters = { ...filters, attrs };
 
-  const [{ products, total, totalPages }, categories, filterMeta, breadcrumb] = await Promise.all([
+  const [{ products, total = 0, totalPages = 1 }, categories, filterMeta, breadcrumb] = await Promise.all([
     getProducts(filtersWithAttrs),
     getCategories(),
     getFilterMeta(categorySlug),

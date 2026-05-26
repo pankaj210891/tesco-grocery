@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, X, Tag, Package } from "lucide-react";
+import { Search, X, Tag, Package, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { apiClient } from "@/lib/axios";
@@ -31,15 +31,19 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) {
-  const [query,       setQuery]       = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestions>(EMPTY);
-  const [open,        setOpen]        = useState(false);
-  const [loading,     setLoading]     = useState(false);
-  const [activeIdx,   setActiveIdx]   = useState(-1);
+  const [query,        setQuery]        = useState("");
+  const [suggestions,  setSuggestions]  = useState<Suggestions>(EMPTY);
+  const [open,         setOpen]         = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [noResults,    setNoResults]    = useState(false);
+  const [activeIdx,    setActiveIdx]    = useState(-1);
 
   const router       = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // AbortController ref — cancels the in-flight fetch when a new keystroke fires
+  // before the previous response arrives, preventing stale suggestions overriding fresh ones.
+  const abortRef     = useRef<AbortController | null>(null);
 
   useScrollLock(open);
 
@@ -59,26 +63,39 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
 
     if (!q || q.length < 2) {
       setSuggestions(EMPTY);
+      setNoResults(false);
       setOpen(false);
       return;
     }
 
     debounceRef.current = setTimeout(async () => {
+      // Cancel any in-flight request before starting a new one
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
+
       setLoading(true);
       try {
-        const res  = await apiClient.get<{ success: boolean; data: Suggestions }>(
-          `/api/search/suggestions?q=${encodeURIComponent(q)}`
+        const res = await apiClient.get<{ success: boolean; data: Suggestions }>(
+          `/api/search/suggestions?q=${encodeURIComponent(q)}`,
+          { signal: abortRef.current.signal },
         );
         const json = res.data;
-        if (json.success && hasSuggestions(json.data)) {
-          setSuggestions(json.data);
-          setOpen(true);
-        } else {
-          setSuggestions(EMPTY);
-          setOpen(false);
+        if (json.success) {
+          if (hasSuggestions(json.data)) {
+            setSuggestions(json.data);
+            setNoResults(false);
+            setOpen(true);
+          } else {
+            setSuggestions(EMPTY);
+            setNoResults(true);
+            setOpen(true);
+          }
         }
-      } catch {
+      } catch (err: unknown) {
+        // Ignore abort errors — they are expected when typing fast
+        if (err instanceof Error && err.name === "CanceledError") return;
         setSuggestions(EMPTY);
+        setNoResults(false);
       } finally {
         setLoading(false);
       }
@@ -96,11 +113,20 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
     setOpen(false);
     setQuery("");
     setSuggestions(EMPTY);
+    setNoResults(false);
     onSearch?.();
     router.push(href);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  // Fire-and-forget analytics click event
+  function trackClick(productId: string, position: number) {
+    if (!query.trim()) return;
+    void apiClient
+      .post("/api/search/analytics", { query: query.trim(), productId, position })
+      .catch(() => {/* swallow — analytics must never block UX */});
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
@@ -162,10 +188,13 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
             value={query}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            onFocus={() => query.length >= 2 && hasSuggestions(suggestions) && setOpen(true)}
+            onFocus={() => query.length >= 2 && (hasSuggestions(suggestions) || noResults) && setOpen(true)}
             placeholder={mobile ? "Search products…" : "Search for products, brands and more…"}
+            role="combobox"
             aria-label="Search products"
             aria-autocomplete="list"
+            aria-expanded={open}
+            aria-controls="search-suggestions-listbox"
             autoComplete="off"
             data-testid="search-input"
             className={inputCls}
@@ -176,7 +205,12 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
               type="button"
               aria-label="Clear search"
               data-testid="search-clear"
-              onClick={() => { setQuery(""); setSuggestions(EMPTY); setOpen(false); }}
+              onClick={() => {
+                setQuery("");
+                setSuggestions(EMPTY);
+                setNoResults(false);
+                setOpen(false);
+              }}
               className="shrink-0 flex items-center justify-center w-8 h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             >
               <X className="h-4 w-4" />
@@ -204,11 +238,31 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
       {/* Suggestions dropdown */}
       {open && (
         <div
+          id="search-suggestions-listbox"
           role="listbox"
           aria-label="Search suggestions"
           data-testid="search-suggestions"
           className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl z-[60] overflow-hidden max-h-[420px] overflow-y-auto"
         >
+          {/* No-results state — shown instead of empty dropdown closing silently */}
+          {noResults && (
+            <div className="px-4 py-5 text-center" data-testid="search-no-results">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                No results for &ldquo;<span className="text-[#FCA311]">{query}</span>&rdquo;
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Try different keywords or check your spelling
+              </p>
+              <button
+                onMouseDown={() => navigate(`/search?q=${encodeURIComponent(query)}`)}
+                className="mt-3 text-xs font-semibold underline underline-offset-2"
+                style={{ color: AMBER }}
+              >
+                Search anyway
+              </button>
+            </div>
+          )}
+
           {/* Categories */}
           {suggestions.categories.length > 0 && (
             <section>
@@ -284,7 +338,10 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
                     role="option"
                     aria-selected={activeIdx === idx}
                     data-testid="suggestion-product"
-                    onMouseDown={() => navigate(`/products/${product.slug}`)}
+                    onMouseDown={() => {
+                      trackClick(product._id, i);
+                      navigate(`/products/${product.slug}`);
+                    }}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2 text-sm text-left transition-colors",
                       activeIdx === idx
@@ -318,18 +375,20 @@ export default function SearchBar({ mobile = false, onSearch }: SearchBarProps) 
             </section>
           )}
 
-          {/* See all results footer */}
-          <div className="border-t border-gray-100 dark:border-gray-800">
-            <button
-              onMouseDown={() => navigate(`/search?q=${encodeURIComponent(query)}`)}
-              data-testid="search-see-all"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
-              style={{ color: AMBER }}
-            >
-              <Search className="h-4 w-4" />
-              See all results for &ldquo;{query}&rdquo;
-            </button>
-          </div>
+          {/* See all results footer — only shown when we have suggestions */}
+          {hasSuggestions(suggestions) && (
+            <div className="border-t border-gray-100 dark:border-gray-800">
+              <button
+                onMouseDown={() => navigate(`/search?q=${encodeURIComponent(query)}`)}
+                data-testid="search-see-all"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                style={{ color: AMBER }}
+              >
+                <TrendingUp className="h-4 w-4" />
+                See all results for &ldquo;{query}&rdquo;
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

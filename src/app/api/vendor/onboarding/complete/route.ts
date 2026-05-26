@@ -6,7 +6,7 @@ import UserModel from "@/lib/db/models/user.model";
 import VendorModel from "@/lib/db/models/vendor.model";
 import { completeOnboardingSchema } from "@/lib/validations/vendor-onboarding";
 import { signToken } from "@/services/auth.service";
-import { sendWelcome } from "@/services/email.service";
+import { enqueueWelcome } from "@/lib/queue/jobs/email.jobs";
 import type { User } from "@/types";
 
 function toSlug(s: string): string {
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
 
   await VendorInviteModel.findByIdAndUpdate(invite._id, { status: "accepted" });
 
-  void sendWelcome(invite.email, { customerName: name });
+  void enqueueWelcome(invite.email, { customerName: name });
 
   const user: User = {
     _id:       userDoc._id.toString(),

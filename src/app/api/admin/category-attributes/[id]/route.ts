@@ -57,8 +57,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 
   try {
-    const deleted = await deleteCategoryAttributes(id);
-    if (!deleted) {
+    const result = await deleteCategoryAttributes(id);
+    if (!result.deleted) {
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     }
     return NextResponse.json({ success: true, message: "Deleted successfully" });

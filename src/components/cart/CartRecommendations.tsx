@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Star, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
+import { apiClient } from "@/lib/axios";
 import { formatPrice } from "@/lib/utils/format";
 import type { CartRecommendation } from "@/types";
 
@@ -130,10 +131,9 @@ export default function CartRecommendations({ cartItemIds, cartCategories }: Pro
       limit:      "8",
     });
 
-    fetch(`/api/account/cart/recommendations?${params.toString()}`)
-      .then((r) => r.json())
-      .then((json: { success: boolean; data: CartRecommendation[] }) => {
-        if (!cancelled) dispatch({ type: "done", items: json.success ? json.data : [] });
+    apiClient.get<{ success: boolean; data: CartRecommendation[] }>(`/api/account/cart/recommendations?${params.toString()}`)
+      .then((res) => {
+        if (!cancelled) dispatch({ type: "done", items: res.data.success ? res.data.data : [] });
       })
       .catch(() => { if (!cancelled) dispatch({ type: "error" }); });
 

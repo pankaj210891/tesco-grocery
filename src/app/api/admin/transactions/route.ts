@@ -4,12 +4,19 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
-// Ensure VendorEarning model is registered before the $lookup
 import "@/lib/db/models/vendor-earning.model";
+import {
+  decodeCursor,
+  mergeWithKeysetFilter,
+  buildKeysetFilter,
+  cursorFromDoc,
+  encodeCursor,
+} from "@/lib/pagination/keyset";
 
 const querySchema = z.object({
   page:          z.coerce.number().min(1).default(1),
   limit:         z.coerce.number().min(1).max(100).default(20),
+  cursor:        z.string().optional(),
   from:          z.string().optional(),
   to:            z.string().optional(),
   status:        z.string().optional(),
@@ -38,6 +45,31 @@ interface SummaryAgg {
   orderCount:      number;
 }
 
+const LOOKUP_AND_PROJECT = [
+  {
+    $lookup: {
+      from:         "vendorearnings",
+      localField:   "_id",
+      foreignField: "orderId",
+      as:           "earningDocs",
+    },
+  },
+  {
+    $project: {
+      orderNumber:     1,
+      createdAt:       1,
+      fullName:        "$delivery.fullName",
+      itemCount:       { $size: "$items" },
+      subtotal:        1,
+      total:           1,
+      status:          1,
+      paymentStatus:   1,
+      platformRevenue: { $sum: "$earningDocs.commissionTotal" },
+      vendorPayout:    { $sum: "$earningDocs.netAmount" },
+    },
+  },
+] as mongoose.PipelineStage[];
+
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
@@ -50,11 +82,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { page, limit, from, to, status, paymentStatus, q } = parsed.data;
+  const { page, limit, cursor: rawCursor, from, to, status, paymentStatus, q } = parsed.data;
 
   await connectDB();
 
-  // ── Build filter ──────────────────────────────────────────────────────────
   const filter: Record<string, unknown> = {};
   if (status)        filter.status        = status;
   if (paymentStatus) filter.paymentStatus = paymentStatus;
@@ -71,95 +102,119 @@ export async function GET(req: NextRequest) {
     filter.createdAt = range;
   }
 
+  // Summary is always computed on the full filter (not keyset-scoped)
+  const summaryPipeline: mongoose.PipelineStage[] = [
+    { $match: filter },
+    {
+      $lookup: {
+        from:         "vendorearnings",
+        localField:   "_id",
+        foreignField: "orderId",
+        as:           "earningDocs",
+      },
+    },
+    {
+      $group: {
+        _id:             null,
+        grossVolume:     { $sum: "$total" },
+        platformRevenue: { $sum: { $sum: "$earningDocs.commissionTotal" } },
+        vendorPayout:    { $sum: { $sum: "$earningDocs.netAmount" } },
+        orderCount:      { $sum: 1 },
+      },
+    },
+  ];
+
+  // ── Keyset mode ─────────────────────────────────────────────────────────────
+  const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+  if (cursorObj && cursorObj.field === "createdAt" && cursorObj.dir === -1) {
+    const keysetFilter = buildKeysetFilter(cursorObj, "createdAt");
+    const merged       = mergeWithKeysetFilter(filter, keysetFilter);
+
+    const [rows, summaryResult] = await Promise.all([
+      OrderModel.aggregate<TransactionDoc>([
+        { $match: merged },
+        { $sort: { createdAt: -1, _id: -1 } },
+        { $limit: limit + 1 },
+        ...LOOKUP_AND_PROJECT,
+      ]),
+      OrderModel.aggregate<SummaryAgg>(summaryPipeline),
+    ]);
+
+    const hasMore = rows.length > limit;
+    const trimmed = hasMore ? rows.slice(0, limit) : rows;
+    const last    = trimmed[trimmed.length - 1];
+    const nextCursor = hasMore && last
+      ? encodeCursor(cursorFromDoc(last as unknown as Record<string, unknown>, "createdAt", -1))
+      : undefined;
+
+    const summary: SummaryAgg = summaryResult[0] ?? {
+      grossVolume: 0, platformRevenue: 0, vendorPayout: 0, orderCount: 0,
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        transactions: trimmed.map(mapTransaction),
+        nextCursor,
+        hasMore,
+        summary: formatSummary(summary),
+      },
+    });
+  }
+
+  // ── Offset mode (backward compatible) ──────────────────────────────────────
   const skip = (page - 1) * limit;
 
-  // ── Paginated transaction list with $lookup join ───────────────────────────
   const [rows, countResult, summaryResult] = await Promise.all([
     OrderModel.aggregate<TransactionDoc>([
       { $match: filter },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
-      {
-        $lookup: {
-          from:         "vendorearnings",
-          localField:   "_id",
-          foreignField: "orderId",
-          as:           "earningDocs",
-        },
-      },
-      {
-        $project: {
-          orderNumber:     1,
-          createdAt:       1,
-          fullName:        "$delivery.fullName",
-          itemCount:       { $size: "$items" },
-          subtotal:        1,
-          total:           1,
-          status:          1,
-          paymentStatus:   1,
-          platformRevenue: { $sum: "$earningDocs.commissionTotal" },
-          vendorPayout:    { $sum: "$earningDocs.netAmount" },
-        },
-      },
+      ...LOOKUP_AND_PROJECT,
     ]),
-
     OrderModel.countDocuments(filter),
-
-    // Summary stats for the filtered set
-    OrderModel.aggregate<SummaryAgg>([
-      { $match: filter },
-      {
-        $lookup: {
-          from:         "vendorearnings",
-          localField:   "_id",
-          foreignField: "orderId",
-          as:           "earningDocs",
-        },
-      },
-      {
-        $group: {
-          _id:             null,
-          grossVolume:     { $sum: "$total" },
-          platformRevenue: { $sum: { $sum: "$earningDocs.commissionTotal" } },
-          vendorPayout:    { $sum: { $sum: "$earningDocs.netAmount" } },
-          orderCount:      { $sum: 1 },
-        },
-      },
-    ]),
+    OrderModel.aggregate<SummaryAgg>(summaryPipeline),
   ]);
 
   const summary: SummaryAgg = summaryResult[0] ?? {
     grossVolume: 0, platformRevenue: 0, vendorPayout: 0, orderCount: 0,
   };
 
-  const transactions = rows.map((r) => ({
+  return NextResponse.json({
+    success: true,
+    data: {
+      transactions: rows.map(mapTransaction),
+      total:        countResult,
+      page,
+      totalPages:   Math.ceil(countResult / limit),
+      summary:      formatSummary(summary),
+    },
+  });
+}
+
+function mapTransaction(r: TransactionDoc) {
+  return {
     _id:             r._id.toString(),
     orderNumber:     r.orderNumber,
     date:            r.createdAt,
     customerName:    r.fullName,
     itemCount:       r.itemCount,
-    subtotal:        Math.round((r.subtotal ?? 0) * 100) / 100,
-    total:           Math.round((r.total    ?? 0) * 100) / 100,
+    subtotal:        Math.round((r.subtotal        ?? 0) * 100) / 100,
+    total:           Math.round((r.total           ?? 0) * 100) / 100,
     status:          r.status,
     paymentStatus:   r.paymentStatus,
     platformRevenue: Math.round((r.platformRevenue ?? 0) * 100) / 100,
     vendorPayout:    Math.round((r.vendorPayout    ?? 0) * 100) / 100,
-  }));
+  };
+}
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      transactions,
-      total:      countResult,
-      page,
-      totalPages: Math.ceil(countResult / limit),
-      summary: {
-        grossVolume:     Math.round((summary.grossVolume     ?? 0) * 100) / 100,
-        platformRevenue: Math.round((summary.platformRevenue ?? 0) * 100) / 100,
-        vendorPayout:    Math.round((summary.vendorPayout    ?? 0) * 100) / 100,
-        orderCount:      summary.orderCount ?? 0,
-      },
-    },
-  });
+function formatSummary(s: SummaryAgg) {
+  return {
+    grossVolume:     Math.round((s.grossVolume     ?? 0) * 100) / 100,
+    platformRevenue: Math.round((s.platformRevenue ?? 0) * 100) / 100,
+    vendorPayout:    Math.round((s.vendorPayout    ?? 0) * 100) / 100,
+    orderCount:      s.orderCount ?? 0,
+  };
 }

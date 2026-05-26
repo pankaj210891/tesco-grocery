@@ -106,7 +106,45 @@ export default async function ProductDetailPage({ params }: Props) {
     },
   ];
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name:          product.name,
+    description:   product.description ?? product.name,
+    sku:           product.slug,
+    brand: {
+      "@type": "Brand",
+      name: product.brand,
+    },
+    image: product.images.length > 0 ? product.images : undefined,
+    offers: {
+      "@type":           "Offer",
+      price:             product.price,
+      priceCurrency:     "INR",
+      availability:      isAvailable
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url:               `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/products/${product.slug}`,
+    },
+    ...(product.rating > 0 && product.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type":      "AggregateRating",
+            ratingValue:  product.rating.toFixed(1),
+            reviewCount:  product.reviewCount,
+            bestRating:   "5",
+            worstRating:  "1",
+          },
+        }
+      : {}),
+  };
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16">
       <Breadcrumb items={breadcrumbs} className="mb-6" />
 
@@ -178,5 +216,6 @@ export default async function ProductDetailPage({ params }: Props) {
 
       <RelatedProducts currentProduct={product} />
     </div>
+    </>
   );
 }

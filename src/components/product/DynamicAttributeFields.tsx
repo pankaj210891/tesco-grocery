@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/axios";
 import type { AttributeDef, CategoryAttributes } from "@/types";
 import NumberInput from "@/components/ui/NumberInput";
 
@@ -30,11 +31,12 @@ export default function DynamicAttributeFields({
       return;
     }
     setLoading(true);
-    fetch(`/api/category-attributes?category=${encodeURIComponent(category.toLowerCase())}`)
-      .then((r) => r.json() as Promise<{ success: boolean; data: CategoryAttributes | null }>)
-      .then((json) => {
-        if (json.success && json.data) {
-          const sorted = [...json.data.attributes].sort((a, b) => a.order - b.order);
+    apiClient.get<{ success: boolean; data: CategoryAttributes | null }>(
+      `/api/category-attributes?category=${encodeURIComponent(category.toLowerCase())}`
+    )
+      .then((res) => {
+        if (res.data.success && res.data.data) {
+          const sorted = [...res.data.data.attributes].sort((a, b) => a.order - b.order);
           setSchema(sorted);
         } else {
           setSchema([]);

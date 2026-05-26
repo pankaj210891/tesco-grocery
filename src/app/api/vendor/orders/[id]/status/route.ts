@@ -4,8 +4,9 @@ import mongoose from "mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import { updateVendorOrderStatus } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
-import { confirmEarningsForOrder } from "@/services/vendor-earning.service";
+import { enqueueConfirmEarnings } from "@/lib/queue/jobs/payout.jobs";
 import { VENDOR_OP_STATUSES } from "@/constants/order-status";
+import { emitAfterVendorStatusChange } from "@/lib/sse/emitter";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -53,9 +54,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Propagate the new vendor sub-order status to the parent order
     await syncParentOrderStatus(updated.parentOrderId);
 
-    // Confirm this vendor's earning when their sub-order is delivered
+    // SSE: broadcast status change (fire-and-forget — must not block response)
+    void emitAfterVendorStatusChange(
+      updated._id,
+      updated.parentOrderNumber,
+      auth.vendorId,
+      parsed.data.status,
+    );
+
+    // Confirm this vendor's earning via durable queue when sub-order is delivered
     if (parsed.data.status === "DELIVERED") {
-      void confirmEarningsForOrder(updated.parentOrderId, auth.vendorId);
+      void enqueueConfirmEarnings(updated.parentOrderId, auth.vendorId);
     }
 
     return NextResponse.json({ success: true, data: updated });

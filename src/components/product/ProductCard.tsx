@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -105,53 +105,67 @@ interface ProductCardProps {
   className?: string;
 }
 
-export default function ProductCard({ product, className }: ProductCardProps) {
-  const { items, addItem, updateQuantity } = useCartStore();
-  const { token } = useAuthStore();
+function ProductCard({ product, className }: ProductCardProps) {
+  // Granular selector — re-renders only when THIS product's qty in the base slot changes.
+  // Returns a primitive (number) so Zustand's default reference equality is correct.
+  const qty = useCartStore(
+    useCallback(
+      (s) => s.items.find((i) => i.product._id === product._id && i.variantId == null)?.quantity ?? 0,
+      [product._id],
+    ),
+  );
+  // Actions are stable references in Zustand — these selectors never trigger re-renders
+  const addItem        = useCartStore((s) => s.addItem);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  // Select only token (primitive), not the whole auth state
+  const token = useAuthStore((s) => s.token);
 
-  const cartItem = items.find((i) => i.product._id === product._id);
-  const qty      = cartItem?.quantity ?? 0;
+  // Derived price/discount/badge — only recompute when product data changes
+  const { displayPrice, hasMultiplePrices, discount, badge } = useMemo(() => {
+    const variantPrices = (product.variants ?? [])
+      .map((v) => v.price)
+      .filter((p): p is number => p != null && p > 0);
 
-  // When base price is 0 and variants exist, derive display price from cheapest variant
-  const variantPrices = (product.variants ?? [])
-    .map((v) => v.price)
-    .filter((p): p is number => p != null && p > 0);
-  const displayPrice =
-    product.price === 0 && variantPrices.length > 0
-      ? Math.min(...variantPrices)
-      : product.price;
-  const hasMultiplePrices =
-    product.price === 0 && variantPrices.length > 1 &&
-    new Set(variantPrices).size > 1;
+    const dp =
+      product.price === 0 && variantPrices.length > 0
+        ? Math.min(...variantPrices)
+        : product.price;
 
-  const discount =
-    product.originalPrice && product.originalPrice > displayPrice
-      ? Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100)
-      : null;
+    const hmp =
+      product.price === 0 && variantPrices.length > 1 && new Set(variantPrices).size > 1;
 
-  function handleCartAction(quantity: number) {
+    const disc =
+      product.originalPrice && product.originalPrice > dp
+        ? Math.round(((product.originalPrice - dp) / product.originalPrice) * 100)
+        : null;
+
+    return {
+      displayPrice:      dp,
+      hasMultiplePrices: hmp,
+      discount:          disc,
+      badge:             product.badge ? BADGE_MAP[product.badge] : null,
+    };
+  }, [product.price, product.originalPrice, product.variants, product.badge]);
+
+  const handleCartAction = useCallback((quantity: number) => {
     if (!token) {
-      // Guest: add to local cart + save pending action for sync after login
       void addItem(product, quantity, null);
       savePendingAction({ type: "addToCart", product, quantity });
       toast.info("Added to cart — sign in to save & checkout");
       return;
     }
     void addItem(product, quantity, token);
-  }
+  }, [token, addItem, product]);
 
-  function handleQuantityChange(newQty: number) {
+  const handleQuantityChange = useCallback((newQty: number) => {
     // ProductCard has no variant selector — use null variantId (base product slot)
-    const variantId = cartItem?.variantId ?? null;
+    const variantId = null;
     if (!token) {
       void updateQuantity(product._id, variantId, newQty, null);
       return;
     }
     void updateQuantity(product._id, variantId, newQty, token);
-  }
-
-
-  const badge = product.badge ? BADGE_MAP[product.badge] : null;
+  }, [token, updateQuantity, product._id]);
 
   return (
     <article
@@ -294,3 +308,5 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     </article>
   );
 }
+
+export default memo(ProductCard);

@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
 import { AdminOrderQuerySchema } from "@/lib/validations/admin-filters";
+import { decodeCursor, findKeyset, COMMON_SORT_CONFIGS } from "@/lib/pagination/keyset";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { page, limit, status, q, vendorId, dateFrom, dateTo } = parsed.data;
+  const { page, limit, cursor: rawCursor, status, q, vendorId, dateFrom, dateTo } = parsed.data;
 
   try {
     await connectDB();
@@ -43,16 +44,33 @@ export async function GET(req: NextRequest) {
     if (dateFrom || dateTo) {
       const dateFilter: Record<string, Date> = {};
       if (dateFrom) dateFilter.$gte = new Date(`${dateFrom}T00:00:00.000Z`);
-      if (dateTo) {
-        const end = new Date(`${dateTo}T23:59:59.999Z`);
-        dateFilter.$lte = end;
-      }
+      if (dateTo)   dateFilter.$lte = new Date(`${dateTo}T23:59:59.999Z`);
       filter.createdAt = dateFilter;
     }
 
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj) {
+      const { docs, nextCursor, hasMore } = await findKeyset({
+        model:  OrderModel,
+        filter,
+        cursor: cursorObj,
+        limit,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { orders: docs, nextCursor, hasMore },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
+    const sort = COMMON_SORT_CONFIGS.newest.sort;
+
     const [orders, total] = await Promise.all([
       OrderModel.find(filter)
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),

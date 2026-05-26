@@ -1,11 +1,12 @@
 import crypto from "crypto";
 import { getOrderByRefundId, setOrderRefund } from "@/services/order.service";
 import { sendRefundConfirmed } from "@/services/email.service";
+import logger from "@/lib/logger";
 
 export async function POST(req: Request) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!secret) {
-    console.error("[webhook] RAZORPAY_WEBHOOK_SECRET is not set");
+    logger.error({}, "RAZORPAY_WEBHOOK_SECRET is not set");
     return Response.json({ success: false }, { status: 500 });
   }
 
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     try {
       const order = await getOrderByRefundId(refundId);
       if (!order) {
-        console.warn("[webhook] No order found for refundId:", refundId);
+        logger.warn({ refundId }, "no order found for refund");
         return Response.json({ success: true });
       }
 
@@ -48,13 +49,13 @@ export async function POST(req: Request) {
             customerName: order.delivery.fullName,
             total:        order.total,
           });
-          console.log("[webhook] Refund confirmation email sent to", order.delivery.email);
+          logger.info({ email: order.delivery.email }, "refund confirmation email sent");
         } catch (emailErr) {
-          console.error("[webhook] Failed to send refund confirmation email:", emailErr);
+          logger.error({ err: emailErr }, "failed to send refund confirmation email");
         }
       }
     } catch (err) {
-      console.error("[webhook] Failed to process refund.processed event:", err);
+      logger.error({ err }, "failed to process refund.processed event");
     }
   }
 

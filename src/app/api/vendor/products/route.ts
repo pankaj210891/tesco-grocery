@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import ProductModel from "@/lib/db/models/product.model";
 import VendorModel from "@/lib/db/models/vendor.model";
+import { decodeCursor, findKeyset, COMMON_SORT_CONFIGS } from "@/lib/pagination/keyset";
 
 export async function GET(req: NextRequest) {
   const auth = await requireVendor(req);
@@ -11,16 +12,37 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const page  = Math.max(1, Number(searchParams.get("page") ?? 1));
-    const limit = Math.min(50, Number(searchParams.get("limit") ?? 20));
+    const page      = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const limit     = Math.min(50, Number(searchParams.get("limit") ?? 20));
+    const rawCursor = searchParams.get("cursor") ?? "";
 
+    const filter = { vendorId: auth.vendorId };
+
+    // ── Keyset mode ───────────────────────────────────────────────────────────
+    const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
+
+    if (cursorObj) {
+      const { docs, nextCursor, hasMore } = await findKeyset({
+        model:  ProductModel,
+        filter: filter as Record<string, unknown>,
+        cursor: cursorObj,
+        limit,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { products: docs, nextCursor, hasMore },
+      });
+    }
+
+    // ── Offset mode (backward compatible) ─────────────────────────────────────
     const [products, total] = await Promise.all([
-      ProductModel.find({ vendorId: auth.vendorId })
-        .sort({ createdAt: -1 })
+      ProductModel.find(filter)
+        .sort(COMMON_SORT_CONFIGS.newest.sort)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
-      ProductModel.countDocuments({ vendorId: auth.vendorId }),
+      ProductModel.countDocuments(filter),
     ]);
 
     return NextResponse.json({
@@ -57,7 +79,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Sanitise dynamic attributes — only string key/value pairs allowed
     const safeAttrs: Record<string, string> = {};
     if (attributes && typeof attributes === "object" && !Array.isArray(attributes)) {
       for (const [k, v] of Object.entries(attributes as Record<string, unknown>)) {
@@ -70,7 +91,6 @@ export async function POST(req: NextRequest) {
 
     const vendor = await VendorModel.findById(auth.vendorId).lean<{ name: string }>();
 
-    // Sanitise variants — only safe fields allowed
     const safeVariants: Array<{ label: string; sku: string; price: number | null; originalPrice: number | null; stockQuantity: number | null; inStock: boolean }> = [];
     if (Array.isArray(variants)) {
       for (const v of variants as unknown[]) {
@@ -98,7 +118,6 @@ export async function POST(req: NextRequest) {
       category:      category as string,
       brand:         brand as string,
       unit:          unit as string,
-      // If stockQuantity is provided derive inStock from it; otherwise honour the explicit flag
       stockQuantity:     typeof stockQuantity === "number" ? (stockQuantity as number) : null,
       inStock:           typeof stockQuantity === "number" ? (stockQuantity as number) > 0 : ((inStock as boolean | undefined) ?? true),
       lowStockThreshold: typeof lowStockThreshold === "number" ? (lowStockThreshold as number) : 5,

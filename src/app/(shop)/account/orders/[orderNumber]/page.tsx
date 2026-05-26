@@ -11,6 +11,8 @@ import { useAuthStore } from "@/store/auth.store";
 import { useCartStore } from "@/store/cart.store";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useOrderSSE } from "@/hooks/useOrderSSE";
+import type { OrderSSEStatusEvent, VendorOrderSSEStatusEvent } from "@/hooks/useOrderSSE";
 import { formatPrice } from "@/lib/utils/format";
 import OrderTimeline from "@/components/account/OrderTimeline";
 import VendorOrderTracking from "@/components/account/VendorOrderTracking";
@@ -73,6 +75,23 @@ export default function OrderDetailPage({
   const [refundError,   setRefundError]   = useState("");
   const [refundDone,    setRefundDone]    = useState(false);
   useScrollLock(showCancel || showRefund);
+
+  // ── Live order tracking via SSE ──────────────────────────────────────────────
+  useOrderSSE({
+    orderNumber,
+    token,
+    enabled: hydrated && !!user && !!token && !loading,
+    onOrderStatus: (payload: OrderSSEStatusEvent) => {
+      setOrder((prev) => prev ? { ...prev, status: payload.status } : prev);
+    },
+    onVendorStatus: (payload: VendorOrderSSEStatusEvent) => {
+      setVendorOrders((prev) =>
+        prev.map((vo) =>
+          vo._id === payload.vendorOrderId ? { ...vo, status: payload.status } : vo,
+        ),
+      );
+    },
+  });
 
   useEffect(() => {
     if (!hydrated) return;

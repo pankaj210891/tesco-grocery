@@ -5,6 +5,8 @@ import {
   createCategoryAttributes,
 } from "@/services/category-attributes.service";
 import { CreateCategoryAttributesSchema } from "@/lib/validations/category-attributes";
+import { cacheDel } from "@/lib/redis/cache";
+import { CacheKey } from "@/lib/redis/keys";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
@@ -42,6 +44,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const data = await createCategoryAttributes(parsed.data, auth.userId);
+    // New category attributes — bust any pre-existing cache for this category slug
+    void cacheDel(CacheKey.categoryAttrs(parsed.data.category.toLowerCase()));
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create";

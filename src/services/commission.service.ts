@@ -2,8 +2,10 @@ import { connectDB } from "@/lib/db/mongoose";
 import CommissionConfigModel from "@/lib/db/models/commission-config.model";
 import VendorModel from "@/lib/db/models/vendor.model";
 import type { CommissionConfig } from "@/types";
+import { withCache, cacheDel } from "@/lib/redis/cache";
+import { CacheKey, TTL } from "@/lib/redis/keys";
 
-export async function getConfig(): Promise<CommissionConfig> {
+async function fetchConfig(): Promise<CommissionConfig> {
   await connectDB();
 
   const doc = await CommissionConfigModel.findById("singleton").lean();
@@ -20,6 +22,15 @@ export async function getConfig(): Promise<CommissionConfig> {
   // Bootstrap singleton on first call
   await CommissionConfigModel.create({ _id: "singleton", defaultRate: 10, vendorRates: [] });
   return { defaultRate: 10, vendorRates: [] };
+}
+
+export async function getConfig(): Promise<CommissionConfig> {
+  return withCache(CacheKey.commissionConfig(), TTL.LONG, fetchConfig);
+}
+
+/** Invalidate the commission config cache. Call after any admin write. */
+export async function invalidateCommissionCache(): Promise<void> {
+  await cacheDel(CacheKey.commissionConfig());
 }
 
 export function getRateForVendor(vendorId: string | null | undefined, config: CommissionConfig): number {
@@ -44,13 +55,17 @@ export async function updateConfig(data: {
     { new: true, upsert: true, runValidators: true }
   ).lean();
 
-  return {
+  const result: CommissionConfig = {
     defaultRate: doc!.defaultRate,
     vendorRates: (doc!.vendorRates ?? []).map((r) => ({
       vendorId: String(r.vendorId),
       rate:     r.rate,
     })),
   };
+
+  // Bust cache so order.service picks up the new rates immediately
+  await invalidateCommissionCache();
+  return result;
 }
 
 export interface CommissionConfigWithNames {

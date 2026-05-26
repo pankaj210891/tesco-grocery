@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db/mongoose";
 import UserModel from "@/lib/db/models/user.model";
 import { getAuthUser } from "@/lib/utils/apiAuth";
+import logger from "@/lib/logger";
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -49,7 +50,7 @@ export async function PUT(req: Request) {
 
     return Response.json({ success: true, message: "Password changed successfully." });
   } catch (err) {
-    console.error("[PUT /api/account/security/change-password]", err);
+    logger.error({ err }, "change-password error");
     return Response.json({ error: "Failed to change password." }, { status: 500 });
   }
 }

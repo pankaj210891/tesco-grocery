@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { NextRequest } from "next/server";
 import { validateCheckoutOrder, firePromoUsage } from "@/lib/checkout/validate-order";
+import { paymentLimiter, applyRateLimit, getClientIp } from "@/lib/ratelimit";
 import { createOrder } from "@/services/order.service";
 import { bookDeliverySlot } from "@/services/delivery-slot.service";
-import { sendOrderConfirmation } from "@/services/email.service";
+import { enqueueOrderConfirmation } from "@/lib/queue/jobs/email.jobs";
+import { enqueueAnalyticsEvent } from "@/lib/queue/jobs/analytics.jobs";
 
 const deliverySchema = z.object({
   fullName: z.string().min(2),
@@ -39,7 +42,15 @@ const bodySchema = z.object({
   deliverySlot: deliverySlotSchema,
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const ip    = getClientIp(req);
+  const limit = await applyRateLimit(paymentLimiter, `payment:${ip}`);
+  if (limit.limited) {
+    return Response.json(
+      { success: false, error: "Too many payment requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
   try {
     const body   = await req.json();
     const parsed = bodySchema.safeParse(body);
@@ -97,19 +108,21 @@ export async function POST(req: Request) {
       validated.discount,
     );
 
-    try {
-      await sendOrderConfirmation(delivery.email, {
-        orderNumber:     result.orderNumber,
-        customerName:    delivery.fullName,
-        items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
-        total:           validated.total,
-        paymentMethod:   "Cash on Delivery",
-        deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
-      });
-      console.log("[cod] Order confirmation email sent to", delivery.email);
-    } catch (emailErr) {
-      console.error("[cod] Failed to send order confirmation email:", emailErr);
-    }
+    void enqueueOrderConfirmation(delivery.email, {
+      orderNumber:     result.orderNumber,
+      customerName:    delivery.fullName,
+      items:           validated.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      total:           validated.total,
+      paymentMethod:   "Cash on Delivery",
+      deliveryAddress: `${delivery.address}, ${delivery.city} – ${delivery.postcode}`,
+    });
+
+    void enqueueAnalyticsEvent("order.created", {
+      orderNumber:   result.orderNumber,
+      paymentMethod: "cod",
+      total:         validated.total,
+      itemCount:     validated.items.length,
+    }, userId);
 
     return Response.json({
       success: true,

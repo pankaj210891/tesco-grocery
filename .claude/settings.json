@@ -33,7 +33,10 @@
       "WebFetch(domain:prakash-supermarket.vercel.app)",
       "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/types/**)",
       "Read(//tmp/**)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/**)",
+      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/lib/utils/**)",
+      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/lib/**)"
     ],
     "deny": []
   },

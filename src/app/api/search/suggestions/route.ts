@@ -6,6 +6,8 @@ import {
   isAtlasSearchAvailable,
   atlasSearchSuggestions,
 } from "@/lib/search/atlas-search";
+import { normalizeQuery, buildRegexFilter } from "@/lib/search/search-utils";
+import { logSearchQuery } from "@/lib/search/search-analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +22,9 @@ type RawProduct = {
   brand:    string;
 };
 
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const raw = req.nextUrl.searchParams.get("q") ?? "";
+  const q   = normalizeQuery(raw); // trims, collapses whitespace, enforces 120-char max
 
   if (!q || q.length < 2) {
     return Response.json({ success: true, data: { categories: [], products: [], brands: [] } });
@@ -33,12 +32,10 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
 
-  // ── Category suggestions always use regex (no Atlas index for categories) ──
-  const regex = new RegExp(escapeRegex(q), "i");
-
+  // ── Category suggestions always use regex (no Atlas index on categories collection) ──
   const rawCats = await CategoryModel.find({
     isActive: true,
-    $or: [{ name: regex }, { slug: regex }, { description: regex }],
+    ...buildRegexFilter(q, ["name", "slug", "description"]),
   })
     .select("name slug emoji")
     .limit(4)
@@ -51,37 +48,37 @@ export async function GET(req: NextRequest) {
     emoji: c.emoji ?? "📦",
   }));
 
-  // ── Product + brand suggestions: Atlas if available, regex fallback ─────────
+  // ── Product + brand suggestions: Atlas if available, regex fallback ──────────
   const atlasAvailable = await isAtlasSearchAvailable();
 
   if (atlasAvailable) {
     const { products, brands } = await atlasSearchSuggestions(q);
-    // Only return Atlas results if they found something; otherwise fall through to regex
     if (products.length > 0 || brands.length > 0) {
+      // Analytics hook: fire-and-forget, do not await
+      void logSearchQuery(q, products.length);
       return Response.json({ success: true, data: { categories, products, brands } });
     }
   }
 
   // Regex fallback (also used when Atlas returns empty results)
+  const PRODUCT_FIELDS = ["name", "brand", "description", "tags", "category", "subcategory"];
+
   const rawProducts = await ProductModel.find({
     status: "approved",
-    $or: [
-      { name: regex },
-      { brand: regex },
-      { description: regex },
-      { tags: regex },
-      { category: regex },
-      { subcategory: regex },
-    ],
+    ...buildRegexFilter(q, PRODUCT_FIELDS),
   })
     .select("name slug images price category brand")
     .limit(6)
     .lean<RawProduct[]>();
 
+  const lowerQ   = q.toLowerCase();
   const brandSet = new Set<string>();
   rawProducts.forEach((p) => {
-    if (p.brand && regex.test(p.brand)) brandSet.add(p.brand);
+    if (p.brand && p.brand.toLowerCase().includes(lowerQ)) brandSet.add(p.brand);
   });
+
+  // Analytics hook: fire-and-forget
+  void logSearchQuery(q, rawProducts.length);
 
   return Response.json({
     success: true,

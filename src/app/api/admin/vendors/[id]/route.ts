@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import VendorModel from "@/lib/db/models/vendor.model";
 import ProductModel from "@/lib/db/models/product.model";
-import { sendVendorApproved } from "@/services/email.service";
+import { enqueueVendorApproved } from "@/lib/queue/jobs/email.jobs";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,10 +39,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     );
     if (!vendor) return NextResponse.json({ success: false, error: "Vendor not found" }, { status: 404 });
 
-    // Send approval email when status transitions to active
+    // Enqueue approval email when status transitions to active
     if (previous && previous.status !== "active" && (body as { status?: string }).status === "active") {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      void sendVendorApproved(previous.email, {
+      void enqueueVendorApproved(previous.email, {
         vendorName:   previous.ownerName,
         businessName: previous.name,
         dashboardUrl: `${appUrl}/vendor`,

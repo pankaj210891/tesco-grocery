@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Clock, Calendar, CheckCircle, AlertCircle } from "lucide-react";
+import { apiClient } from "@/lib/axios";
 import type { DeliverySlot, DeliverySlotBooking } from "@/types";
 
 interface DateAvailability {
@@ -53,9 +54,8 @@ export default function DeliverySlotSelector({ value, onChange }: Props) {
 
   // Load available dates on mount
   useEffect(() => {
-    fetch("/api/delivery-slots/available-dates")
-      .then((r) => r.json() as Promise<{ success: boolean; data: DateAvailability[] }>)
-      .then((json) => { if (json.success) setAvailDates(json.data); })
+    apiClient.get<{ success: boolean; data: DateAvailability[] }>("/api/delivery-slots/available-dates")
+      .then((res) => { if (res.data.success) setAvailDates(res.data.data); })
       .catch(() => {})
       .finally(() => setLoadingDates(false));
   }, []);
@@ -66,9 +66,8 @@ export default function DeliverySlotSelector({ value, onChange }: Props) {
     if (!selectedDate) { setSlots([]); return; }
     setLoadingSlots(true);
 
-    fetch(`/api/delivery-slots?date=${selectedDate}`)
-      .then((r) => r.json() as Promise<{ success: boolean; data: DeliverySlot[] }>)
-      .then((json) => { if (json.success) setSlots(json.data); })
+    apiClient.get<{ success: boolean; data: DeliverySlot[] }>(`/api/delivery-slots?date=${selectedDate}`)
+      .then((res) => { if (res.data.success) setSlots(res.data.data); })
       .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false));
   }, [selectedDate]);

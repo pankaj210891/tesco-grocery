@@ -1,6 +1,8 @@
 import { connectDB } from "@/lib/db/mongoose";
 import CategoryModel, { type CategoryDoc } from "@/lib/db/models/category.model";
 import type { Category, CategoryNode } from "@/types";
+import { withCache, invalidateKeys } from "@/lib/redis/cache";
+import { CacheKey, TTL, CATEGORY_GROUP_KEYS } from "@/lib/redis/keys";
 
 function toCategory(doc: CategoryDoc & { _id: { toString(): string } }): Category {
   return {
@@ -49,29 +51,45 @@ function buildTree(categories: Category[]): CategoryNode[] {
 }
 
 export async function getAllCategories(): Promise<Category[]> {
-  await connectDB();
-  const docs = await CategoryModel
-    .find({ isActive: true })
-    .sort({ order: 1 })
-    .lean<CategoryDoc[]>();
-  return docs.map(toCategory);
+  return withCache(CacheKey.categoryList(), TTL.LONG, async () => {
+    await connectDB();
+    const docs = await CategoryModel
+      .find({ isActive: true })
+      .sort({ order: 1 })
+      .lean<CategoryDoc[]>();
+    return docs.map(toCategory);
+  });
 }
 
 export async function getCategoryTree(): Promise<CategoryNode[]> {
-  await connectDB();
-  const docs = await CategoryModel
-    .find({ isActive: true })
-    .sort({ level: 1, order: 1, name: 1 })
-    .lean<CategoryDoc[]>();
-  return buildTree(docs.map(toCategory));
+  return withCache(CacheKey.categoryTree(), TTL.LONG, async () => {
+    await connectDB();
+    const docs = await CategoryModel
+      .find({ isActive: true })
+      .sort({ level: 1, order: 1, name: 1 })
+      .lean<CategoryDoc[]>();
+    return buildTree(docs.map(toCategory));
+  });
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  await connectDB();
-  const doc = await CategoryModel
-    .findOne({ slug, isActive: true })
-    .lean<CategoryDoc>();
-  return doc ? toCategory(doc) : null;
+  return withCache(CacheKey.categorySlug(slug), TTL.LONG, async () => {
+    await connectDB();
+    const doc = await CategoryModel
+      .findOne({ slug, isActive: true })
+      .lean<CategoryDoc>();
+    return doc ? toCategory(doc) : null;
+  });
+}
+
+/**
+ * Invalidate all category caches. Pass the affected slug to also bust the
+ * per-slug cache entry (required on update/delete).
+ */
+export async function invalidateCategoryCache(slug?: string): Promise<void> {
+  const keys: string[] = [...CATEGORY_GROUP_KEYS];
+  if (slug) keys.push(CacheKey.categorySlug(slug));
+  await invalidateKeys(keys);
 }
 
 export async function searchCategories(query: string): Promise<Category[]> {
