@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import type { UserRole } from "@/types";
 
@@ -12,13 +12,14 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ roles, children }: AuthGuardProps) {
   const { user, hasHydrated } = useAuthStore();
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!hasHydrated) return;
-    if (!user) { router.push("/login"); return; }
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(pathname)}`); return; }
     if (!roles.includes(user.role)) { router.push("/"); }
-  }, [hasHydrated, user, router, roles]);
+  }, [hasHydrated, user, router, roles, pathname]);
 
   if (!hasHydrated) {
     return (

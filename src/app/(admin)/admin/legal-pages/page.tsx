@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FileText, Shield, RefreshCw, Eye, Clock, Tag,
   CheckCircle2, XCircle, ExternalLink, Loader2, Pencil,
@@ -28,7 +29,14 @@ function formatDate(iso: string) {
 interface SeedState { loading: boolean; done: boolean; }
 
 export default function AdminLegalPagesPage() {
-  const { token }           = useAuthStore();
+  const { token, user, hasHydrated } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) { router.push("/login"); return; }
+    if (user.role !== "admin") router.push("/");
+  }, [hasHydrated, user, router]);
   const [pages, setPages]   = useState<LegalPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [seed, setSeed]     = useState<SeedState>({ loading: false, done: false });

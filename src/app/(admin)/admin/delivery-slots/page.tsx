@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Clock, Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
@@ -25,7 +26,14 @@ function formatDate(iso: string) {
 }
 
 export default function AdminDeliverySlotsPage() {
-  const { token } = useAuthStore();
+  const { token, user, hasHydrated } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) { router.push("/login"); return; }
+    if (user.role !== "admin") router.push("/");
+  }, [hasHydrated, user, router]);
   const [slots,    setSlots]    = useState<AdminSlot[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [seeding,  setSeeding]  = useState(false);

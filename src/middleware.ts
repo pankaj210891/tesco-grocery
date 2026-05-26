@@ -5,7 +5,7 @@ const AUTH_COOKIE    = "auth_token";
 const REFRESH_COOKIE = "refresh_token";
 const ACCESS_MAX_AGE = 15 * 60; // 15 min
 
-const CUSTOMER_PROTECTED = ["/account"];
+const CUSTOMER_PROTECTED = ["/account", "/checkout"];
 const VENDOR_PROTECTED   = ["/vendor"];
 const ADMIN_PROTECTED    = ["/admin"];
 
@@ -122,5 +122,7 @@ export const config = {
     "/admin/:path*",
     "/vendor/:path*",
     "/account/:path*",
+    "/checkout",
+    "/checkout/:path*",
   ],
 };

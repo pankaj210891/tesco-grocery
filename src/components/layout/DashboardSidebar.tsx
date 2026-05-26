@@ -73,7 +73,7 @@ export default function DashboardSidebar({ variant, panelTitle, nav, rootHref }:
 
   function handleLogout() {
     logout();
-    router.push("/login");
+    router.push("/");
   }
 
   const logoutButton = (
