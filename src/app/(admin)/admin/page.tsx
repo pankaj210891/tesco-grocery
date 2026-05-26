@@ -8,6 +8,9 @@ import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import StatsCard from "@/components/admin/StatsCard";
 import type { AdminVendorStats } from "@/types";
+import { toast } from "sonner";
+import { useAdminSSE } from "@/hooks/useAdminSSE";
+import type { AdminSSENewOrderEvent } from "@/hooks/useAdminSSE";
 
 interface TopVendorRevenue {
   vendorId:   string;
@@ -47,6 +50,25 @@ export default function AdminDashboard() {
   const [stats, setStats]             = useState<DashStats | null>(null);
   const [topVendors, setTopVendors]   = useState<AdminVendorStats[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [liveOrderCount, setLiveOrderCount] = useState(0);
+
+  // ── Live admin alerts via SSE ─────────────────────────────────────────────
+  useAdminSSE({
+    token,
+    enabled: !!user && user.role === "admin" && !!token,
+    onNewOrder: (payload: AdminSSENewOrderEvent) => {
+      setLiveOrderCount((n) => n + 1);
+      setStats((prev) =>
+        prev
+          ? { ...prev, totalOrders: prev.totalOrders + 1, pendingOrders: prev.pendingOrders + 1 }
+          : prev,
+      );
+      toast.info(`New order: #${payload.orderNumber}`, {
+        description: `₹${Math.round(payload.total).toLocaleString("en-IN")}`,
+        action: { label: "View", onClick: () => router.push("/admin/orders") },
+      });
+    },
+  });
 
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
@@ -85,8 +107,8 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatsCard label="Products"  value={stats.totalProducts} icon={Package}     color="blue"   href="/admin/products"
           sub={stats.pendingProducts > 0 ? `${stats.pendingProducts} pending review` : undefined} />
-        <StatsCard label="Orders"    value={stats.totalOrders}   icon={ShoppingBag} color="green"  href="/admin/orders"
-          sub={`${stats.pendingOrders} pending`} />
+        <StatsCard label="Orders"    value={stats.totalOrders + liveOrderCount}   icon={ShoppingBag} color="green"  href="/admin/orders"
+          sub={`${stats.pendingOrders + liveOrderCount} pending`} />
         <StatsCard label="Users"     value={stats.totalUsers}    icon={Users}       color="purple" href="/admin/users" />
         <StatsCard label="Vendors"   value={stats.totalVendors}  icon={Store}       color="orange" href="/admin/vendors" />
         <StatsCard label="Revenue"   value={`₹${Math.round(stats.totalRevenue).toLocaleString("en-IN")}`} icon={TrendingUp} color="red" />

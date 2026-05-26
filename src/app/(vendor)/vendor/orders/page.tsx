@@ -7,6 +7,8 @@ import { useAuthStore } from "@/store/auth.store";
 import { useVendorStore } from "@/store/vendor.store";
 import { fetchVendorOrders, updateVendorOrderStatus } from "@/services/vendor.service";
 import { toast } from "sonner";
+import { useVendorSSE } from "@/hooks/useVendorSSE";
+import type { VendorSSEOrderEvent, VendorSSENewOrderEvent } from "@/hooks/useVendorSSE";
 import {
   VENDOR_TRANSITIONS,
   TERMINAL_STATUSES,
@@ -53,6 +55,19 @@ export default function VendorOrdersPage() {
     if (user.role !== "vendor" && user.role !== "admin")  { router.push("/");     return; }
     void load();
   }, [user, router, load]);
+
+  // ── Live vendor order updates via SSE ──────────────────────────────────────
+  useVendorSSE({
+    token,
+    enabled: !!user && !!token,
+    onOrderUpdated: (payload: VendorSSEOrderEvent) => {
+      updateOrderStatus(payload.vendorOrderId, payload.status);
+    },
+    onNewOrder: (payload: VendorSSENewOrderEvent) => {
+      toast.info(`New order received: #${payload.orderNumber}`);
+      void load(); // reload the list to show the new order
+    },
+  });
 
   async function handleStatusUpdate(id: string, newStatus: string) {
     if (!token) return;
