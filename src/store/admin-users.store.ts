@@ -1,6 +1,7 @@
-import { create } from "zustand";
+import { createAdminStore } from "./createAdminStore";
 
 export interface AdminUserFilters {
+  [key: string]: string;
   search:   string;
   role:     string; // "" | "customer" | "vendor" | "admin"
   status:   string; // "" | "active" | "suspended"
@@ -9,24 +10,8 @@ export interface AdminUserFilters {
   sortBy:   string;
 }
 
-interface AdminUsersState {
-  page:     number;
-  filters:  AdminUserFilters;
-
-  setPage:      (page: number) => void;
-  setFilter:    (partial: Partial<AdminUserFilters>) => void;
-  resetFilters: () => void;
-}
-
 export const DEFAULT_USER_FILTERS: AdminUserFilters = {
   search: "", role: "", status: "", dateFrom: "", dateTo: "", sortBy: "newest",
 };
 
-export const useAdminUsersStore = create<AdminUsersState>((set) => ({
-  page:    1,
-  filters: { ...DEFAULT_USER_FILTERS },
-
-  setPage:      (page)    => set({ page }),
-  setFilter:    (partial) => set((s) => ({ filters: { ...s.filters, ...partial }, page: 1 })),
-  resetFilters: ()        => set({ filters: { ...DEFAULT_USER_FILTERS }, page: 1 }),
-}));
+export const useAdminUsersStore = createAdminStore<AdminUserFilters>(DEFAULT_USER_FILTERS);

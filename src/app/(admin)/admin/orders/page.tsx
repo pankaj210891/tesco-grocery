@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Search, Store, Eye } from "lucide-react";
+import { X, Search, Store, Eye } from "lucide-react";
+import { AdminTablePagination } from "@/components/admin/AdminTablePagination";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
@@ -222,18 +223,14 @@ export default function AdminOrdersPage() {
           </table>
         </div>
 
-        {data && data.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
-            <span className="text-gray-500">Page {data.page} of {data.totalPages} · {data.total} orders</span>
-            <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+        {data && (
+          <AdminTablePagination
+            page={data.page}
+            totalPages={data.totalPages}
+            total={data.total}
+            label="orders"
+            onPageChange={setPage}
+          />
         )}
       </div>
 
