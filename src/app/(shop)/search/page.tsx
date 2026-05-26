@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getProducts } from "@/services/product.service";
 import { searchCategories } from "@/services/category.service";
+import { getPopularSearches } from "@/lib/search/search-analytics";
+import { logSearchQuery } from "@/lib/search/search-analytics";
 import ProductGrid from "@/components/product/ProductGrid";
 import SortControl from "@/components/product/SortControl";
 import Pagination from "@/components/ui/Pagination";
@@ -56,6 +58,7 @@ export default async function SearchPage({ searchParams }: Props) {
   let total      = 0;
   let totalPages = 0;
   let matchingCategories: Category[] = [];
+  let popularSearches: string[]      = [];
 
   if (query) {
     const filters: ProductFilters = {
@@ -72,6 +75,14 @@ export default async function SearchPage({ searchParams }: Props) {
     total              = productResult.total ?? 0;
     totalPages         = productResult.totalPages ?? 1;
     matchingCategories = cats;
+
+    // Record the search in analytics (fire-and-forget from the server)
+    void logSearchQuery(query, total);
+
+    // When 0 results, fetch popular searches to show as alternatives
+    if (total === 0) {
+      popularSearches = await getPopularSearches(8);
+    }
   }
 
   return (
@@ -92,7 +103,9 @@ export default async function SearchPage({ searchParams }: Props) {
             <CategoryChips categories={matchingCategories} />
           )}
 
-          {products.length === 0 && <NoResults query={query} />}
+          {products.length === 0 && (
+            <NoResults query={query} popularSearches={popularSearches} />
+          )}
 
           {products.length > 0 && (
             <div>
