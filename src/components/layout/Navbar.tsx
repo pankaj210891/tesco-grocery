@@ -16,9 +16,12 @@ import {
   HelpCircle,
   Tag,
   Phone,
+  Command,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { useQuickNav } from "@/hooks/useQuickNav";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -121,6 +124,7 @@ export default function Navbar() {
   const wishlistCount = useWishlistStore((s) => s.items.length);
   useAuthData();
   const { user, logout } = useAuthStore();
+  const { setOpen: openQuickNav } = useQuickNav();
   const resetCart     = useCartStore((s) => s.reset);
   const resetWishlist = useWishlistStore((s) => s.reset);
   const hydrated = useHydrated();
@@ -216,8 +220,17 @@ export default function Navbar() {
           </Link>
 
           {/* Search bar — desktop */}
-          <div className="hidden md:flex flex-1 max-w-2xl">
+          <div className="hidden md:flex flex-1 max-w-2xl items-center gap-2">
             <SearchBar />
+            <button
+              onClick={() => openQuickNav(true)}
+              title="Quick Navigation (⌘K)"
+              aria-label="Quick Navigation (⌘K)"
+              className="shrink-0 hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:border-amber-300 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors group"
+            >
+              <Command className="h-3 w-3 text-gray-400 group-hover:text-amber-500 transition-colors" aria-hidden />
+              <span className="text-[11px] font-mono font-semibold text-gray-400 group-hover:text-amber-500 transition-colors leading-none">K</span>
+            </button>
           </div>
 
           {/* Right actions */}
@@ -462,6 +475,15 @@ export default function Navbar() {
               </p>
             </div>
             <ul className="divide-y divide-gray-100 dark:divide-gray-800 mb-2">
+              <li>
+                <button
+                  onClick={() => { setMobileOpen(false); openQuickNav(true); }}
+                  className="w-full flex items-center gap-3 px-6 py-3 text-sm font-semibold transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                  style={{ color: AMBER }}
+                >
+                  <Zap className="h-4 w-4" /> Quick Navigation
+                </button>
+              </li>
               <li>
                 <Link
                   href="/offers"

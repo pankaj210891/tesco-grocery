@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import ScrollRestorer from "@/components/layout/ScrollRestorer";
 import NetworkStatus from "@/components/layout/NetworkStatus";
+import QuickNav from "@/components/ui/QuickNav";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default function RootLayout({
           <ScrollRestorer />
           <NetworkStatus />
           {children}
+          <QuickNav />
           <Toaster position="top-right" richColors duration={2000} />
         </ThemeProvider>
       </body>
