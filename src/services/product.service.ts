@@ -9,6 +9,7 @@ import {
   isAtlasSearchAvailable,
   atlasSearchProductsPipeline,
 } from "@/lib/search/atlas-search";
+import { escapeRegex, brandRegex } from "@/lib/search/search-utils";
 import {
   decodeCursor,
   findKeyset,
@@ -36,7 +37,7 @@ async function resolveCategoryFilter(
     const mapped = CATEGORY_NAME_MAP[slug];
     if (mapped) return { category: mapped };
     const nameFromSlug = slug.replace(/-/g, " ");
-    const escaped = nameFromSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = escapeRegex(nameFromSlug);
     return { category: new RegExp(`^${escaped}$`, "i") };
   }
 
@@ -136,7 +137,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
   }
   if (brands && brands.length > 0) {
     query.brand = {
-      $in: brands.map((b) => new RegExp(`^${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")),
+      $in: brands.map(brandRegex),
     };
   }
   if (inStock) {

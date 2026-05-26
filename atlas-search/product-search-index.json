@@ -33,11 +33,21 @@
           "analyzer": "lucene.standard"
         }
       ],
+      "subcategory": [
+        {
+          "type": "autocomplete",
+          "analyzer": "lucene.standard",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        },
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        }
+      ],
       "category": {
-        "type": "string",
-        "analyzer": "lucene.standard"
-      },
-      "subcategory": {
         "type": "string",
         "analyzer": "lucene.standard"
       },
@@ -46,6 +56,10 @@
         "analyzer": "lucene.standard"
       },
       "tags": {
+        "type": "string",
+        "analyzer": "lucene.standard"
+      },
+      "vendorName": {
         "type": "string",
         "analyzer": "lucene.standard"
       },

@@ -49,6 +49,10 @@ export const CacheKey = {
 
   // Cart recommendations (keyed by sorted category list)
   recommendations:     (catKey: string) => `${NS}:recs:cats:${catKey}`,
+
+  // Search analytics — sorted sets (score = cumulative query count)
+  searchPopular:       ()              => `${NS}:search:popular`,
+  searchZeroResults:   ()              => `${NS}:search:zero-results`,
 } as const;
 
 // ── Invalidation group helpers ────────────────────────────────────────────────
