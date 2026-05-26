@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, X, Package, AlertTriangle, Layers, Trash2, Search, RotateCcw } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
@@ -56,7 +56,7 @@ const inputCls =
   "w-full px-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]";
 const labelCls = "block text-xs font-semibold text-gray-500 uppercase mb-1 tracking-wide capitalize";
 
-export default function VendorProductsPage() {
+function VendorProductsContent() {
   const { user, token } = useAuthStore();
   const router      = useRouter();
   const searchParams = useSearchParams();
@@ -65,7 +65,7 @@ export default function VendorProductsPage() {
   const [page, setPage]             = useState(1);
   const [search, setSearch]         = useState("");
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterInStock, setFilterInStock]   = useState("");
+  const [filterInStock, setFilterInStock]   = useState(() => searchParams.get("inStock") ?? "");
   const [filterBadge, setFilterBadge]       = useState("");
   const [sortBy, setSortBy]         = useState("newest");
   const [loading, setLoading]       = useState(true);
@@ -78,14 +78,6 @@ export default function VendorProductsPage() {
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState("");
   useScrollLock(modal !== null);
-
-  // Seed inStock filter from URL param on first mount (e.g. from dashboard stat card)
-  useEffect(() => {
-    const v = searchParams.get("inStock");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (v === "true" || v === "false") setFilterInStock(v);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // mount-only: only apply the URL seed once
 
   const loadCategories = useCallback(async () => {
     if (!token) return;
@@ -793,5 +785,13 @@ export default function VendorProductsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function VendorProductsPage() {
+  return (
+    <Suspense>
+      <VendorProductsContent />
+    </Suspense>
   );
 }
