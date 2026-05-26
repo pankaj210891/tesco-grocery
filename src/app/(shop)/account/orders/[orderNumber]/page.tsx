@@ -277,7 +277,7 @@ export default function OrderDetailPage({
         </div>
         <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border capitalize ${STATUS_STYLES[order.status]}`}>
-            {order.status}
+            {order.status.replace(/_/g, " ")}
           </span>
           <button
             onClick={handleReorder}
