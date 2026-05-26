@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Package, Search, AlertTriangle, RefreshCw, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
@@ -24,7 +25,14 @@ interface EditRow {
 }
 
 export default function AdminInventoryPage() {
-  const { token } = useAuthStore();
+  const { token, user, hasHydrated } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) { router.push("/login"); return; }
+    if (user.role !== "admin") router.push("/");
+  }, [hasHydrated, user, router]);
   const [products,    setProducts]    = useState<InventoryProduct[]>([]);
   const [total,       setTotal]       = useState(0);
   const [page,        setPage]        = useState(1);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -71,10 +71,16 @@ export default function LoginForm() {
   const router              = useRouter();
   const searchParams        = useSearchParams();
   const setAuth             = useAuthStore((s) => s.setAuth);
+  const { user, hasHydrated } = useAuthStore();
   const executePendingAction = usePendingAction();
   const [showPw, setShowPw] = useState(false);
 
   const explicitRedirect = searchParams.get("redirect");
+
+  useEffect(() => {
+    if (!hasHydrated || !user) return;
+    router.replace(resolveDestination(user.role, explicitRedirect));
+  }, [hasHydrated, user, explicitRedirect, router]);
 
   const {
     register,
