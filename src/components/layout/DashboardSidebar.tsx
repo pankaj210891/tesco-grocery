@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, X, LucideIcon } from "lucide-react";
+import { LogOut, Menu, X, Search, LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store/auth.store";
 import { siteConfig } from "@/config/site";
+import { useQuickNav } from "@/hooks/useQuickNav";
 
 export interface NavItem {
   href: string;
@@ -66,6 +67,7 @@ export default function DashboardSidebar({ variant, panelTitle, nav, rootHref }:
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuthStore();
+  const { setOpen: openQuickNav } = useQuickNav();
   const [open, setOpen] = useState(false);
   useScrollLock(open);
 
@@ -100,9 +102,18 @@ export default function DashboardSidebar({ variant, panelTitle, nav, rootHref }:
       {/* Mobile topbar */}
       <div className={cn("lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/10", bg)}>
         <span className="text-white font-bold text-sm">{panelTitle}</span>
-        <button onClick={() => setOpen(!open)} className="text-white">
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => openQuickNav(true)}
+            className="text-gray-400 hover:text-white transition-colors p-1 rounded"
+            aria-label="Quick Navigation (⌘K)"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <button onClick={() => setOpen(!open)} className="text-white">
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile drawer */}
@@ -126,8 +137,24 @@ export default function DashboardSidebar({ variant, panelTitle, nav, rootHref }:
       {/* Desktop sidebar */}
       <aside className={cn("hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0", bg)}>
         <div className="shrink-0 px-4 py-4 mb-1">
-          <p className="text-white font-black text-base tracking-tight">{siteConfig.shortName}</p>
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-white font-black text-base tracking-tight">{siteConfig.shortName}</p>
+          </div>
           <p className="text-xs text-gray-400 font-medium">{panelTitle}</p>
+        </div>
+        {/* Quick Nav trigger */}
+        <div className="shrink-0 px-4 mb-2">
+          <button
+            onClick={() => openQuickNav(true)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-gray-400 hover:text-gray-200"
+            aria-label="Quick Navigation (⌘K)"
+          >
+            <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span className="flex-1 text-left text-xs font-medium">Quick navigation…</span>
+            <kbd className="text-[9px] font-mono px-1 py-0.5 rounded bg-white/10 text-gray-500 leading-none">
+              ⌘K
+            </kbd>
+          </button>
         </div>
         <p className="shrink-0 text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-4 mb-1">
           Navigation
