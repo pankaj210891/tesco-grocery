@@ -9,6 +9,13 @@ import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
 import StatsCard from "@/components/admin/StatsCard";
 import type { Vendor, VendorAnalytics } from "@/types";
+import dynamic from "next/dynamic";
+import { VENDOR_TOUR_STEPS } from "@/components/onboarding/vendorTourSteps";
+
+const OnboardingTour = dynamic(
+  () => import("@/components/onboarding/OnboardingTour"),
+  { ssr: false }
+);
 
 interface VendorStats {
   totalProducts:      number;
@@ -55,6 +62,7 @@ export default function VendorDashboard() {
 
   return (
     <div className="space-y-8">
+      <OnboardingTour tourKey="vendor-dashboard-v1" steps={VENDOR_TOUR_STEPS} />
       <div>
         <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">Vendor Dashboard</h1>
         {profile && (
