@@ -66,18 +66,31 @@ export async function deleteVendorProduct(token: string, id: string): Promise<vo
 
 // ── Orders ────────────────────────────────────────────────────────────────────
 
+export interface VendorOrderFetchParams {
+  page?:     number;
+  limit?:    number;
+  status?:   string;
+  search?:   string;
+  dateFrom?: string;
+  dateTo?:   string;
+  sortBy?:   string;
+}
+
 export async function fetchVendorOrders(
   token:  string,
-  page    = 1,
-  limit   = 20,
-  status  = "",
+  params: VendorOrderFetchParams = {},
 ): Promise<PaginatedData<VendorOrder>> {
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (status) params.set("status", status);
+  const { page = 1, limit = 20, status, search, dateFrom, dateTo, sortBy } = params;
+  const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status)   qs.set("status",   status);
+  if (search)   qs.set("search",   search);
+  if (dateFrom) qs.set("dateFrom", dateFrom);
+  if (dateTo)   qs.set("dateTo",   dateTo);
+  if (sortBy && sortBy !== "newest") qs.set("sortBy", sortBy);
 
   const client = authClient(token);
   const res    = await client.get<ApiResponse<PaginatedData<VendorOrder>>>(
-    `/api/vendor/orders?${params.toString()}`,
+    `/api/vendor/orders?${qs.toString()}`,
   );
   return res.data.data as PaginatedData<VendorOrder>;
 }

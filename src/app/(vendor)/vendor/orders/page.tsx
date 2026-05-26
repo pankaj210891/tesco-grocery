@@ -2,10 +2,11 @@
 
 import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ChevronDown, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Package, Search, RotateCcw } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useVendorStore } from "@/store/vendor.store";
 import { fetchVendorOrders, updateVendorOrderStatus } from "@/services/vendor.service";
+import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { toast } from "sonner";
 import { useVendorSSE } from "@/hooks/useVendorSSE";
 import type { VendorSSEOrderEvent, VendorSSENewOrderEvent } from "@/hooks/useVendorSSE";
@@ -33,22 +34,33 @@ export default function VendorOrdersPage() {
   const router = useRouter();
 
   const {
-    orders, ordersMeta, ordersPage, ordersStatus, ordersLoading,
-    setOrders, setOrdersPage, setOrdersStatus, setOrdersLoading, updateOrderStatus,
+    orders, ordersMeta, ordersPage, ordersStatus, ordersSearch,
+    ordersDateFrom, ordersDateTo, ordersSortBy, ordersLoading,
+    setOrders, setOrdersPage, setOrdersStatus, setOrdersSearch,
+    setOrdersDateFrom, setOrdersDateTo, setOrdersSortBy,
+    resetOrdersFilters, setOrdersLoading, updateOrderStatus,
   } = useVendorStore();
 
   const load = useCallback(async () => {
     if (!token) return;
     setOrdersLoading(true);
     try {
-      const res = await fetchVendorOrders(token, ordersPage, 20, ordersStatus);
+      const res = await fetchVendorOrders(token, {
+        page:     ordersPage,
+        limit:    20,
+        status:   ordersStatus   || undefined,
+        search:   ordersSearch   || undefined,
+        dateFrom: ordersDateFrom || undefined,
+        dateTo:   ordersDateTo   || undefined,
+        sortBy:   ordersSortBy   || undefined,
+      });
       setOrders(res.data, { total: res.total, page: res.page, totalPages: res.totalPages });
     } catch {
       toast.error("Failed to load orders. Please refresh the page.");
     } finally {
       setOrdersLoading(false);
     }
-  }, [token, ordersPage, ordersStatus, setOrders, setOrdersLoading]);
+  }, [token, ordersPage, ordersStatus, ordersSearch, ordersDateFrom, ordersDateTo, ordersSortBy, setOrders, setOrdersLoading]);
 
   useEffect(() => {
     if (!user)                                            { router.push("/login"); return; }
@@ -88,22 +100,73 @@ export default function VendorOrdersPage() {
         )}
       </div>
 
-      {/* Status filter */}
-      <div className="flex gap-1 flex-wrap">
-        {FILTER_STATUSES.map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setOrdersStatus(s.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
-              ordersStatus === s.value
-                ? "bg-[#1a7a4a] text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-            data-testid={`vendor-order-status-${s.value || "all"}`}
+      {/* Filter bar */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
+        {/* Row 1: search + date range + sort + clear */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              value={ordersSearch}
+              onChange={(e) => setOrdersSearch(e.target.value)}
+              placeholder="Search order number…"
+              data-testid="vendor-order-search"
+              className="w-full pl-9 pr-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+            />
+          </div>
+
+          {/* Date range */}
+          <AdminDateFilter
+            dateFrom={ordersDateFrom}
+            dateTo={ordersDateTo}
+            onApply={(from, to) => { setOrdersDateFrom(from); setOrdersDateTo(to); }}
+            onClear={() => { setOrdersDateFrom(""); setOrdersDateTo(""); }}
+            label="Date range"
+          />
+
+          {/* Sort */}
+          <select
+            value={ordersSortBy}
+            onChange={(e) => setOrdersSortBy(e.target.value)}
+            data-testid="vendor-order-sort"
+            className="text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
           >
-            {s.label}
-          </button>
-        ))}
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="amount-desc">Amount: High → Low</option>
+            <option value="amount-asc">Amount: Low → High</option>
+          </select>
+
+          {/* Clear */}
+          {(ordersStatus || ordersSearch || ordersDateFrom || ordersDateTo || ordersSortBy !== "newest") && (
+            <button
+              onClick={resetOrdersFilters}
+              data-testid="vendor-order-clear-filters"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" /> Clear
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: status tabs */}
+        <div className="flex gap-1 flex-wrap">
+          {FILTER_STATUSES.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setOrdersStatus(s.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
+                ordersStatus === s.value
+                  ? "bg-[#1a7a4a] text-white"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+              data-testid={`vendor-order-status-${s.value || "all"}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Orders table */}

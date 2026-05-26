@@ -36,7 +36,8 @@
       "Read(//private/tmp/**)",
       "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/**)",
       "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/lib/utils/**)",
-      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/lib/**)"
+      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/lib/**)",
+      "Read(//Users/pankaj/Desktop/Claude\\\\ AI\\\\ Learning/tesco-grocery/src/app/\\\\\\(shop\\\\\\)/search/**)"
     ],
     "deny": []
   },

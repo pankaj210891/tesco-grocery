@@ -24,16 +24,25 @@ interface VendorProductsState {
 // ── Vendor Orders slice ───────────────────────────────────────────────────────
 
 interface VendorOrdersState {
-  orders:          VendorOrder[];
-  ordersMeta:      PageMeta;
-  ordersPage:      number;
-  ordersStatus:    string;
-  ordersLoading:   boolean;
-  setOrders:       (orders: VendorOrder[], meta: PageMeta) => void;
-  setOrdersPage:   (page: number) => void;
-  setOrdersStatus: (status: string) => void;
-  setOrdersLoading: (v: boolean) => void;
-  updateOrderStatus: (id: string, status: string) => void;
+  orders:             VendorOrder[];
+  ordersMeta:         PageMeta;
+  ordersPage:         number;
+  ordersStatus:       string;
+  ordersSearch:       string;
+  ordersDateFrom:     string;
+  ordersDateTo:       string;
+  ordersSortBy:       string;
+  ordersLoading:      boolean;
+  setOrders:          (orders: VendorOrder[], meta: PageMeta) => void;
+  setOrdersPage:      (page: number) => void;
+  setOrdersStatus:    (status: string) => void;
+  setOrdersSearch:    (search: string) => void;
+  setOrdersDateFrom:  (date: string) => void;
+  setOrdersDateTo:    (date: string) => void;
+  setOrdersSortBy:    (sort: string) => void;
+  resetOrdersFilters: () => void;
+  setOrdersLoading:   (v: boolean) => void;
+  updateOrderStatus:  (id: string, status: string) => void;
 }
 
 // ── Vendor Analytics slice ────────────────────────────────────────────────────
@@ -62,16 +71,25 @@ export const useVendorStore = create<VendorStore>((set) => ({
   setProductsLoading: (v)              => set({ productsLoading: v }),
 
   // Orders
-  orders:            [],
-  ordersMeta:        DEFAULT_META,
-  ordersPage:        1,
-  ordersStatus:      "",
-  ordersLoading:     false,
-  setOrders:         (orders, meta) => set({ orders, ordersMeta: meta }),
-  setOrdersPage:     (page)         => set({ ordersPage: page }),
-  setOrdersStatus:   (status)       => set({ ordersStatus: status, ordersPage: 1 }),
-  setOrdersLoading:  (v)            => set({ ordersLoading: v }),
-  updateOrderStatus: (id, status)   =>
+  orders:             [],
+  ordersMeta:         DEFAULT_META,
+  ordersPage:         1,
+  ordersStatus:       "",
+  ordersSearch:       "",
+  ordersDateFrom:     "",
+  ordersDateTo:       "",
+  ordersSortBy:       "newest",
+  ordersLoading:      false,
+  setOrders:          (orders, meta) => set({ orders, ordersMeta: meta }),
+  setOrdersPage:      (page)         => set({ ordersPage: page }),
+  setOrdersStatus:    (status)       => set({ ordersStatus: status, ordersPage: 1 }),
+  setOrdersSearch:    (search)       => set({ ordersSearch: search,   ordersPage: 1 }),
+  setOrdersDateFrom:  (date)         => set({ ordersDateFrom: date,   ordersPage: 1 }),
+  setOrdersDateTo:    (date)         => set({ ordersDateTo: date,     ordersPage: 1 }),
+  setOrdersSortBy:    (sort)         => set({ ordersSortBy: sort,     ordersPage: 1 }),
+  resetOrdersFilters: ()             => set({ ordersStatus: "", ordersSearch: "", ordersDateFrom: "", ordersDateTo: "", ordersSortBy: "newest", ordersPage: 1 }),
+  setOrdersLoading:   (v)            => set({ ordersLoading: v }),
+  updateOrderStatus:  (id, status)   =>
     set((s) => ({
       orders: s.orders.map((o) =>
         o._id === id ? { ...o, status: status as VendorOrder["status"] } : o,
