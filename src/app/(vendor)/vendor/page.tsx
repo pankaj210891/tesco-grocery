@@ -183,9 +183,13 @@ export default function VendorDashboard() {
               <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">Products</p>
               <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">Add, edit, or remove your products and manage stock levels</p>
               {stats && stats.outOfStockProducts > 0 && (
-                <p className="flex items-center gap-1 text-xs text-red-500 font-medium mt-1.5">
+                <Link
+                  href="/vendor/products?inStock=false"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-xs text-red-500 font-medium mt-1.5 hover:underline w-fit"
+                >
                   <AlertTriangle className="h-3 w-3" /> {stats.outOfStockProducts} out of stock
-                </p>
+                </Link>
               )}
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />

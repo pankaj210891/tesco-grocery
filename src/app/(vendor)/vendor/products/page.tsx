@@ -65,7 +65,7 @@ export default function VendorProductsPage() {
   const [page, setPage]             = useState(1);
   const [search, setSearch]         = useState("");
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterInStock, setFilterInStock]   = useState(() => searchParams.get("inStock") ?? "");
+  const [filterInStock, setFilterInStock]   = useState("");
   const [filterBadge, setFilterBadge]       = useState("");
   const [sortBy, setSortBy]         = useState("newest");
   const [loading, setLoading]       = useState(true);
@@ -78,6 +78,14 @@ export default function VendorProductsPage() {
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState("");
   useScrollLock(modal !== null);
+
+  // Seed inStock filter from URL param on first mount (e.g. from dashboard stat card)
+  useEffect(() => {
+    const v = searchParams.get("inStock");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (v === "true" || v === "false") setFilterInStock(v);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only: only apply the URL seed once
 
   const loadCategories = useCallback(async () => {
     if (!token) return;
