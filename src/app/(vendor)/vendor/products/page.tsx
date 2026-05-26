@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Package, AlertTriangle, Layers, Trash2 } from "lucide-react";
+import { Plus, X, Package, AlertTriangle, Layers, Trash2, Search, RotateCcw } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
 import type { ApiResponse } from "@/lib/axios";
@@ -62,6 +62,11 @@ export default function VendorProductsPage() {
 
   const [data, setData]             = useState<PageData | null>(null);
   const [page, setPage]             = useState(1);
+  const [search, setSearch]         = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterInStock, setFilterInStock]   = useState("");
+  const [filterBadge, setFilterBadge]       = useState("");
+  const [sortBy, setSortBy]         = useState("newest");
   const [loading, setLoading]       = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [modal, setModal]           = useState<"add" | "edit" | null>(null);
@@ -73,37 +78,48 @@ export default function VendorProductsPage() {
   const [error, setError]           = useState("");
   useScrollLock(modal !== null);
 
-  useEffect(() => {
-    authClient("")
-      .get<ApiResponse<{ data: { name: string }[] }>>("/api/categories")
-      .then((r) => {
-        if (r.data.data) {
-          setCategories((r.data.data as unknown as { name: string }[]).map((c) => c.name));
-        }
-      })
+  const loadCategories = useCallback(async () => {
+    if (!token) return;
+    authClient(token)
+      .get<ApiResponse<string[]>>("/api/vendor/products/categories")
+      .then((r) => { if (r.data.data) setCategories(r.data.data); })
       .catch(() => { /* non-critical */ });
-  }, []);
+  }, [token]);
 
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
+      const qs = new URLSearchParams({ page: String(page), limit: "20" });
+      if (search)        qs.set("search",   search);
+      if (filterCategory) qs.set("category", filterCategory);
+      if (filterInStock)  qs.set("inStock",  filterInStock);
+      if (filterBadge)    qs.set("badge",    filterBadge);
+      if (sortBy !== "newest") qs.set("sortBy", sortBy);
+
       const client = authClient(token);
       const res    = await client.get<ApiResponse<PageData>>(
-        `/api/vendor/products?page=${page}&limit=20`,
+        `/api/vendor/products?${qs.toString()}`,
       );
       if (res.data.data) setData(res.data.data);
     } finally {
       setLoading(false);
     }
-  }, [page, token]);
+  }, [page, token, search, filterCategory, filterInStock, filterBadge, sortBy]);
 
   useEffect(() => {
     if (!user)                                             { router.push("/login"); return; }
     if (user.role !== "vendor" && user.role !== "admin")   { router.push("/");     return; }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [user, router, load]);
+    void loadCategories();
+  }, [user, router, load, loadCategories]);
+
+  function updateSearch(v: string)         { setSearch(v);         setPage(1); }
+  function updateFilterCategory(v: string) { setFilterCategory(v); setPage(1); }
+  function updateFilterInStock(v: string)  { setFilterInStock(v);  setPage(1); }
+  function updateFilterBadge(v: string)    { setFilterBadge(v);    setPage(1); }
+  function updateSortBy(v: string)         { setSortBy(v);         setPage(1); }
 
   function openAdd() {
     setForm({ ...EMPTY_FORM });
@@ -202,6 +218,7 @@ export default function VendorProductsPage() {
 
       setModal(null);
       void load();
+      void loadCategories();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save product");
     } finally {
@@ -214,6 +231,7 @@ export default function VendorProductsPage() {
     try {
       await authClient(token!).delete(`/api/vendor/products/${id}`);
       void load();
+      void loadCategories();
     } catch {
       setError("Failed to delete product. Please try again.");
     }
@@ -231,6 +249,114 @@ export default function VendorProductsPage() {
         >
           <Plus className="h-4 w-4" /> Add Product
         </button>
+      </div>
+
+      {/* Filter bar */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 space-y-3">
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => updateSearch(e.target.value)}
+              placeholder="Search products…"
+              data-testid="vendor-product-search"
+              className="w-full pl-9 pr-3 py-2 text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+            />
+          </div>
+
+          {/* Category */}
+          <select
+            value={filterCategory}
+            onChange={(e) => updateFilterCategory(e.target.value)}
+            data-testid="vendor-category-filter"
+            className="text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          {/* Badge */}
+          <select
+            value={filterBadge}
+            onChange={(e) => updateFilterBadge(e.target.value)}
+            data-testid="vendor-badge-filter"
+            className="text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+          >
+            <option value="">All Badges</option>
+            {["NEW", "HOT", "LIMITED", "ORGANIC", "EXCLUSIVE"].map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+
+          {/* Stock */}
+          <select
+            value={filterInStock}
+            onChange={(e) => updateFilterInStock(e.target.value)}
+            data-testid="vendor-stock-filter"
+            className="text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+          >
+            <option value="">All Stock</option>
+            <option value="true">In Stock</option>
+            <option value="false">Out of Stock</option>
+          </select>
+
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => updateSortBy(e.target.value)}
+            data-testid="vendor-sort-filter"
+            className="text-base md:text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a7a4a]"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+            <option value="name-asc">Name A–Z</option>
+          </select>
+
+          {/* Clear */}
+          {(search || filterCategory || filterInStock || filterBadge || sortBy !== "newest") && (
+            <button
+              onClick={() => { setSearch(""); setFilterCategory(""); setFilterInStock(""); setFilterBadge(""); setSortBy("newest"); setPage(1); }}
+              data-testid="vendor-clear-filters"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" /> Clear
+            </button>
+          )}
+        </div>
+
+        {/* Active filter chips */}
+        {(search || filterCategory || filterInStock || filterBadge) && (
+          <div className="flex flex-wrap gap-1.5">
+            {search && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#1a7a4a]/10 text-[#1a7a4a]">
+                &ldquo;{search}&rdquo;
+                <button onClick={() => updateSearch("")}><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {filterCategory && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#1a7a4a]/10 text-[#1a7a4a]">
+                {filterCategory}
+                <button onClick={() => updateFilterCategory("")}><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {filterBadge && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#1a7a4a]/10 text-[#1a7a4a]">
+                {filterBadge}
+                <button onClick={() => updateFilterBadge("")}><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {filterInStock && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#1a7a4a]/10 text-[#1a7a4a]">
+                {filterInStock === "true" ? "In Stock" : "Out of Stock"}
+                <button onClick={() => updateFilterInStock("")}><X className="h-3 w-3" /></button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <ProductsTable

@@ -9,10 +9,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const page      = Math.max(1, Number(searchParams.get("page")  ?? 1));
-    const limit     = Math.min(50, Number(searchParams.get("limit") ?? 20));
-    const status    = searchParams.get("status") ?? "";
-    const cursor    = searchParams.get("cursor") ?? undefined;
+    const page     = Math.max(1, Number(searchParams.get("page")  ?? 1));
+    const limit    = Math.min(50, Number(searchParams.get("limit") ?? 20));
+    const status   = searchParams.get("status")         ?? "";
+    const search   = searchParams.get("search")?.trim() ?? "";
+    const dateFrom = searchParams.get("dateFrom")       ?? "";
+    const dateTo   = searchParams.get("dateTo")         ?? "";
+    const sortBy   = searchParams.get("sortBy")         ?? "newest";
+    const cursor   = searchParams.get("cursor")         ?? undefined;
 
     const validStatus = VENDOR_ORDER_STATUSES.includes(status as VendorOrderStatus)
       ? (status as VendorOrderStatus)
@@ -21,6 +25,10 @@ export async function GET(req: NextRequest) {
     const result = await getVendorOrders({
       vendorId: auth.vendorId,
       status:   validStatus,
+      search:   search   || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo:   dateTo   || undefined,
+      sortBy:   sortBy   || undefined,
       page,
       limit,
       cursor,

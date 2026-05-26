@@ -11,7 +11,7 @@ import {
   type ActorRole,
 } from "@/constants/order-status";
 import type { VendorOrder, VendorOrderItem } from "@/types";
-import { decodeCursor, findKeyset, COMMON_SORT_CONFIGS } from "@/lib/pagination/keyset";
+import { decodeCursor, findKeyset } from "@/lib/pagination/keyset";
 
 // ─── Serialization ────────────────────────────────────────────────────────────
 
@@ -106,11 +106,15 @@ export function buildVendorOrderDocs(inputs: CreateVendorOrderInput[]) {
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export interface VendorOrderFilters {
-  vendorId: string;
-  status?:  VendorOrderStatus;
-  page?:    number;
-  limit?:   number;
-  cursor?:  string;
+  vendorId:  string;
+  status?:   VendorOrderStatus;
+  search?:   string;
+  dateFrom?: string;
+  dateTo?:   string;
+  sortBy?:   string;
+  page?:     number;
+  limit?:    number;
+  cursor?:   string;
 }
 
 export interface VendorOrdersResult {
@@ -124,9 +128,16 @@ export interface VendorOrdersResult {
   hasMore?:    boolean;
 }
 
+const ORDER_SORT_MAP: Record<string, Record<string, 1 | -1>> = {
+  newest:       { createdAt: -1 },
+  oldest:       { createdAt:  1 },
+  "amount-desc": { vendorEarning: -1 },
+  "amount-asc":  { vendorEarning:  1 },
+};
+
 export async function getVendorOrders(filters: VendorOrderFilters): Promise<VendorOrdersResult> {
   await connectDB();
-  const { vendorId, status, page = 1, limit = 20, cursor: rawCursor } = filters;
+  const { vendorId, status, search, dateFrom, dateTo, sortBy, page = 1, limit = 20, cursor: rawCursor } = filters;
 
   const query: Record<string, unknown> = {
     vendorId: new mongoose.Types.ObjectId(vendorId),
@@ -134,6 +145,21 @@ export async function getVendorOrders(filters: VendorOrderFilters): Promise<Vend
   if (status && VENDOR_ORDER_STATUSES.includes(status)) {
     query.status = status;
   }
+  if (search?.trim()) {
+    query.parentOrderNumber = { $regex: search.trim(), $options: "i" };
+  }
+  if (dateFrom || dateTo) {
+    const range: Record<string, Date> = {};
+    if (dateFrom) range.$gte = new Date(dateFrom);
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      range.$lte = end;
+    }
+    query.createdAt = range;
+  }
+
+  const sort = ORDER_SORT_MAP[sortBy ?? "newest"] ?? ORDER_SORT_MAP.newest;
 
   // ── Keyset mode ─────────────────────────────────────────────────────────────
   const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
@@ -158,7 +184,7 @@ export async function getVendorOrders(filters: VendorOrderFilters): Promise<Vend
     const skip = (page - 1) * limit;
     const [offsetDocs, countResult] = await Promise.all([
       VendorOrderModel.find(query)
-        .sort(COMMON_SORT_CONFIGS.newest.sort)
+        .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),

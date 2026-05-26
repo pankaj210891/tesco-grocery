@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import ProductModel from "@/lib/db/models/product.model";
 import VendorModel from "@/lib/db/models/vendor.model";
-import { decodeCursor, findKeyset, COMMON_SORT_CONFIGS } from "@/lib/pagination/keyset";
+import { decodeCursor, findKeyset } from "@/lib/pagination/keyset";
 
 export async function GET(req: NextRequest) {
   const auth = await requireVendor(req);
@@ -16,7 +16,27 @@ export async function GET(req: NextRequest) {
     const limit     = Math.min(50, Number(searchParams.get("limit") ?? 20));
     const rawCursor = searchParams.get("cursor") ?? "";
 
-    const filter = { vendorId: auth.vendorId };
+    const search   = searchParams.get("search")?.trim() ?? "";
+    const category = searchParams.get("category")?.trim() ?? "";
+    const inStock  = searchParams.get("inStock") ?? "";
+    const badge    = searchParams.get("badge")?.trim() ?? "";
+    const sortBy   = searchParams.get("sortBy") ?? "newest";
+
+    const filter: Record<string, unknown> = { vendorId: auth.vendorId };
+    if (search)   filter.name     = { $regex: search, $options: "i" };
+    if (category) filter.category = category;
+    if (badge)    filter.badge    = badge;
+    if (inStock === "true")  filter.inStock = true;
+    if (inStock === "false") filter.inStock = false;
+
+    const SORT_MAP: Record<string, Record<string, 1 | -1>> = {
+      newest:     { createdAt: -1 },
+      oldest:     { createdAt:  1 },
+      "price-asc":  { price:  1 },
+      "price-desc": { price: -1 },
+      "name-asc":   { name:   1 },
+    };
+    const sort = SORT_MAP[sortBy] ?? SORT_MAP.newest;
 
     // ── Keyset mode ───────────────────────────────────────────────────────────
     const cursorObj = rawCursor ? decodeCursor(rawCursor) : null;
@@ -24,7 +44,7 @@ export async function GET(req: NextRequest) {
     if (cursorObj) {
       const { docs, nextCursor, hasMore } = await findKeyset({
         model:  ProductModel,
-        filter: filter as Record<string, unknown>,
+        filter,
         cursor: cursorObj,
         limit,
       });
@@ -38,7 +58,7 @@ export async function GET(req: NextRequest) {
     // ── Offset mode (backward compatible) ─────────────────────────────────────
     const [products, total] = await Promise.all([
       ProductModel.find(filter)
-        .sort(COMMON_SORT_CONFIGS.newest.sort)
+        .sort(sort)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
