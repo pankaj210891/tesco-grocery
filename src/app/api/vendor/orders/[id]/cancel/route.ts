@@ -7,6 +7,7 @@ import { syncParentOrderStatus } from "@/services/order-status.service";
 import { enqueueRestoreStock } from "@/lib/queue/jobs/stock.jobs";
 import { connectDB } from "@/lib/db/mongoose";
 import VendorOrderModel from "@/lib/db/models/vendor-order.model";
+import { emitAfterVendorStatusChange } from "@/lib/sse/emitter";
 
 const bodySchema = z.object({
   reason: z.string().min(5).max(300),
@@ -61,6 +62,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
 
     await syncParentOrderStatus(updated.parentOrderId);
+
+    void emitAfterVendorStatusChange(
+      updated._id,
+      updated.parentOrderNumber,
+      auth.vendorId,
+      updated.status,
+    );
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

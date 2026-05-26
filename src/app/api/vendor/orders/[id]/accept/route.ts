@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { requireVendor } from "@/lib/utils/apiAuth";
 import { acceptVendorOrder } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
+import { emitAfterVendorStatusChange } from "@/lib/sse/emitter";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -25,6 +26,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     await syncParentOrderStatus(updated.parentOrderId);
+
+    void emitAfterVendorStatusChange(
+      updated._id,
+      updated.parentOrderNumber,
+      auth.vendorId,
+      updated.status,
+    );
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

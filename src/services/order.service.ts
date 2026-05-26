@@ -8,6 +8,7 @@ import { getConfig, getRateForVendor } from "@/services/commission.service";
 import { buildVendorOrderDocs, type CreateVendorOrderInput } from "@/services/vendor-order.service";
 import { enqueueMarkOutOfStock } from "@/lib/queue/jobs/stock.jobs";
 import { enqueueVendorNewOrderNotifications, type VendorGroupForQueue } from "@/lib/queue/jobs/vendor.jobs";
+import { emitNewOrder } from "@/lib/sse/emitter";
 import type {
   Order,
   ParentOrderStatus,
@@ -350,6 +351,13 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
     }),
   );
   void enqueueVendorNewOrderNotifications(orderId, orderNumber, vendorGroupsForQueue);
+
+  // SSE: notify admin + each vendor of the new order (fire-and-forget)
+  void emitNewOrder(
+    orderNumber,
+    input.total,
+    vendorGroupsForQueue.map((g) => g.vendorId),
+  );
 
   return { orderId, orderNumber, vendorOrderIds };
 }
