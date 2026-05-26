@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense, lazy } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, Search, X, Filter, RotateCcw } from "lucide-react";
+import { Plus, Search, Filter, RotateCcw } from "lucide-react";
 import { ProductsTable } from "@/components/common/ProductsTable";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient, apiClient } from "@/lib/axios";
 import {
   useAdminProductsStore,
   type AdminProductFilters,
+  DEFAULT_PRODUCT_FILTERS,
 } from "@/store/admin-products.store";
+import { useAdminFilters } from "@/hooks/useAdminFilters";
+import { FilterChip } from "@/components/admin/FilterChip";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import type { Product, Vendor } from "@/types";
@@ -61,11 +63,17 @@ function hasActiveFilters(f: AdminProductFilters): boolean {
 
 function AdminProductsPageInner() {
   const { user, token } = useAuthStore();
-  const router   = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const { page, filters, setPage, setFilter, resetFilters } = useAdminProductsStore();
+
+  const { filterReady } = useAdminFilters({
+    defaultFilters: DEFAULT_PRODUCT_FILTERS,
+    buildQS,
+    setFilter,
+    setPage,
+    filters,
+    page,
+  });
 
   const [data, setData]           = useState<PageData | null>(null);
   // All vendors (any status) — used by the filter dropdown in the table header
@@ -91,31 +99,6 @@ function AdminProductsPageInner() {
   const debouncedSearch   = useDebounce(filters.search, 350);
   const debouncedMinPrice = useDebounce(filters.minPrice, 500);
   const debouncedMaxPrice = useDebounce(filters.maxPrice, 500);
-
-  // Sync store from URL on mount
-  useEffect(() => {
-    const p: Partial<AdminProductFilters> = {
-      search:      searchParams.get("search")      ?? "",
-      category:    searchParams.get("category")    ?? "",
-      subcategory: searchParams.get("subcategory") ?? "",
-      brand:       searchParams.get("brand")       ?? "",
-      vendorId:    searchParams.get("vendorId")    ?? "",
-      status:      searchParams.get("status")      ?? "",
-      inStock:     searchParams.get("inStock")     ?? "",
-      badge:       searchParams.get("badge")       ?? "",
-      minPrice:    searchParams.get("minPrice")    ?? "",
-      maxPrice:    searchParams.get("maxPrice")    ?? "",
-      rating:      searchParams.get("rating")      ?? "",
-      discount:    searchParams.get("discount")    ?? "",
-      dateFrom:    searchParams.get("dateFrom")    ?? "",
-      dateTo:      searchParams.get("dateTo")      ?? "",
-      sortBy:      searchParams.get("sortBy")      ?? "newest",
-    };
-    setFilter(p);
-    const pg = Number(searchParams.get("page") ?? 1);
-    if (pg > 1) setPage(pg);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Fetch vendors, categories, brands (once)
   useEffect(() => {
@@ -164,26 +147,13 @@ function AdminProductsPageInner() {
       debouncedMinPrice, debouncedMaxPrice, filters.rating, filters.discount,
       filters.dateFrom, filters.dateTo, filters.sortBy, token]);
 
-  // Auth guard
+  // Fetch when filters / page change — gated on filterReady so the first
+  // request uses URL-initialised filter values, not the empty store defaults.
   useEffect(() => {
-    if (!user) { router.push("/login"); return; }
-    if (user.role !== "admin") { router.push("/"); return; }
-  }, [user, router]);
-
-  // Fetch when filters / page change
-  useEffect(() => {
-    if (!user || user.role !== "admin") return;
+    if (!user || user.role !== "admin" || !filterReady) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [load, user]);
-
-  // Sync URL when filter state changes (after initial mount)
-  useEffect(() => {
-    const qs = buildQS(filters, page);
-    const url = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
-    router.replace(url, { scroll: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
+  }, [load, user, filterReady]);
 
   const openAdd = useCallback(() => {
     setForm({ ...EMPTY_FORM });
@@ -507,40 +477,40 @@ function AdminProductsPageInner() {
         {hasActiveFilters(filters) && (
           <div className="flex flex-wrap gap-1.5 pt-1" data-testid="active-filters">
             {filters.search && (
-              <Chip label={`"${filters.search}"`} onRemove={() => setFilter({ search: "" })} />
+              <FilterChip label={`"${filters.search}"`} onRemove={() => setFilter({ search: "" })} />
             )}
             {filters.category && (
-              <Chip label={`Cat: ${filters.category}`} onRemove={() => setFilter({ category: "" })} />
+              <FilterChip label={`Cat: ${filters.category}`} onRemove={() => setFilter({ category: "" })} />
             )}
             {filters.subcategory && (
-              <Chip label={`Sub: ${filters.subcategory}`} onRemove={() => setFilter({ subcategory: "" })} />
+              <FilterChip label={`Sub: ${filters.subcategory}`} onRemove={() => setFilter({ subcategory: "" })} />
             )}
             {filters.brand && (
-              <Chip label={`Brand: ${filters.brand}`} onRemove={() => setFilter({ brand: "" })} />
+              <FilterChip label={`Brand: ${filters.brand}`} onRemove={() => setFilter({ brand: "" })} />
             )}
             {filters.vendorId && (
-              <Chip label={`Vendor: ${vendors.find((v) => v._id === filters.vendorId)?.name ?? filters.vendorId}`} onRemove={() => setFilter({ vendorId: "" })} />
+              <FilterChip label={`Vendor: ${vendors.find((v) => v._id === filters.vendorId)?.name ?? filters.vendorId}`} onRemove={() => setFilter({ vendorId: "" })} />
             )}
             {filters.status && (
-              <Chip label={STATUS_LABELS[filters.status] ?? filters.status} onRemove={() => setFilter({ status: "" })} />
+              <FilterChip label={STATUS_LABELS[filters.status] ?? filters.status} onRemove={() => setFilter({ status: "" })} />
             )}
             {filters.inStock && (
-              <Chip label={filters.inStock === "true" ? "In Stock" : "Out of Stock"} onRemove={() => setFilter({ inStock: "" })} />
+              <FilterChip label={filters.inStock === "true" ? "In Stock" : "Out of Stock"} onRemove={() => setFilter({ inStock: "" })} />
             )}
             {filters.badge && (
-              <Chip label={`Badge: ${filters.badge}`} onRemove={() => setFilter({ badge: "" })} />
+              <FilterChip label={`Badge: ${filters.badge}`} onRemove={() => setFilter({ badge: "" })} />
             )}
             {(filters.minPrice || filters.maxPrice) && (
-              <Chip label={`₹${filters.minPrice || "0"} – ₹${filters.maxPrice || "∞"}`} onRemove={() => setFilter({ minPrice: "", maxPrice: "" })} />
+              <FilterChip label={`₹${filters.minPrice || "0"} – ₹${filters.maxPrice || "∞"}`} onRemove={() => setFilter({ minPrice: "", maxPrice: "" })} />
             )}
             {filters.rating && (
-              <Chip label={`${filters.rating}+ Stars`} onRemove={() => setFilter({ rating: "" })} />
+              <FilterChip label={`${filters.rating}+ Stars`} onRemove={() => setFilter({ rating: "" })} />
             )}
             {filters.discount && (
-              <Chip label={`${filters.discount}%+ off`} onRemove={() => setFilter({ discount: "" })} />
+              <FilterChip label={`${filters.discount}%+ off`} onRemove={() => setFilter({ discount: "" })} />
             )}
             {(filters.dateFrom || filters.dateTo) && (
-              <Chip label={`${filters.dateFrom || "…"} → ${filters.dateTo || "…"}`} onRemove={() => setFilter({ dateFrom: "", dateTo: "" })} />
+              <FilterChip label={`${filters.dateFrom || "…"} → ${filters.dateTo || "…"}`} onRemove={() => setFilter({ dateFrom: "", dateTo: "" })} />
             )}
           </div>
         )}
@@ -589,17 +559,6 @@ function AdminProductsPageInner() {
         </Suspense>
       )}
     </div>
-  );
-}
-
-function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
-      {label}
-      <button onClick={onRemove} className="hover:text-blue-900 dark:hover:text-blue-100" aria-label={`Remove ${label} filter`}>
-        <X className="h-3 w-3" />
-      </button>
-    </span>
   );
 }
 

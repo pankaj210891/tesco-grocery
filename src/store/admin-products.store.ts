@@ -1,6 +1,7 @@
-import { create } from "zustand";
+import { createAdminStore } from "./createAdminStore";
 
 export interface AdminProductFilters {
+  [key: string]: string;
   search:      string;
   category:    string;
   subcategory: string;
@@ -18,26 +19,10 @@ export interface AdminProductFilters {
   sortBy:      string;
 }
 
-interface AdminProductsState {
-  page:     number;
-  filters:  AdminProductFilters;
-
-  setPage:      (page: number) => void;
-  setFilter:    (partial: Partial<AdminProductFilters>) => void;
-  resetFilters: () => void;
-}
-
 export const DEFAULT_PRODUCT_FILTERS: AdminProductFilters = {
   search: "", category: "", subcategory: "", brand: "", vendorId: "",
   status: "", inStock: "", badge: "", minPrice: "", maxPrice: "",
   rating: "", discount: "", dateFrom: "", dateTo: "", sortBy: "newest",
 };
 
-export const useAdminProductsStore = create<AdminProductsState>((set) => ({
-  page:    1,
-  filters: { ...DEFAULT_PRODUCT_FILTERS },
-
-  setPage:      (page)    => set({ page }),
-  setFilter:    (partial) => set((s) => ({ filters: { ...s.filters, ...partial }, page: 1 })),
-  resetFilters: ()        => set({ filters: { ...DEFAULT_PRODUCT_FILTERS }, page: 1 }),
-}));
+export const useAdminProductsStore = createAdminStore<AdminProductFilters>(DEFAULT_PRODUCT_FILTERS);

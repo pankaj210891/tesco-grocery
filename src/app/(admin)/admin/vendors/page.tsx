@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, ChevronLeft, ChevronRight, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle, ShieldCheck, ShieldAlert, Clock, FileText } from "lucide-react";
+import { Plus, X, Search, Eye, Pencil, RotateCcw, Mail, CheckCircle, ShieldCheck, ShieldAlert, Clock, FileText } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient, type ApiResponse } from "@/lib/axios";
 import { toast } from "sonner";
 import {
   useAdminVendorsStore,
+  DEFAULT_VENDOR_FILTERS,
   type AdminVendorFilters,
 } from "@/store/admin-vendors.store";
+import { useAdminFilters } from "@/hooks/useAdminFilters";
+import { FilterChip } from "@/components/admin/FilterChip";
+import { AdminTableShell } from "@/components/admin/AdminTableShell";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AdminDateFilter } from "@/components/admin/AdminDateFilter";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -75,11 +78,17 @@ function hasActiveFilters(f: AdminVendorFilters): boolean {
 
 function AdminVendorsPageInner() {
   const { user, token } = useAuthStore();
-  const router   = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const { page, filters, setPage, setFilter, resetFilters } = useAdminVendorsStore();
+
+  const { filterReady } = useAdminFilters({
+    defaultFilters: DEFAULT_VENDOR_FILTERS,
+    buildQS,
+    setFilter,
+    setPage,
+    filters,
+    page,
+  });
 
   const [data, setData]         = useState<PageData | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -113,12 +122,6 @@ function AdminVendorsPageInner() {
 
   useScrollLock(addModal || inviteModal || viewVendor !== null);
 
-  // ── Bug 2 fix: guard load + URL-sync until URL→store init completes ─────────
-  // On mount three effects fire synchronously in order. Without this guard the
-  // Store→URL effect runs first (with empty initial state) and wipes the URL
-  // params before the URL→Store effect has a chance to read them.
-  const [filterReady, setFilterReady] = useState(false);
-
   // ── Tabs ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"vendors" | "invites">("vendors");
 
@@ -127,22 +130,6 @@ function AdminVendorsPageInner() {
   const [inviteListLoading, setInviteListLoading] = useState(false);
 
   const debouncedSearch = useDebounce(filters.search, 350);
-
-  // Sync store from URL on mount — must run before any load or URL-write
-  useEffect(() => {
-    const p: Partial<AdminVendorFilters> = {
-      search:   searchParams.get("search")   ?? "",
-      status:   searchParams.get("status")   ?? "",
-      dateFrom: searchParams.get("dateFrom") ?? "",
-      dateTo:   searchParams.get("dateTo")   ?? "",
-    };
-    setFilter(p);
-    const pg = Number(searchParams.get("page") ?? 1);
-    if (pg > 1) setPage(pg);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFilterReady(true); // unblock load + URL sync after this render
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,25 +162,11 @@ function AdminVendorsPageInner() {
   }, [token]);
 
   useEffect(() => {
-    if (!user)                 { router.push("/login"); return; }
-    if (user.role !== "admin") { router.push("/");      return; }
-  }, [user, router]);
-
-  useEffect(() => {
     if (!filterReady || !user || user.role !== "admin") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     void loadInvites();
   }, [load, loadInvites, user, filterReady]);
-
-  // Sync URL when filters change — skip until filterReady to avoid wiping URL on mount
-  useEffect(() => {
-    if (!filterReady) return;
-    const qs = buildQS(filters, page);
-    const url = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
-    router.replace(url, { scroll: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page, filterReady]);
 
   async function handleAddSave() {
     setAddSaving(true); setAddError("");
@@ -405,13 +378,13 @@ function AdminVendorsPageInner() {
         {hasActiveFilters(filters) && (
           <div className="flex flex-wrap gap-1.5 pt-1" data-testid="active-vendor-filters">
             {filters.search && (
-              <Chip label={`"${filters.search}"`} onRemove={() => setFilter({ search: "" })} />
+              <FilterChip label={`"${filters.search}"`} onRemove={() => setFilter({ search: "" })} />
             )}
             {filters.status && (
-              <Chip label={`Status: ${filters.status}`} onRemove={() => setFilter({ status: "" })} />
+              <FilterChip label={`Status: ${filters.status}`} onRemove={() => setFilter({ status: "" })} />
             )}
             {(filters.dateFrom || filters.dateTo) && (
-              <Chip label={`${filters.dateFrom || "…"} → ${filters.dateTo || "…"}`} onRemove={() => setFilter({ dateFrom: "", dateTo: "" })} />
+              <FilterChip label={`${filters.dateFrom || "…"} → ${filters.dateTo || "…"}`} onRemove={() => setFilter({ dateFrom: "", dateTo: "" })} />
             )}
           </div>
         )}
@@ -469,93 +442,85 @@ function AdminVendorsPageInner() {
 
         {/* ── Vendors tab ─────────────────────────────────────────────────── */}
         {activeTab === "vendors" && (
-          <>
-            <div className="overflow-auto flex-1">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Vendor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Owner</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">City</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">KYC</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden lg:table-cell">Joined</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                  {loading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i}><td colSpan={8} className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td></tr>
-                    ))
-                  ) : error ? (
-                    <tr><td colSpan={8} className="px-4 py-10 text-center text-red-500 text-sm">{error}</td></tr>
-                  ) : data?.vendors.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">No vendors found</td></tr>
-                  ) : data?.vendors.map((v) => (
-                    <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">{v.name}</p>
-                        <p className="text-xs text-gray-400 font-mono">{v.slug}</p>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.ownerName}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{v.city || "—"}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{v.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        {(() => {
-                          const kycSt = v.kyc?.status ?? "not_submitted";
-                          const KycIcon = KYC_ICONS[kycSt];
-                          return (
-                            <span
-                              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${KYC_COLORS[kycSt]}`}
-                              data-testid={`kyc-badge-${v._id}`}
-                            >
-                              <KycIcon className="h-3 w-3" />
-                              {kycSt.replace("_", " ")}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 whitespace-nowrap hidden lg:table-cell">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <button
-                            onClick={() => openView(v)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
-                            title="View details"
-                            data-testid={`view-vendor-${v._id}`}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          {v.status !== "active" && (
-                            <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50" data-testid={`approve-vendor-${v._id}`}>Approve</button>
-                          )}
-                          {v.status === "active" && (
-                            <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50" data-testid={`suspend-vendor-${v._id}`}>Suspend</button>
-                          )}
-                          <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30" data-testid={`delete-vendor-${v._id}`}>Delete</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {data && data.totalPages > 1 && (
-              <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm shrink-0">
-                <span className="text-gray-500" data-testid="vendor-pagination-info">Page {data.page} of {data.totalPages} · {data.total} vendors</span>
-                <div className="flex gap-2">
-                  <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-                  <button disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                </div>
-              </div>
-            )}
-          </>
+          <AdminTableShell
+            bare
+            headerRow={
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Vendor</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Owner</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">City</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">KYC</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap hidden lg:table-cell">Joined</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Actions</th>
+              </tr>
+            }
+            loading={loading}
+            skeletonRows={4}
+            colSpan={8}
+            isEmpty={!loading && !error && (data?.vendors.length ?? 0) === 0}
+            emptyMessage={error ? error : "No vendors found"}
+            tableClassName="w-full text-sm min-w-[640px]"
+            pagination={data && data.totalPages > 1 ? {
+              page: data.page,
+              totalPages: data.totalPages,
+              total: data.total,
+              label: "vendors",
+              onPageChange: setPage,
+              testIdPrefix: "vendor",
+            } : undefined}
+          >
+            {data?.vendors.map((v) => (
+              <tr key={v._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30" data-testid="vendor-row">
+                <td className="px-4 py-3">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">{v.name}</p>
+                  <p className="text-xs text-gray-400 font-mono">{v.slug}</p>
+                </td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.ownerName}</td>
+                <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{v.city || "—"}</td>
+                <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{v.email}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[v.status] ?? ""}`}>{v.status}</span>
+                </td>
+                <td className="px-4 py-3 hidden md:table-cell">
+                  {(() => {
+                    const kycSt = v.kyc?.status ?? "not_submitted";
+                    const KycIcon = KYC_ICONS[kycSt];
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${KYC_COLORS[kycSt]}`}
+                        data-testid={`kyc-badge-${v._id}`}
+                      >
+                        <KycIcon className="h-3 w-3" />
+                        {kycSt.replace("_", " ")}
+                      </span>
+                    );
+                  })()}
+                </td>
+                <td className="px-4 py-3 text-gray-400 whitespace-nowrap hidden lg:table-cell">{new Date(v.createdAt).toLocaleDateString("en-GB")}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() => openView(v)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-[#0F4C75] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                      title="View details"
+                      data-testid={`view-vendor-${v._id}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    {v.status !== "active" && (
+                      <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "active")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 disabled:opacity-50" data-testid={`approve-vendor-${v._id}`}>Approve</button>
+                    )}
+                    {v.status === "active" && (
+                      <button disabled={updating === v._id} onClick={() => updateStatus(v._id, "suspended")} className="text-xs px-2 py-1 rounded-lg font-semibold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/30 disabled:opacity-50" data-testid={`suspend-vendor-${v._id}`}>Suspend</button>
+                    )}
+                    <button onClick={() => handleDelete(v._id)} className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30" data-testid={`delete-vendor-${v._id}`}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </AdminTableShell>
         )}
 
         {/* ── Invites tab ─────────────────────────────────────────────────── */}
@@ -980,17 +945,6 @@ function AdminVendorsPageInner() {
         </div>
       )}
     </div>
-  );
-}
-
-function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
-      {label}
-      <button onClick={onRemove} className="hover:text-blue-900 dark:hover:text-blue-100" aria-label={`Remove ${label} filter`}>
-        <X className="h-3 w-3" />
-      </button>
-    </span>
   );
 }
 
