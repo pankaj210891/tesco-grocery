@@ -79,8 +79,8 @@ export default function VendorDashboard() {
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="vendor-stats-grid">
           <StatsCard label="Total Products"  value={stats.totalProducts}      icon={Package}     color="blue"   href="/vendor/products" />
-          <StatsCard label="In Stock"        value={stats.inStockProducts}    icon={CheckCircle} color="green"  href="/vendor/products" />
-          <StatsCard label="Out of Stock"    value={stats.outOfStockProducts} icon={XCircle}     color="red"    href="/vendor/products" />
+          <StatsCard label="In Stock"        value={stats.inStockProducts}    icon={CheckCircle} color="green"  href="/vendor/products?inStock=true" />
+          <StatsCard label="Out of Stock"    value={stats.outOfStockProducts} icon={XCircle}     color="red"    href="/vendor/products?inStock=false" />
           <StatsCard label="Orders"          value={stats.totalOrders}        icon={ShoppingBag} color="purple" href="/vendor/orders"
             sub={stats.pendingOrders > 0 ? `${stats.pendingOrders} pending` : undefined} />
         </div>

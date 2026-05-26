@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { Clock, AlertTriangle, UserX, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export default function VendorStatusGuard({ children }: Props) {
-  const { user, token, hasHydrated } = useAuthStore();
+  const { user, token, hasHydrated, setAuth } = useAuthStore();
   const [status, setStatus] = useState<VendorStatusData["status"] | "loading">("loading");
   const [vendorName, setVendorName] = useState("");
 
@@ -22,15 +23,41 @@ export default function VendorStatusGuard({ children }: Props) {
     if (!user || !token) { setStatus("loading"); return; }
     if (user.role === "admin") { setStatus("active"); return; }
 
-    authClient(token)
-      .get<ApiResponse<VendorStatusData>>("/api/vendor/status")
-      .then((res) => {
+    const currentUser = user;
+    let cancelled = false;
+
+    async function fetchStatus(bearerToken: string, isRetry = false): Promise<void> {
+      try {
+        const res = await authClient(bearerToken).get<ApiResponse<VendorStatusData>>("/api/vendor/status");
+        if (cancelled) return;
         const data = res.data.data as VendorStatusData;
         setStatus(data.status);
         if (data.name) setVendorName(data.name);
-      })
-      .catch(() => setStatus("not_found"));
-  }, [hasHydrated, user, token]);
+      } catch {
+        if (cancelled) return;
+        if (isRetry) {
+          window.location.href = "/login";
+          return;
+        }
+        try {
+          const refreshRes = await axios.post<ApiResponse<{ token: string }>>(
+            "/api/auth/refresh",
+            {},
+            { withCredentials: true },
+          );
+          const newToken = refreshRes.data.data?.token;
+          if (!newToken) throw new Error("missing token");
+          setAuth(currentUser, newToken);
+          await fetchStatus(newToken, true);
+        } catch {
+          if (!cancelled) window.location.href = "/login";
+        }
+      }
+    }
+
+    void fetchStatus(token);
+    return () => { cancelled = true; };
+  }, [hasHydrated, user, token, setAuth]);
 
   if (status === "loading") {
     return (
