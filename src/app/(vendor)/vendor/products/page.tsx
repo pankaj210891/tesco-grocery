@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, X, Package, AlertTriangle, Layers, Trash2, Search, RotateCcw } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { authClient } from "@/lib/axios";
@@ -58,13 +58,14 @@ const labelCls = "block text-xs font-semibold text-gray-500 uppercase mb-1 track
 
 export default function VendorProductsPage() {
   const { user, token } = useAuthStore();
-  const router = useRouter();
+  const router      = useRouter();
+  const searchParams = useSearchParams();
 
   const [data, setData]             = useState<PageData | null>(null);
   const [page, setPage]             = useState(1);
   const [search, setSearch]         = useState("");
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterInStock, setFilterInStock]   = useState("");
+  const [filterInStock, setFilterInStock]   = useState(() => searchParams.get("inStock") ?? "");
   const [filterBadge, setFilterBadge]       = useState("");
   const [sortBy, setSortBy]         = useState("newest");
   const [loading, setLoading]       = useState(true);
