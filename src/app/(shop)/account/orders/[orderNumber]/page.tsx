@@ -87,7 +87,22 @@ export default function OrderDetailPage({
     onVendorStatus: (payload: VendorOrderSSEStatusEvent) => {
       setVendorOrders((prev) =>
         prev.map((vo) =>
-          vo._id === payload.vendorOrderId ? { ...vo, status: payload.status } : vo,
+          vo._id === payload.vendorOrderId
+            ? {
+                ...vo,
+                status: payload.status,
+                statusHistory: [
+                  ...vo.statusHistory,
+                  {
+                    status:    payload.status,
+                    note:      "",
+                    updatedBy: null,
+                    role:      "system" as const,
+                    changedAt: payload.updatedAt,
+                  },
+                ],
+              }
+            : vo,
         ),
       );
     },
