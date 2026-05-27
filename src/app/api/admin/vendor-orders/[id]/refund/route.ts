@@ -9,6 +9,7 @@ import OrderModel from "@/lib/db/models/order.model";
 import { markVendorOrderRefunded } from "@/services/vendor-order.service";
 import { syncParentOrderStatus } from "@/services/order-status.service";
 import { sendRefundConfirmed } from "@/services/email.service";
+import { formatPrice } from "@/lib/utils/format";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (refundAmount <= 0 || refundAmount > maxRefundable) {
       return NextResponse.json(
-        { success: false, error: `Invalid refund amount. Maximum refundable: ₹${maxRefundable.toFixed(2)}` },
+        { success: false, error: `Invalid refund amount. Maximum refundable: ${formatPrice(maxRefundable)}` },
         { status: 422 },
       );
     }

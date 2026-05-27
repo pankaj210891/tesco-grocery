@@ -57,13 +57,13 @@ export async function POST(req: NextRequest) {
 
     const validated = await validateCheckoutOrder({ items, delivery, promoCode, userId, paymentMethod: "razorpay" });
 
-    // Razorpay requires amount in smallest currency unit (paise for INR)
+    // Razorpay requires amount in smallest currency unit (100 subunits per major unit)
     const amountInPaise = Math.round(validated.total * 100);
 
     const rzp   = getRazorpay();
     const order = await rzp.orders.create({
       amount:          amountInPaise,
-      currency:        "INR",
+      currency:        process.env.NEXT_PUBLIC_CURRENCY ?? "INR",
       payment_capture: true,   // auto-capture on payment so refunds work
       receipt:         `rcpt_${Date.now()}`,
       notes: {
