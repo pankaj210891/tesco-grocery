@@ -31,8 +31,8 @@ export async function POST(req: Request) {
 
     const rzp = getRazorpay();
     const order = await (rzp.orders.create({
-      amount:          amount * 100, // paise
-      currency:        "INR",
+      amount:          amount * 100, // subunits (100 per major unit)
+      currency:        process.env.NEXT_PUBLIC_CURRENCY ?? "INR",
       payment_capture: true,
       receipt:         `wt_${Date.now()}`, // max 40 chars — keep short
       notes:           { userId, purpose: "wallet_topup" },

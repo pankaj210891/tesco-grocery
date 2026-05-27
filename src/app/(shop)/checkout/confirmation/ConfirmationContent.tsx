@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Package, ShoppingBag, CreditCard, Truck, MapPin, ArrowRight, Clock } from "lucide-react";
+import { formatPrice } from "@/lib/utils/format";
 
 const orderConfirmationGenericMessage =
   "Your order is confirmed and will be processed shortly.";
@@ -15,9 +16,7 @@ export default function ConfirmationContent() {
   const pm          = sp.get("pm") as "razorpay" | "cod" | null;
   const isCOD       = pm === "cod";
 
-  const formattedTotal = totalRaw
-    ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(totalRaw))
-    : null;
+  const formattedTotal = totalRaw ? formatPrice(Number(totalRaw)) : null;
 
   const NEXT_STEPS = isCOD
     ? [

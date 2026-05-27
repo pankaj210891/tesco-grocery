@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db/mongoose";
 import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
 import { AdminRefundSchema } from "@/lib/validations/admin-filters";
+import { formatPrice } from "@/lib/utils/format";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           return NextResponse.json(
             {
               success: false,
-              error: `Refund amount for product ${refundItem.productId} exceeds item total of ₹${maxItemRefund.toFixed(2)}`,
+              error: `Refund amount for product ${refundItem.productId} exceeds item total of ${formatPrice(maxItemRefund)}`,
             },
             { status: 422 },
           );
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (refundAmount > maxRefundable) {
       return NextResponse.json(
-        { success: false, error: `Refund amount exceeds refundable balance of ₹${maxRefundable.toFixed(2)}` },
+        { success: false, error: `Refund amount exceeds refundable balance of ${formatPrice(maxRefundable)}` },
         { status: 422 },
       );
     }

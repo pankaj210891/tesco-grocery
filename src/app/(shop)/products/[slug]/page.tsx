@@ -120,7 +120,7 @@ export default async function ProductDetailPage({ params }: Props) {
     offers: {
       "@type":           "Offer",
       price:             product.price,
-      priceCurrency:     "INR",
+      priceCurrency:     process.env.NEXT_PUBLIC_CURRENCY ?? "INR",
       availability:      isAvailable
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",

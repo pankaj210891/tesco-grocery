@@ -1,3 +1,5 @@
+import { formatPrice } from "@/lib/utils/format";
+
 const BRAND_COLOR = "#14532d";
 const LOGO_TEXT   = "Prakash Supermarket";
 
@@ -79,7 +81,7 @@ export function orderConfirmationTemplate(d: OrderConfirmationData): { subject: 
       `<tr>
         <td>${i.name}</td>
         <td style="text-align:center">${i.quantity}</td>
-        <td style="text-align:right">₹${(i.price * i.quantity).toFixed(2)}</td>
+        <td style="text-align:right">${formatPrice(i.price * i.quantity)}</td>
       </tr>`,
   ).join("");
 
@@ -95,7 +97,7 @@ export function orderConfirmationTemplate(d: OrderConfirmationData): { subject: 
        <table class="items">
          <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr></thead>
          <tbody>${rows}</tbody>
-         <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right">₹${d.total.toFixed(2)}</td></tr></tfoot>
+         <tfoot><tr class="total-row"><td colspan="2">Total</td><td style="text-align:right">${formatPrice(d.total)}</td></tr></tfoot>
        </table>
      </div>
      <p>We'll notify you when your order is out for delivery.</p>`,
@@ -120,7 +122,7 @@ export function orderStatusTemplate(d: OrderStatusData): { subject: string; html
      <p>Hi ${d.customerName},</p>
      <p>Your order <strong>${d.orderNumber}</strong> has been updated to:</p>
      <p style="margin:16px 0"><span class="badge" style="font-size:15px">${label}</span></p>
-     <p><strong>Order Total:</strong> ₹${d.total.toFixed(2)}</p>
+     <p><strong>Order Total:</strong> ${formatPrice(d.total)}</p>
      <p>You can track your order anytime from your account dashboard.</p>`,
   );
 
@@ -169,7 +171,7 @@ export function orderCancellationTemplate(d: OrderCancellationData): { subject: 
     : "";
 
   const refundBlock = d.isRefundable
-    ? `<p>Since you paid online, a <strong>full refund of ₹${d.total.toFixed(2)}</strong> has been initiated to your original payment method. It will reflect within <strong>5–7 business days</strong>.</p>`
+    ? `<p>Since you paid online, a <strong>full refund of ${formatPrice(d.total)}</strong> has been initiated to your original payment method. It will reflect within <strong>5–7 business days</strong>.</p>`
     : `<p>This was a Cash on Delivery order, so no payment was collected — nothing further is required on your end.</p>`;
 
   const html = base(
@@ -189,7 +191,7 @@ export function refundConfirmedTemplate(d: RefundConfirmedData): { subject: stri
     "Refund Confirmed",
     `<h2>Refund Processed Successfully</h2>
      <p>Hi ${d.customerName},</p>
-     <p>Great news! Your refund of <strong>₹${d.total.toFixed(2)}</strong> for order <strong>${d.orderNumber}</strong> has been successfully processed.</p>
+     <p>Great news! Your refund of <strong>${formatPrice(d.total)}</strong> for order <strong>${d.orderNumber}</strong> has been successfully processed.</p>
      <p>The amount should appear in your account within 1–3 business days depending on your bank.</p>
      <p>Thank you for shopping with us — we hope to serve you again soon.</p>`,
   );
@@ -302,7 +304,7 @@ export function vendorNewOrderTemplate(d: VendorNewOrderData): { subject: string
     (i) => `<tr>
       <td>${i.name}</td>
       <td style="text-align:center">${i.quantity}</td>
-      <td style="text-align:right">₹${(i.price * i.quantity).toFixed(2)}</td>
+      <td style="text-align:right">${formatPrice(i.price * i.quantity)}</td>
     </tr>`,
   ).join("");
 
@@ -316,7 +318,7 @@ export function vendorNewOrderTemplate(d: VendorNewOrderData): { subject: string
        <table class="items">
          <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr></thead>
          <tbody>${rows}</tbody>
-         <tfoot><tr class="total-row"><td colspan="2">Your Earning</td><td style="text-align:right">₹${d.subtotal.toFixed(2)}</td></tr></tfoot>
+         <tfoot><tr class="total-row"><td colspan="2">Your Earning</td><td style="text-align:right">${formatPrice(d.subtotal)}</td></tr></tfoot>
        </table>
      </div>
      <p style="text-align:center;margin:24px 0">
@@ -361,12 +363,12 @@ export function vendorPayoutTemplate(d: VendorPayoutData): { subject: string; ht
     "Payout Processed",
     `<h2>Payout Processed 💰</h2>
      <p>Hi ${d.vendorName},</p>
-     <p>Great news! A payout of <strong>₹${d.amount.toFixed(2)}</strong> has been released to your registered bank account.</p>
+     <p>Great news! A payout of <strong>${formatPrice(d.amount)}</strong> has been released to your registered bank account.</p>
      <p><strong>Payout Reference:</strong> ${d.payoutRef}</p>
      <p><strong>Orders covered:</strong> ${d.orderNumbers.join(", ")}</p>
      <p>The amount should reflect in your account within 1–3 business days depending on your bank.</p>
      <p style="font-size:13px;color:#6b7280">If you have any questions about this payout, please contact our seller support team.</p>`,
   );
 
-  return { subject: `Payout of ₹${d.amount.toFixed(2)} Processed`, html };
+  return { subject: `Payout of ${formatPrice(d.amount)} Processed`, html };
 }
