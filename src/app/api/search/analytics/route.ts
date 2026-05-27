@@ -5,6 +5,7 @@ import {
   logSearchClick,
   getPopularSearches,
 } from "@/lib/search/search-analytics";
+import { searchLimiter, getClientIp, applyRateLimit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,14 @@ const ClickSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rl = await applyRateLimit(searchLimiter, getClientIp(req));
+  if (rl.limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const body  = await req.json();
     const parse = ClickSchema.safeParse(body);

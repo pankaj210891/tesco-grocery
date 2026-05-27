@@ -1,7 +1,13 @@
 import { transporter, FROM_ADDRESS } from "@/lib/email/mailer";
 import { sendOrderStatus } from "@/services/email.service";
 
-const TEST_RECIPIENTS = ["pankaj.mundra@prakashinfotech.com", "pankajmundra@outlook.com"];
+// Comma-separated list of test recipients from env — no hardcoded addresses in source.
+// Example: TEST_EMAIL_RECIPIENTS=a@example.com,b@example.com
+const raw = process.env.TEST_EMAIL_RECIPIENTS ?? "";
+const TEST_RECIPIENTS = raw
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 export async function GET() {
   const config = {

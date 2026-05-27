@@ -61,6 +61,34 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { type, reason, items, amount } = parsed.data;
 
+    // Verify each refund item actually exists in the order (ownership check)
+    if (items && items.length > 0) {
+      type OrderItem = { productId: string; price: number; quantity: number };
+      const orderItemsMap = new Map(
+        (order.items as OrderItem[]).map((i) => [i.productId, i]),
+      );
+
+      for (const refundItem of items) {
+        const orderItem = orderItemsMap.get(refundItem.productId);
+        if (!orderItem) {
+          return NextResponse.json(
+            { success: false, error: `Product ${refundItem.productId} is not part of this order` },
+            { status: 422 },
+          );
+        }
+        const maxItemRefund = orderItem.price * orderItem.quantity;
+        if (refundItem.amount > maxItemRefund) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Refund amount for product ${refundItem.productId} exceeds item total of ₹${maxItemRefund.toFixed(2)}`,
+            },
+            { status: 422 },
+          );
+        }
+      }
+    }
+
     // Compute the refund amount for this request
     let refundAmount: number;
 

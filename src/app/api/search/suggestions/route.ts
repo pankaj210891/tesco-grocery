@@ -8,6 +8,7 @@ import {
 } from "@/lib/search/atlas-search";
 import { normalizeQuery, buildRegexFilter } from "@/lib/search/search-utils";
 import { logSearchQuery } from "@/lib/search/search-analytics";
+import { searchLimiter, getClientIp, applyRateLimit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,14 @@ type RawProduct = {
 };
 
 export async function GET(req: NextRequest) {
+  const rl = await applyRateLimit(searchLimiter, getClientIp(req));
+  if (rl.limited) {
+    return Response.json(
+      { success: false, error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   const raw = req.nextUrl.searchParams.get("q") ?? "";
   const q   = normalizeQuery(raw); // trims, collapses whitespace, enforces 120-char max
 

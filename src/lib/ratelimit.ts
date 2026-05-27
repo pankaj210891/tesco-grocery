@@ -46,6 +46,8 @@ export const loginLimiter          = makeLimiter(5,  "15 m"); // 5 attempts / 15
 export const registerLimiter       = makeLimiter(3,  "1 h");  // 3 sign-ups / hour per IP
 export const forgotPasswordLimiter = makeLimiter(3,  "1 h");  // 3 resets / hour per IP
 export const paymentLimiter        = makeLimiter(10, "1 m");  // 10 payment ops / min per user
+export const searchLimiter         = makeLimiter(30, "1 m");  // 30 search/suggestions per min per IP
+export const analyticsLimiter      = makeLimiter(60, "1 h");  // 60 analytics reads per hour per user
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

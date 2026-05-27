@@ -4,10 +4,19 @@ import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
 import ProductModel from "@/lib/db/models/product.model";
 import VendorModel from "@/lib/db/models/vendor.model";
+import { analyticsLimiter, applyRateLimit } from "@/lib/ratelimit";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
+
+  const rl = await applyRateLimit(analyticsLimiter, auth.userId);
+  if (rl.limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
 
   try {
     await connectDB();
