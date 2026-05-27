@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/utils/apiAuth";
 import OrderModel from "@/lib/db/models/order.model";
 // Register VendorEarning model for $lookup
 import "@/lib/db/models/vendor-earning.model";
+import { analyticsLimiter, applyRateLimit } from "@/lib/ratelimit";
 
 const querySchema = z.object({
   period: z.enum(["7d", "30d", "90d", "12m", "custom"]).default("30d"),
@@ -63,6 +64,14 @@ async function querySummary(match: Record<string, unknown>): Promise<PeriodSumma
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
+
+  const rl = await applyRateLimit(analyticsLimiter, auth.userId);
+  if (rl.limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
 
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
   if (!parsed.success) {
