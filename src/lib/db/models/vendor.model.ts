@@ -33,7 +33,7 @@ const VendorSchema = new Schema(
 
 VendorSchema.index({ ownerId: 1 });
 VendorSchema.index({ status: 1 });
-VendorSchema.index({ email: 1 }, { unique: true });
+// email unique index is declared inline via `unique: true` on the field — no duplicate needed
 VendorSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
 // Keyset pagination
 VendorSchema.index({ createdAt: -1, _id: -1 });

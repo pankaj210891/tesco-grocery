@@ -72,10 +72,16 @@ export async function applyRateLimit(
   limiter: Limiter,
   identifier: string
 ): Promise<{ limited: false } | { limited: true; retryAfter: number }> {
-  const result = await limiter.limit(identifier);
-  if (!result.success) {
-    const retryAfter = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
-    return { limited: true, retryAfter };
+  try {
+    const result = await limiter.limit(identifier);
+    if (!result.success) {
+      const retryAfter = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+      return { limited: true, retryAfter };
+    }
+    return { limited: false };
+  } catch {
+    // Redis unavailable — fail open so requests are not blocked when the
+    // rate-limit backend is down.
+    return { limited: false };
   }
-  return { limited: false };
 }

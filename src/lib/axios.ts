@@ -94,7 +94,10 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch {
         abortQueue();
-        // Refresh token is invalid or expired — redirect to login
+        // Clear persisted auth state so the redirect to /login doesn't re-trigger
+        // the same 401 → refresh → redirect cycle on next page load.
+        const { useAuthStore } = await import("@/store/auth.store");
+        useAuthStore.setState({ user: null, token: null });
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
@@ -185,6 +188,9 @@ export function authClient(token: string): AxiosInstance {
           return instance(original);
         } catch {
           authRefreshQueue = [];
+          // Clear persisted auth state to prevent the same redirect loop on reload.
+          const { useAuthStore } = await import("@/store/auth.store");
+          useAuthStore.setState({ user: null, token: null });
           if (typeof window !== "undefined") {
             window.location.href = "/login";
           }

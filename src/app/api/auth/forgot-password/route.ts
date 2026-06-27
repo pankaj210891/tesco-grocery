@@ -13,14 +13,18 @@ const OTP_EXPIRES_MIN  = 60;
 const SUCCESS_MSG = "If an account with that email exists, a reset OTP has been sent.";
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 3 requests per hour per IP
-  const ip    = getClientIp(req);
-  const limit = await applyRateLimit(forgotPasswordLimiter, `fp:${ip}`);
-  if (limit.limited) {
-    return NextResponse.json(
-      { success: false, error: "Too many requests. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
-    );
+  try {
+    // Rate limit: 3 requests per hour per IP
+    const ip    = getClientIp(req);
+    const limit = await applyRateLimit(forgotPasswordLimiter, `fp:${ip}`);
+    if (limit.limited) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+      );
+    }
+  } catch {
+    // Rate limiter unavailable — fail open and continue
   }
 
   try {

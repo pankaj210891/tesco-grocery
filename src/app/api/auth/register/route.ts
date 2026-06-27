@@ -7,14 +7,18 @@ import { registerLimiter, applyRateLimit, getClientIp } from "@/lib/ratelimit";
 import logger from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 3 registrations per hour per IP
-  const ip    = getClientIp(req);
-  const limit = await applyRateLimit(registerLimiter, `register:${ip}`);
-  if (limit.limited) {
-    return Response.json(
-      { success: false, error: "Too many registration attempts. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
-    );
+  try {
+    // Rate limit: 3 registrations per hour per IP
+    const ip    = getClientIp(req);
+    const limit = await applyRateLimit(registerLimiter, `register:${ip}`);
+    if (limit.limited) {
+      return Response.json(
+        { success: false, error: "Too many registration attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+      );
+    }
+  } catch {
+    // Rate limiter unavailable — fail open and continue
   }
 
   try {

@@ -42,8 +42,8 @@ export default function RootLayout({
      * suppressHydrationWarning prevents the mismatch warning caused by
      * ThemeProvider toggling the "dark" class on <html> during hydration.
      */
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body>
+    <html lang="en" className={inter.variable} suppressHydrationWarning data-scroll-behavior="smooth">
+      <body suppressHydrationWarning>
         {/*
          * Blocking theme-init script injected by Next.js into <head> via
          * strategy="beforeInteractive".  Next.js owns the injection on both
