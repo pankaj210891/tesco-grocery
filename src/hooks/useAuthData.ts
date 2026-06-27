@@ -36,7 +36,7 @@ export function useAuthData() {
     loadedFor.current = user._id;
 
     // Only fetch if not already loaded in this session
-    if (!cartLoaded)     void fetchCart(token);
-    if (!wishlistLoaded) void fetchWishlist(token);
+    if (!cartLoaded)     void fetchCart(token).catch(() => {});
+    if (!wishlistLoaded) void fetchWishlist(token).catch(() => {});
   }, [hasHydrated, user, token, cartLoaded, wishlistLoaded, fetchCart, fetchWishlist, resetCart, resetWishlist]);
 }

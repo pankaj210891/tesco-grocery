@@ -6,14 +6,18 @@ import { loginLimiter, applyRateLimit, getClientIp } from "@/lib/ratelimit";
 import logger from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 5 attempts per 15 minutes per IP
-  const ip    = getClientIp(req);
-  const limit = await applyRateLimit(loginLimiter, `login:${ip}`);
-  if (limit.limited) {
-    return Response.json(
-      { success: false, error: "Too many login attempts. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
-    );
+  try {
+    // Rate limit: 5 attempts per 15 minutes per IP
+    const ip    = getClientIp(req);
+    const limit = await applyRateLimit(loginLimiter, `login:${ip}`);
+    if (limit.limited) {
+      return Response.json(
+        { success: false, error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+      );
+    }
+  } catch {
+    // Rate limiter unavailable — fail open and continue
   }
 
   try {
